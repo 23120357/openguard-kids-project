@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+<header><span class="brand">OpenGuard Kids</span><span>Bố mẹ và con cùng đồng hành</span></header>
+<main>
+  <p class="badge">BẢN PHÁT TRIỂN · TUẦN 1</p>
+  <h1>Một khởi đầu an toàn.</h1>
+  <p class="intro">Kết nối thiết bị và cùng con thiết lập thời gian sử dụng máy tính.</p>
+  <p class="notice">Bản mẫu hiện chỉ đồng bộ cấu hình. Chưa ghi nhận hoạt động, khóa máy hoặc lọc website.</p>
+  <p id="message" role="status" aria-live="polite"></p>
+  <section id="login-panel" class="card">
+    <h2>Đăng nhập phụ huynh</h2>
+    <form id="login-form">
+      <label>Email<input name="email" type="email" autocomplete="username" required></label>
+      <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required></label>
+      <button>Đăng nhập</button>
+    </form>
+  </section>
+  <div id="workspace" hidden>
+    <div class="toolbar"><p id="identity"></p><button id="logout" class="secondary">Đăng xuất</button></div>
+    <div class="grid">
+      <section class="card">
+        <h2>1. Hồ sơ của con</h2>
+        <form id="child-form"><label>Tên gọi của con<input name="display_name" maxlength="80" required></label><button>Tạo hồ sơ</button></form>
+        <label>Hồ sơ đang chọn<select id="child-select"></select></label>
+      </section>
+      <section class="card">
+        <h2>2. Kết nối thiết bị</h2>
+        <p>Mã có hiệu lực 10 phút và chỉ sử dụng được một lần.</p>
+        <form id="code-form">
+          <label class="check"><input name="consent" type="checkbox" required> Tôi đồng ý ghép thiết bị cho con và đã đọc thông tin dữ liệu bên dưới.</label>
+          <button>Tạo mã ghép đôi</button>
+        </form>
+        <output id="pairing-code"></output>
+      </section>
+      <section class="card">
+        <h2>3. Chính sách thời gian</h2>
+        <form id="policy-form">
+          <label>Ngày thường (phút)<input name="weekday_minutes" type="number" min="1" max="1440" required></label>
+          <label>Cuối tuần (phút)<input name="weekend_minutes" type="number" min="1" max="1440" required></label>
+          <p id="policy-version"></p><button>Lưu chính sách</button>
+        </form>
+      </section>
+      <section class="card">
+        <h2>Thiết bị đã kết nối</h2>
+        <p>Tự cập nhật mỗi 10 giây. Mất heartbeat quá 120 giây sẽ hiển thị ngoại tuyến.</p>
+        <ul id="devices"></ul>
+      </section>
+    </div>
+    <section class="card"><h2>Thay đổi gần đây</h2><ul id="audit"></ul></section>
+  </div>
+  <section class="privacy">
+    <h2>Ứng dụng này biết gì về em?</h2>
+    <p>Bản mẫu lưu tên gọi của em, tên thiết bị, lần thiết bị kết nối gần nhất và thời gian bố mẹ cài đặt.
+    Ứng dụng chưa đọc nội dung em gõ, tin nhắn, tài liệu hay chụp màn hình.</p>
+    <p>Bố mẹ hãy dùng tên gọi, không cần nhập họ tên đầy đủ. Chức năng xem báo cáo dành cho trẻ sẽ được bổ sung.</p>
+  </section>
+</main><footer>OpenGuard Kids · Công cụ đồng hành cùng trẻ</footer>
+</body></html>
