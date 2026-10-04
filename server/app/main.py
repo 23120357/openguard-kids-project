@@ -6,8 +6,9 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import Settings
-from .database import build_database
+from .database import build_database, migrate_development_schema
 from .models import Base
+from .realtime import DeviceConnections, ParentEvents
 from .routes import router
 from .security import RateLimiter
 
@@ -16,12 +17,15 @@ DASHBOARD = Path(__file__).resolve().parents[2] / "dashboard"
 
 def create_app(settings: Settings | None = None):
     settings = settings or Settings.from_env()
+    if len(settings.policy_signing_key) < 32:
+        raise ValueError("OGK_POLICY_SIGNING_KEY must contain at least 32 characters")
     engine, sessions = build_database(settings.database_url)
 
     @asynccontextmanager
     async def lifespan(app):
         # Initial scaffold only. Replace with migrations before schema evolution.
         Base.metadata.create_all(engine)
+        migrate_development_schema(engine)
         yield
         engine.dispose()
 
@@ -30,6 +34,8 @@ def create_app(settings: Settings | None = None):
     app.state.engine = engine
     app.state.sessions = sessions
     app.state.limiter = RateLimiter()
+    app.state.device_connections = DeviceConnections()
+    app.state.parent_events = ParentEvents()
 
     @app.middleware("http")
     async def security_headers(request, call_next):
@@ -43,7 +49,7 @@ def create_app(settings: Settings | None = None):
                 "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
                 "base-uri 'self'; form-action 'self'"
             )
-        if request.url.path.startswith("/api"):
+        if request.url.path == "/" or request.url.path.startswith(("/static/", "/api/")):
             response.headers["Cache-Control"] = "no-store"
         return response
 

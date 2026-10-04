@@ -1,76 +1,87 @@
-# Giao thức API phiên bản 0.1
+# API đang triển khai - cuối Tuần 2
 
-Base URL phát triển: http://127.0.0.1:8000/api.
-Payload JSON; schema máy đọc được tại /openapi.json.
-Lỗi có trường detail; không gửi mật khẩu/token vào log hoặc URL.
+Base URL development: `http://127.0.0.1:8000/api`. OpenAPI runtime nằm tại
+`/openapi.json`. Hợp đồng production đích chi tiết hơn nằm tại
+[AGENT_SERVER_API.md](AGENT_SERVER_API.md); không coi endpoint thiết kế là đã có
+nếu không xuất hiện trong OpenAPI runtime.
 
-## API phụ huynh
+## Xác thực phụ huynh
 
-Đăng nhập POST /auth/login với email, password.
-Phản hồi có email và csrf_token, đồng thời đặt cookie ogk_session:
-HttpOnly, SameSite=Lax, hạn 12 giờ. Secure bật qua OGK_COOKIE_SECURE khi dùng HTTPS.
-GET /auth/me lấy email và csrf_token sau khi tải lại trang.
-Mọi thao tác ghi của phụ huynh sau đăng nhập phải gửi X-CSRF-Token.
-POST /auth/logout hủy session server và cookie.
+- `POST /auth/login`: email/password; đặt cookie `ogk_session` HttpOnly,
+  SameSite=Lax, hạn 12 giờ và trả CSRF token.
+- `GET /auth/me`: trả identity và CSRF token của phiên hiện hành.
+- `POST /auth/logout`: yêu cầu CSRF; hủy session server và cookie.
+- Mọi thao tác ghi của phụ huynh gửi `X-CSRF-Token`.
+- Query tài nguyên luôn ràng buộc `parent_id`; tài nguyên của phụ huynh khác trả 404.
 
-| Method | Đường dẫn | Body hoặc kết quả |
+## API phụ huynh và dashboard
+
+| Method | Path | Chức năng |
 |---|---|---|
-| GET | /children | Danh sách hồ sơ của phụ huynh |
-| POST | /children | display_name; trả id và display_name |
-| POST | /enrollment-codes | child_id, consent: true; trả code, expires_at |
-| GET | /children/{id}/policy | Policy hiện tại |
-| PUT | /children/{id}/policy | expected_version, weekday_minutes, weekend_minutes |
-| GET | /devices | id, child_id, display_name, last_seen, policy_version, online |
-| GET | /audit | Tối đa 100 bản ghi mới nhất của phụ huynh |
+| GET/POST | `/children` | Liệt kê hoặc tạo hồ sơ với username và PIN 6 số; tạo policy mặc định |
+| PUT | `/children/{id}/pin` | Đổi/bổ sung PIN và ghi audit |
+| POST | `/enrollment-codes` | Mã 8 ký tự, hạn 10 phút, dùng một lần; yêu cầu consent |
+| GET/PUT | `/children/{id}/policy` | Đọc hoặc cập nhật quota, enabled và lịch 7×48 bằng `expected_version` |
+| GET | `/devices` | Trạng thái online, phiên trẻ, policy version, used/remaining |
+| POST | `/devices/{id}/commands` | Tạo `lock_now` hoặc `add_time` và thử gửi realtime |
+| GET | `/time-requests` | Danh sách request xin thêm giờ |
+| POST | `/time-requests/{id}/decision` | Duyệt/từ chối; duyệt tạo command cộng giờ |
+| GET | `/audit` | Tối đa 100 thay đổi mới nhất thuộc phụ huynh |
+| GET | `/parent/events` | SSE báo dashboard tải lại children/policy/status |
 
-Policy quota phải từ 1 đến 1440 phút. Version không khớp trả 409;
-client cần tải lại policy trước khi chỉnh tiếp. Tài nguyên của phụ huynh khác trả 404.
-Consent được ghi trong audit khi cấp mã ghép đôi.
+Dashboard không dựa hoàn toàn vào SSE; polling 10 giây là fallback. Lịch UI dùng
+giờ 24h và bước 30 phút, nhưng payload policy vẫn là 7 chuỗi 48 ký tự `0/1`.
 
-## API thiết bị
+## Enrollment và token thiết bị
 
-POST /enroll:
+`POST /enroll` nhận mã, tên thiết bị và fingerprint logic của lần cài đặt. Server
+không thu serial phần cứng. Thành công trả device ID, child ban đầu, access token,
+refresh token và khóa HMAC riêng của device. Token thô chỉ xuất hiện trong response;
+server lưu SHA-256 hash.
 
-```json
-{
-  "code": "ABCDEFGH",
-  "display_name": "Lab device",
-  "fingerprint": "random-installation-identifier"
-}
-```
+`POST /auth/device/refresh` xoay cả access và refresh token. Access token hạn 15
+phút; refresh token hạn 30 ngày. Các endpoint thiết bị dùng
+`Authorization: Bearer <access_token>`.
 
-Fingerprint mẫu là ID cài đặt ngẫu nhiên; không thu serial phần cứng.
-Mã sai/hết hạn/đã dùng trả 400. Thành công trả 201:
+## Đồng bộ thiết bị
 
-```json
-{
-  "device_id": "<uuid>",
-  "access_token": "<opaque-secret>",
-  "refresh_token": "<opaque-secret>",
-  "token_type": "bearer",
-  "expires_in": 900
-}
-```
+| Method | Path | Chức năng |
+|---|---|---|
+| POST | `/heartbeat` | Gửi policy version/usage; nhận version mới và command chưa ACK |
+| POST | `/device/session` | Báo child/username đang dùng máy và thời điểm bắt đầu |
+| POST | `/device/time-status` | Báo used, remaining, mode và trạng thái active khoảng 3 giây/lần |
+| GET | `/device/profiles` | Danh sách profile/PIN hash/policy đã ký thuộc parent của device |
+| POST | `/device/requests` | Tạo request xin thêm giờ từ child đang đăng nhập |
+| GET | `/policy` | Policy của child gốc của device; giữ cho compatibility |
+| GET | `/device/audit` | Audit scope theo child đang hoạt động trên device |
+| WS | `/device/ws` | `policy_changed`, command khẩn và ACK command |
 
-POST /auth/device/refresh nhận device_id và refresh_token, trả cặp token mới.
-Refresh hạn 30 ngày, xoay vòng sau mỗi lần dùng; token cũ mất hiệu lực.
+Policy/profile document có `integrity.algorithm = hmac-sha256` và `signature` trên
+JSON canonical. Agent phải giữ cache hợp lệ cũ nếu tài liệu mới sai chữ ký.
 
-POST /heartbeat cần Authorization: Bearer <access_token>:
+## Realtime và fallback
 
-```json
-{"policy_version": 0}
-```
+- Khi parent sửa policy, WebSocket gửi tín hiệu để agent tải document mới ngay.
+- Command được ghi DB trước khi thử WebSocket. Nếu agent offline, heartbeat/reconnect
+  trả command chưa ACK.
+- Command ID ngăn cộng giờ hoặc khóa lặp khi server gửi lại.
+- Request xin giờ dùng worker riêng, không chờ policy heartbeat.
+- Time status dùng vòng lặp riêng để dashboard đếm đồng bộ với client.
 
-Phản hồi có server_time, policy_version, commands: [].
-Chưa gửi quota đã dùng hoặc trạng thái enforcement trong bản mẫu.
-GET /policy dùng cùng Bearer token, trả child_id, version, weekday_minutes,
-weekend_minutes. Policy gắn với thiết bị đã xác thực, không nhận child_id tùy ý.
-Token hết hạn/sai/thiết bị revoked trả 401.
-Chưa triển khai command queue hay WebSocket; commands luôn là mảng rỗng.
+## Audit và thời gian
 
-## Giới hạn giai đoạn này
+Audit policy/command/request lưu actor, Unix UTC timestamp, IP trực tiếp và old/new
+value. UI chuyển timestamp sang múi giờ máy người xem. Event F1 cục bộ còn có
+`recorded_at` ISO 8601 UTC để chẩn đoán.
 
-Chưa có phân trang, thu hồi thiết bị qua API, events, reports, lịch tuần,
-chữ ký policy và child-view/admin. Khi thêm event phải giữ đúng 7 trường đề bài;
-idempotency key nên đặt trong envelope của batch hoặc metadata vận chuyển,
-không tự ý thêm nội dung nhạy cảm vào subject.
+## Giới hạn hiện tại
+
+- HTTP loopback/LAN lab, chưa có TLS/pinning.
+- WebSocket development truyền access token trong query string.
+- Chưa có API event batch F2/F3, retention 90 ngày hoặc xóa dữ liệu phân tán.
+- Chưa có revoke device UI, household nhiều phụ huynh hoặc role admin production.
+- `create_all` và migration idempotent chỉ phù hợp development; chưa có Alembic.
+
+Test contract nằm trong `tests/test_f4_remote.py`, `tests/test_agent_setup_flow.py`
+và `tests/test_realtime_updates.py`. Cách chạy đầu-cuối nằm tại
+[WEEK3_HANDOFF.md](WEEK3_HANDOFF.md).

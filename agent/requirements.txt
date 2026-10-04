@@ -1,2 +1,8 @@
 httpx>=0.28,<0.29
+argon2-cffi>=23.1,<26
+python-dotenv>=1.0,<2
+websocket-client>=1.8,<2
+Pillow>=11,<13
+pystray>=0.19,<1
+pywin32>=306,<400; sys_platform == "win32"
 

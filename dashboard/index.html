@@ -2,16 +2,16 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css">
-  <script src="/static/app.js" defer></script>
+  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css?v=20261004-schedule-validation">
+  <script src="/static/app.js?v=20261004-schedule-validation" defer></script>
 </head>
 <body>
 <header><span class="brand">OpenGuard Kids</span><span>Bố mẹ và con cùng đồng hành</span></header>
 <main>
-  <p class="badge">BẢN PHÁT TRIỂN · TUẦN 1</p>
+  <p class="badge">BẢN PHÁT TRIỂN · TUẦN 2</p>
   <h1>Một khởi đầu an toàn.</h1>
   <p class="intro">Kết nối thiết bị và cùng con thiết lập thời gian sử dụng máy tính.</p>
-  <p class="notice">Bản mẫu hiện chỉ đồng bộ cấu hình. Chưa ghi nhận hoạt động, khóa máy hoặc lọc website.</p>
+  <p class="notice">Bản Tuần 2 đồng bộ quota/lịch tuần và gửi lệnh khẩn tới Windows agent. Chỉ dùng trên máy lab.</p>
   <p id="message" role="status" aria-live="polite"></p>
   <section id="login-panel" class="card">
     <h2>Đăng nhập phụ huynh</h2>
@@ -26,8 +26,19 @@
     <div class="grid">
       <section class="card">
         <h2>1. Hồ sơ của con</h2>
-        <form id="child-form"><label>Tên gọi của con<input name="display_name" maxlength="80" required></label><button>Tạo hồ sơ</button></form>
+        <form id="child-form">
+          <label>Tên đăng nhập của con<input name="display_name" maxlength="80" required></label>
+          <label>PIN 6 chữ số<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required></label>
+          <label>Nhập lại PIN<input name="pin_confirm" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required></label>
+          <button>Tạo hồ sơ</button>
+        </form>
         <label>Hồ sơ đang chọn<select id="child-select"></select></label>
+        <p id="child-pin-status" class="hint"></p>
+        <form id="pin-form">
+          <label>Đổi hoặc bổ sung PIN cho hồ sơ đang chọn<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required></label>
+          <label>Nhập lại PIN<input name="pin_confirm" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required></label>
+          <button class="secondary">Lưu PIN</button>
+        </form>
       </section>
       <section class="card">
         <h2>2. Kết nối thiết bị</h2>
@@ -41,15 +52,22 @@
       <section class="card">
         <h2>3. Chính sách thời gian</h2>
         <form id="policy-form">
+          <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát thời gian</label>
           <label>Ngày thường (phút)<input name="weekday_minutes" type="number" min="1" max="1440" required></label>
           <label>Cuối tuần (phút)<input name="weekend_minutes" type="number" min="1" max="1440" required></label>
+          <fieldset><legend>Lịch dùng máy theo ngày</legend><p class="hint">Giờ theo định dạng 24h; phút chỉ chọn 00 hoặc 30. Mỗi ngày chọn một khoảng liên tục. Giờ kết thúc 00:00 nghĩa là hết ngày (nửa đêm hôm sau).</p><p id="schedule-error" class="validation-error" role="alert" aria-live="assertive"></p><div id="schedule-grid"></div></fieldset>
           <p id="policy-version"></p><button>Lưu chính sách</button>
         </form>
       </section>
       <section class="card">
         <h2>Thiết bị đã kết nối</h2>
-        <p>Tự cập nhật mỗi 10 giây. Mất heartbeat quá 120 giây sẽ hiển thị ngoại tuyến.</p>
+        <p>Tự cập nhật khi có thay đổi; kiểm tra lại mỗi 10 giây nếu mất kết nối thời gian thực.</p>
         <ul id="devices"></ul>
+      </section>
+      <section class="card">
+        <h2>Yêu cầu xin thêm giờ</h2>
+        <p>Kiểm tra ai đã gửi yêu cầu, từ thiết bị nào và số phút mong muốn.</p>
+        <ul id="time-requests"></ul>
       </section>
     </div>
     <section class="card"><h2>Thay đổi gần đây</h2><ul id="audit"></ul></section>

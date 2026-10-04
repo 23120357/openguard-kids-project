@@ -47,7 +47,7 @@ def parent(client):
 
 @pytest.fixture
 def child(parent):
-    response = parent.post("/api/children", json={"display_name": "Bé An"})
+    response = parent.post("/api/children", json={"display_name": "Bé An", "pin": "123456"})
     assert response.status_code == 201
     return response.json()
 

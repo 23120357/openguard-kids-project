@@ -1,0 +1,660 @@
+openapi: 3.1.0
+info:
+  title: OpenGuard Kids Agent API
+  version: 1.0.0-draft
+  description: >-
+    Target HTTP contract between the Windows agent and OGK Server. The WebSocket
+    message protocol is defined in docs/AGENT_SERVER_API.md.
+servers:
+  - url: https://localhost:8000
+    description: Pinned-TLS lab server
+tags:
+  - name: Enrollment
+  - name: Synchronization
+  - name: Events
+  - name: Requests
+  - name: Commands
+paths:
+  /api/v1/agent/enroll:
+    post:
+      tags: [Enrollment]
+      operationId: enrollAgent
+      summary: Consume a short-lived pairing code and create a device identity
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnrollRequest'
+      responses:
+        '201':
+          description: Device enrolled
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /api/v1/agent/auth/refresh:
+    post:
+      tags: [Enrollment]
+      operationId: refreshAgentToken
+      summary: Atomically rotate device tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Tokens rotated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/Error'}
+  /api/v1/agent/heartbeat:
+    post:
+      tags: [Synchronization]
+      operationId: agentHeartbeat
+      summary: Report service health and receive synchronization hints
+      security: [{deviceBearer: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+      responses:
+        '200':
+          description: Heartbeat accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeartbeatResponse'
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+  /api/v1/agent/policy:
+    get:
+      tags: [Synchronization]
+      operationId: getAgentPolicy
+      summary: Download the latest signed policy
+      security: [{deviceBearer: []}]
+      parameters:
+        - in: query
+          name: known_version
+          required: false
+          schema: {type: integer, minimum: 0}
+      responses:
+        '200':
+          description: Latest policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedPolicy'
+        '304': {description: Agent already has the latest version}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+  /api/v1/agent/events/batches:
+    post:
+      tags: [Events]
+      operationId: uploadEventBatch
+      summary: Upload an atomic, idempotent batch of privacy-minimised events
+      security: [{deviceBearer: []}]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventBatchRequest'
+      responses:
+        '200':
+          description: Batch accepted or replayed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventBatchResponse'
+        '409': {$ref: '#/components/responses/Error'}
+        '413': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+  /api/v1/agent/requests:
+    post:
+      tags: [Requests]
+      operationId: createChildRequest
+      summary: Record an idempotent child request for a parent decision
+      security: [{deviceBearer: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChildRequest'
+      responses:
+        '202':
+          description: Request is recorded and pending or already resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChildRequestResponse'
+        '409': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+  /api/v1/agent/commands/acks:
+    post:
+      tags: [Commands]
+      operationId: acknowledgeCommands
+      summary: Acknowledge durable receipt, execution or rejection of commands
+      security: [{deviceBearer: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommandAckBatch'
+      responses:
+        '200':
+          description: Acknowledgements accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [accepted]
+                properties:
+                  accepted: {type: integer, minimum: 0}
+        '401': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+  /api/v1/agent/commands/ws:
+    get:
+      tags: [Commands]
+      operationId: connectCommandWebSocket
+      summary: Upgrade to the urgent command WebSocket
+      description: >-
+        This operation documents the handshake only. Message envelopes,
+        signatures, delivery and acknowledgement semantics are defined in
+        docs/AGENT_SERVER_API.md section 10.
+      security: [{deviceBearer: []}]
+      responses:
+        '101': {description: Switching Protocols}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    deviceBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-device-token
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema: {type: string, format: uuid}
+  responses:
+    Error:
+      description: Request failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+    UnixTime:
+      type: integer
+      minimum: 0
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, request_id, retryable]
+          properties:
+            code: {type: string, pattern: '^[a-z0-9_]+$'}
+            message: {type: string, maxLength: 300}
+            request_id: {$ref: '#/components/schemas/Uuid'}
+            retryable: {type: boolean}
+            retry_after_sec:
+              type: [integer, 'null']
+              minimum: 0
+    EnrollRequest:
+      type: object
+      additionalProperties: false
+      required: [code, display_name, installation_id, agent_version]
+      properties:
+        code: {type: string, pattern: '^[A-Z2-9]{8}$'}
+        display_name: {type: string, minLength: 1, maxLength: 80}
+        installation_id: {$ref: '#/components/schemas/Uuid'}
+        agent_version: {type: string, minLength: 1, maxLength: 32}
+    SigningKey:
+      type: object
+      additionalProperties: false
+      required: [kid, alg, public_key]
+      properties:
+        kid: {type: string, minLength: 1, maxLength: 64}
+        alg: {type: string, const: Ed25519}
+        public_key: {type: string, minLength: 40, maxLength: 64}
+    TokenResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - device_id
+        - child_id
+        - access_token
+        - refresh_token
+        - token_type
+        - expires_in
+        - server_time
+        - policy_signing_keys
+        - command_signing_keys
+      properties:
+        device_id: {$ref: '#/components/schemas/Uuid'}
+        child_id: {$ref: '#/components/schemas/Uuid'}
+        access_token: {type: string, minLength: 32, maxLength: 256}
+        refresh_token: {type: string, minLength: 32, maxLength: 256}
+        token_type: {type: string, const: bearer}
+        expires_in: {type: integer, const: 900}
+        server_time: {$ref: '#/components/schemas/UnixTime'}
+        policy_signing_keys:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/SigningKey'}
+        command_signing_keys:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/SigningKey'}
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [device_id, refresh_token]
+      properties:
+        device_id: {$ref: '#/components/schemas/Uuid'}
+        refresh_token: {type: string, minLength: 32, maxLength: 256}
+    UsageSnapshot:
+      type: object
+      additionalProperties: false
+      required: [local_date, active_sec, quota_sec, remaining_sec]
+      properties:
+        local_date: {type: string, format: date}
+        active_sec: {type: integer, minimum: 0, maximum: 86400}
+        quota_sec: {type: integer, minimum: 0, maximum: 86400}
+        remaining_sec: {type: integer, minimum: 0, maximum: 86400}
+    OutboxSnapshot:
+      type: object
+      additionalProperties: false
+      required: [pending_events, pending_requests]
+      properties:
+        pending_events: {type: integer, minimum: 0}
+        pending_requests: {type: integer, minimum: 0}
+    ClockSnapshot:
+      type: object
+      additionalProperties: false
+      required: [wall_time, monotonic_sec, boot_id]
+      properties:
+        wall_time: {$ref: '#/components/schemas/UnixTime'}
+        monotonic_sec: {type: integer, minimum: 0}
+        boot_id: {$ref: '#/components/schemas/Uuid'}
+    HeartbeatRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sent_at
+        - policy_version
+        - agent_version
+        - tray_visible
+        - state
+        - usage
+        - outbox
+        - clock
+      properties:
+        sent_at: {$ref: '#/components/schemas/UnixTime'}
+        policy_version: {type: integer, minimum: 0}
+        agent_version: {type: string, minLength: 1, maxLength: 32}
+        tray_visible: {type: boolean}
+        state:
+          type: string
+          enum: [active, grace, locked, paused, policy_expired, inert_no_tray]
+        usage: {$ref: '#/components/schemas/UsageSnapshot'}
+        outbox: {$ref: '#/components/schemas/OutboxSnapshot'}
+        clock: {$ref: '#/components/schemas/ClockSnapshot'}
+    PolicyHint:
+      type: object
+      additionalProperties: false
+      required: [latest_version, changed]
+      properties:
+        latest_version: {type: integer, minimum: 1}
+        changed: {type: boolean}
+    Signature:
+      type: object
+      additionalProperties: false
+      required: [alg, kid, signature]
+      properties:
+        alg: {type: string, const: Ed25519}
+        kid: {type: string, minLength: 1, maxLength: 64}
+        signature: {type: string, minLength: 80, maxLength: 128}
+    Command:
+      type: object
+      additionalProperties: false
+      required:
+        - command_id
+        - sequence
+        - kind
+        - issued_at
+        - expires_at
+        - payload
+        - integrity
+      properties:
+        command_id: {$ref: '#/components/schemas/Uuid'}
+        sequence: {type: integer, minimum: 1}
+        kind:
+          type: string
+          enum: [lock_now, unlock_now, grant_extra_time, request_resolved, purge_local_data]
+        issued_at: {$ref: '#/components/schemas/UnixTime'}
+        expires_at: {$ref: '#/components/schemas/UnixTime'}
+        payload: {type: object}
+        integrity: {$ref: '#/components/schemas/Signature'}
+      allOf:
+        - oneOf:
+            - properties:
+                kind: {const: lock_now}
+                payload: {$ref: '#/components/schemas/LockCommandPayload'}
+            - properties:
+                kind: {const: unlock_now}
+                payload: {$ref: '#/components/schemas/UnlockCommandPayload'}
+            - properties:
+                kind: {const: grant_extra_time}
+                payload: {$ref: '#/components/schemas/GrantTimeCommandPayload'}
+            - properties:
+                kind: {const: request_resolved}
+                payload: {$ref: '#/components/schemas/RequestResolvedCommandPayload'}
+            - properties:
+                kind: {const: purge_local_data}
+                payload: {$ref: '#/components/schemas/PurgeDataCommandPayload'}
+    LockCommandPayload:
+      type: object
+      additionalProperties: false
+      required: [reason_code]
+      properties:
+        reason_code: {type: string, const: parent_request}
+    UnlockCommandPayload:
+      type: object
+      additionalProperties: false
+      required: [reason_code]
+      properties:
+        reason_code: {type: string, enum: [parent_request, request_approved]}
+    GrantTimeCommandPayload:
+      type: object
+      additionalProperties: false
+      required: [minutes]
+      properties:
+        minutes: {type: integer, enum: [15, 30, 60]}
+        request_id: {$ref: '#/components/schemas/Uuid'}
+    RequestResolvedCommandPayload:
+      type: object
+      additionalProperties: false
+      required: [request_id, decision, decided_at, response_code]
+      properties:
+        request_id: {$ref: '#/components/schemas/Uuid'}
+        decision: {type: string, enum: [approved, denied, expired]}
+        granted_minutes: {type: integer, enum: [15, 30, 60]}
+        decided_at: {$ref: '#/components/schemas/UnixTime'}
+        response_code:
+          type: string
+          enum: [approved, denied_by_parent, request_expired, already_granted]
+    PurgeDataCommandPayload:
+      type: object
+      additionalProperties: false
+      required: [deletion_id, scopes]
+      properties:
+        deletion_id: {$ref: '#/components/schemas/Uuid'}
+        scopes:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: {type: string, enum: [events, reports, requests]}
+    HeartbeatResponse:
+      type: object
+      additionalProperties: false
+      required: [server_time, heartbeat_after_sec, policy, commands]
+      properties:
+        server_time: {$ref: '#/components/schemas/UnixTime'}
+        heartbeat_after_sec: {type: integer, const: 60}
+        policy: {$ref: '#/components/schemas/PolicyHint'}
+        commands:
+          type: array
+          maxItems: 100
+          items: {$ref: '#/components/schemas/Command'}
+    DailyQuota:
+      type: object
+      additionalProperties: false
+      required: [weekday_minutes, weekend_minutes]
+      properties:
+        weekday_minutes: {type: integer, minimum: 1, maximum: 1440}
+        weekend_minutes: {type: integer, minimum: 1, maximum: 1440}
+    WeeklySchedule:
+      type: object
+      additionalProperties: false
+      required: [slot_minutes, days]
+      properties:
+        slot_minutes: {type: integer, const: 30}
+        days:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items: {type: string, pattern: '^[01]{48}$'}
+    ApplicationRule:
+      type: object
+      additionalProperties: false
+      required: [process_name, sha256, action, reason_code]
+      properties:
+        process_name: {type: string, minLength: 1, maxLength: 260}
+        sha256: {type: string, pattern: '^[a-f0-9]{64}$'}
+        action: {type: string, enum: [allow, block]}
+        reason_code: {type: string, minLength: 1, maxLength: 64}
+    DomainRule:
+      type: object
+      additionalProperties: false
+      required: [domain, include_subdomains, action, category, reason_code]
+      properties:
+        domain:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^(?!https?://)[A-Za-z0-9.-]+$'
+        include_subdomains: {type: boolean}
+        action: {type: string, enum: [allow, block]}
+        category:
+          type: string
+          enum: [education, entertainment, social, games, age_inappropriate, unclassified]
+        reason_code: {type: string, minLength: 1, maxLength: 64}
+    PolicyPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - timezone
+        - daily_quota
+        - schedule
+        - warnings_minutes
+        - grace_sec
+        - idle_after_sec
+        - applications
+        - domains
+        - category_defaults
+        - safe_search
+        - permanent_allowlist
+      properties:
+        timezone: {type: string, minLength: 1, maxLength: 64}
+        daily_quota: {$ref: '#/components/schemas/DailyQuota'}
+        schedule: {$ref: '#/components/schemas/WeeklySchedule'}
+        warnings_minutes:
+          type: array
+          minItems: 3
+          maxItems: 3
+          prefixItems:
+            - {type: integer, const: 10}
+            - {type: integer, const: 5}
+            - {type: integer, const: 1}
+        grace_sec: {type: integer, const: 60}
+        idle_after_sec: {type: integer, const: 300}
+        applications:
+          type: array
+          maxItems: 5000
+          items: {$ref: '#/components/schemas/ApplicationRule'}
+        domains:
+          type: array
+          maxItems: 10000
+          items: {$ref: '#/components/schemas/DomainRule'}
+        category_defaults:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [allow, block]
+        safe_search: {type: boolean}
+        permanent_allowlist:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: {type: string, minLength: 1, maxLength: 253}
+    SignedPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - policy_id
+        - child_id
+        - version
+        - issued_at
+        - not_before
+        - expires_at
+        - payload
+        - integrity
+      properties:
+        schema_version: {type: integer, const: 1}
+        policy_id: {$ref: '#/components/schemas/Uuid'}
+        child_id: {$ref: '#/components/schemas/Uuid'}
+        version: {type: integer, minimum: 1}
+        issued_at: {$ref: '#/components/schemas/UnixTime'}
+        not_before: {$ref: '#/components/schemas/UnixTime'}
+        expires_at: {$ref: '#/components/schemas/UnixTime'}
+        payload: {$ref: '#/components/schemas/PolicyPayload'}
+        integrity: {$ref: '#/components/schemas/Signature'}
+    ActivityEvent:
+      type: object
+      additionalProperties: false
+      required: [ts, device_id, child_id, type, subject, duration_sec, policy_id]
+      properties:
+        ts: {$ref: '#/components/schemas/UnixTime'}
+        device_id: {$ref: '#/components/schemas/Uuid'}
+        child_id: {$ref: '#/components/schemas/Uuid'}
+        type:
+          type: string
+          enum:
+            - app_start
+            - app_stop
+            - domain_query
+            - blocked_app
+            - blocked_domain
+            - quota_warning
+            - locked
+            - unlock_request
+            - override_granted
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^(?!https?://)(?!.*[/\\?#]).+$'
+        duration_sec: {type: integer, minimum: 0, maximum: 86400}
+        policy_id: {$ref: '#/components/schemas/Uuid'}
+    EventBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [events]
+      properties:
+        events:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: {$ref: '#/components/schemas/ActivityEvent'}
+    EventBatchResponse:
+      type: object
+      additionalProperties: false
+      required: [batch_id, accepted, duplicate, received_at]
+      properties:
+        batch_id: {$ref: '#/components/schemas/Uuid'}
+        accepted: {type: integer, minimum: 1, maximum: 500}
+        duplicate: {type: boolean}
+        received_at: {$ref: '#/components/schemas/UnixTime'}
+    ChildRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, created_at, type, details]
+      properties:
+        request_id: {$ref: '#/components/schemas/Uuid'}
+        created_at: {$ref: '#/components/schemas/UnixTime'}
+        type: {type: string, enum: [extra_time, review_block]}
+        details:
+          oneOf:
+            - $ref: '#/components/schemas/ExtraTimeDetails'
+            - $ref: '#/components/schemas/ReviewBlockDetails'
+    ExtraTimeDetails:
+      type: object
+      additionalProperties: false
+      required: [requested_minutes]
+      properties:
+        requested_minutes: {type: integer, enum: [15, 30, 60]}
+    ReviewBlockDetails:
+      type: object
+      additionalProperties: false
+      required: [subject, subject_kind, policy_id, reason_code]
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 253
+          pattern: '^(?!https?://)(?!.*[/\\?#]).+$'
+        subject_kind: {type: string, enum: [app, domain]}
+        policy_id: {$ref: '#/components/schemas/Uuid'}
+        reason_code:
+          type: string
+          enum: [needed_for_school, wrong_category, should_be_allowed]
+    ChildRequestResponse:
+      type: object
+      additionalProperties: false
+      required: [request_id, status, received_at]
+      properties:
+        request_id: {$ref: '#/components/schemas/Uuid'}
+        status: {type: string, enum: [pending, approved, denied, expired]}
+        received_at: {$ref: '#/components/schemas/UnixTime'}
+    CommandAck:
+      type: object
+      additionalProperties: false
+      required: [command_id, stage, at, result]
+      properties:
+        command_id: {$ref: '#/components/schemas/Uuid'}
+        stage: {type: string, enum: [received, executed, rejected]}
+        at: {$ref: '#/components/schemas/UnixTime'}
+        result:
+          type: string
+          enum: [ok, expired, invalid_signature, out_of_order, unsupported, failed]
+    CommandAckBatch:
+      type: object
+      additionalProperties: false
+      required: [acks]
+      properties:
+        acks:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: {$ref: '#/components/schemas/CommandAck'}
