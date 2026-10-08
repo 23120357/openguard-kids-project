@@ -55,7 +55,7 @@
           <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát thời gian</label>
           <label>Ngày thường (phút)<input name="weekday_minutes" type="number" min="1" max="1440" required></label>
           <label>Cuối tuần (phút)<input name="weekend_minutes" type="number" min="1" max="1440" required></label>
-          <fieldset><legend>Lịch dùng máy theo ngày</legend><p class="hint">Giờ theo định dạng 24h; phút chỉ chọn 00 hoặc 30. Mỗi ngày chọn một khoảng liên tục. Giờ kết thúc 00:00 nghĩa là hết ngày (nửa đêm hôm sau).</p><p id="schedule-error" class="validation-error" role="alert" aria-live="assertive"></p><div id="schedule-grid"></div></fieldset>
+          <fieldset><legend>Lịch dùng máy theo ngày</legend><p class="hint">Giờ theo định dạng 24h; phút chỉ chọn 00 hoặc 30. Mỗi ngày có thể thêm nhiều khoảng giờ; các khoảng chồng nhau được gộp. Giờ kết thúc 00:00 nghĩa là hết ngày (nửa đêm hôm sau).</p><p id="schedule-error" class="validation-error" role="alert" aria-live="assertive"></p><div id="schedule-grid"></div></fieldset>
           <p id="policy-version"></p><button>Lưu chính sách</button>
         </form>
       </section>

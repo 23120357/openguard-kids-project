@@ -489,6 +489,13 @@ class F1Controller:
             logical_wall = self._state.trusted_wall_time or self._wall_clock()
             granted = minutes * 60
             self._state.extra_seconds += granted
+            moment = self._to_local_datetime(logical_wall)
+            remaining = self._state.extra_seconds
+            if self.policy.schedule_allows(moment):
+                remaining += max(0.0, self.policy.quota_seconds(moment) - self._state.used_seconds)
+            self._state.warned_minutes = [
+                milestone for milestone in self._state.warned_minutes if milestone * 60 > remaining
+            ]
             if self._last_snapshot.get("remaining_seconds") is not None:
                 self._last_snapshot["remaining_seconds"] += granted
                 self._last_snapshot["remaining_minutes"] = math.ceil(
@@ -604,7 +611,7 @@ class F1Controller:
             if schedule_allowed:
                 self._forget_completed_lock("outside_schedule")
 
-            self._record_warnings(remaining, quota_seconds, logical_wall)
+            self._record_warnings(remaining, logical_wall, remaining_before)
             mode, grace_remaining, lock_reason = self._mode(
                 ui_present=ui_present,
                 session_locked=session_locked,
@@ -618,7 +625,6 @@ class F1Controller:
                 and ui_present
                 and not session_locked
                 and lock_reason is not None
-                and lock_reason not in self._state.completed_lock_reasons
             )
             if lock_required and self._state.last_mode != mode:
                 self.store.add_event(
@@ -713,21 +719,30 @@ class F1Controller:
         self._state.recorded_at = recorded_at(timestamp)
         self.store.save_state(self._state)
 
-    def _record_warnings(self, remaining: float, quota_seconds: int, ts: float) -> None:
+    def _record_warnings(self, remaining: float, ts: float, remaining_before: float) -> None:
         if not self.policy.enabled or remaining <= 0:
             return
+        crossed = []
         for minutes in self.policy.warnings_minutes:
             threshold = minutes * 60
-            if threshold >= quota_seconds or minutes in self._state.warned_minutes:
+            if minutes in self._state.warned_minutes:
                 continue
             if remaining <= threshold:
                 self._state.warned_minutes.append(minutes)
-                self.store.add_event(
-                    "quota_warning",
-                    ts,
-                    f"Em còn {minutes} phút sử dụng máy hôm nay.",
-                    {"remaining_minutes": minutes, "policy_version": self.policy.version},
-                )
+                if remaining_before >= threshold:
+                    crossed.append(minutes)
+        if crossed:
+            minutes = min(crossed)
+            self.store.add_event(
+                "quota_warning",
+                ts,
+                f"Em còn {minutes} phút sử dụng máy hôm nay.",
+                {
+                    "remaining_minutes": minutes,
+                    "remaining_seconds": math.ceil(remaining),
+                    "policy_version": self.policy.version,
+                },
+            )
 
     def _mode(
         self,

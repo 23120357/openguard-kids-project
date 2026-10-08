@@ -29,7 +29,7 @@ phần còn cần nghiệm thu trên Windows thật:
 
 F1 từ mốc trước vẫn giữ nguyên: quota, lịch 7×48, bỏ thời gian idle/khóa màn hình,
 cảnh báo 10/5/1 phút, grace period, phát hiện lùi đồng hồ, persistence có ngày giờ,
-digital clock và one-shot lock cho demo.
+digital clock và khóa lại sau khi mở khóa nếu quota/lịch vẫn không cho phép.
 
 ## 2. Luồng hoạt động
 
@@ -61,7 +61,7 @@ digital clock và one-shot lock cho demo.
   bọc DPAPI; chỉ dùng máy lab.
 - WebSocket dùng access token trong query string ở bản loopback. Không triển khai
   kiểu này trên Internet; production phải dùng WSS và cơ chế xác thực không lộ URL.
-- UI lịch tuần hỗ trợ một khoảng liên tục mỗi ngày; API/agent vẫn lưu đủ 48 slot.
+- UI lịch tuần hỗ trợ nhiều khoảng mỗi ngày và giữ nguyên đủ 48 slot khi đọc/lưu.
 - Một thiết bị đã ghép có thể chọn các hồ sơ trẻ thuộc cùng tài khoản phụ huynh.
   Mô hình household nhiều phụ huynh và phân quyền giữa phụ huynh chưa triển khai.
 - Đây là cách cấp PIN của bản development: server giữ hash để đồng bộ cho các máy
@@ -72,9 +72,9 @@ digital clock và one-shot lock cho demo.
 - Agent chưa ghép với dashboard giữ hồ sơ “Bản demo cục bộ” để chạy F1 offline;
   PIN/request phụ huynh chỉ có hiệu lực sau khi ghép thiết bị. Tray sẽ khóa nút xin
   giờ trong chế độ local để không tạo kỳ vọng rằng request đã tới phụ huynh.
-- Sai PIN 5 lần sẽ khóa thử lại trong 15 phút; trẻ kết thúc phiên bằng nút Tray.
-- Kết thúc phiên đưa F1 về `awaiting_profile`; trẻ có thể dùng Windows khi chưa
-  đăng nhập lại. Đây là lỗ hổng chống bypass cần chốt hành vi ở giai đoạn sau.
+- Sai PIN 5 lần sẽ khóa thử lại trong 15 phút. Nút Đổi hồ sơ giữ chính sách và
+  bộ đếm hiện tại cho tới khi xác thực thành công hồ sơ mới. IPC từ chối kết thúc
+  phiên đã đăng nhập; phiên chưa đăng nhập sau khi khởi động vẫn cần xử lý chống bypass.
 - Chưa làm quy trình gỡ cài đặt bằng mật khẩu phụ huynh (mục “NÊN CÓ”).
 - Chưa làm chế độ “tạm nghỉ phụ huynh 2 giờ” (mục “CÓ THÌ TỐT”).
 - Chưa có migration framework; hàm migration idempotent hiện chỉ nâng database
@@ -211,9 +211,9 @@ lại mã Python của server.
 ### 5.3 Quota/lịch và khóa đúng hạn
 
 1. Dùng nút developer trên Tray để giảm thời gian còn lại.
-2. Khi quota hết, chờ grace 60 giây. Kỳ vọng Windows khóa đúng một lần.
+2. Khi quota hết, chờ grace 60 giây. Kỳ vọng Windows khóa; mở khóa lại khi chưa có giờ phải bị khóa tiếp.
 3. Trên dashboard đổi lịch hôm nay để thời điểm hiện tại nằm ngoài khoảng cho
-   phép. Trong tối đa 30 giây, Tray hiển thị ngoài lịch và yêu cầu khóa một lần.
+   phép. Trong tối đa 30 giây, Tray hiển thị ngoài lịch và yêu cầu khóa; mở khóa lại vẫn bị khóa tiếp.
 4. Đổi sang policy/version mới để mở lại một episode thử nghiệm mới.
 
 ### 5.4 Lệnh khẩn dưới 5 giây
@@ -232,12 +232,12 @@ lại mã Python của server.
 
 1. Mở Tray: mặc định là tab **Đăng nhập**. Nhập tên đăng nhập của trẻ, PIN do phụ huynh tạo và chọn **Đăng nhập**. PIN
    trẻ nhập không gửi lên server; sai 5 lần sẽ khóa thử lại trong 15 phút. Thử
-   chuyển sang trẻ khác: phải kết thúc phiên hiện tại rồi nhập tên đăng nhập mới; mỗi trẻ
+   chuyển sang trẻ khác: chọn Đổi hồ sơ rồi nhập tên đăng nhập và PIN mới; mỗi trẻ
    giữ usage và quota riêng.
 2. Tab **Đăng nhập** đổi thành **Đã đăng nhập với tư cách [username]** và có nút
-   **Kết thúc phiên**; tab **Hôm nay** hiển thị đồng hồ riêng. Dashboard → Thiết bị
-   đã kết nối hiện **Đang dùng: [tên hồ sơ]** và thời điểm bắt đầu. Bấm **Kết thúc phiên**
-   để trở lại biểu mẫu đăng nhập.
+   **Đổi hồ sơ**; tab **Hôm nay** hiển thị đồng hồ riêng. Dashboard → Thiết bị
+   đã kết nối hiện **Đang dùng: [tên hồ sơ]** và thời điểm bắt đầu. Bấm **Đổi hồ sơ**
+   để trở lại biểu mẫu đăng nhập; chính sách hiện tại vẫn áp dụng trong lúc đổi.
 3. Trong tab **Hôm nay**, cuộn bằng bánh xe chuột để xem các phần bên dưới. Đổi số phút
    ở ô nhập (mặc định 15), sau đó bấm **Xin thêm giờ**.
 4. Giữ dashboard đang mở ở trình duyệt. **Yêu cầu xin thêm giờ** phải tự hiện trong

@@ -123,8 +123,8 @@ State và mọi event trong SQLite có `recorded_at` dạng ISO 8601 UTC, ví d�
 3. Khi quota về 0, UI phải hiển thị 60 giây lưu công việc và chưa khóa ngay.
 4. Hết 60 giây, Windows phải khóa. Độ trễ kỳ vọng tối đa 2 giây với heartbeat 1
    giây; ngưỡng pass của đề là khóa đúng lúc sau grace.
-5. Đăng nhập lại. Trong bản demo, cùng một lần hết quota không được khóa lần thứ
-   hai. Cờ hoàn tất khóa được Service lưu bền vững và reset khi sang ngày/policy mới.
+5. Mở khóa Windows lại khi vẫn hết quota: máy phải khóa tiếp. Lặp sau restart
+   Service; chỉ được sử dụng tiếp khi quota/lịch cho phép hoặc phụ huynh cấp thêm giờ.
 
 Có thể dùng quota 3 phút để smoke test nhanh; lúc này chỉ mốc 1 phút áp dụng vì
 các mốc 10 và 5 lớn hơn toàn bộ quota.
@@ -210,5 +210,6 @@ Tray watchdog, xử lý multi-session/RDP, installer ký số, SCM recovery và 
 các phiên bản Windows hỗ trợ. Heartbeat activity do Tray cung cấp là ranh giới tin
 cậy tạm thời của development milestone.
 
-Ngoài ra phải quyết định hành vi khi chưa có child đăng nhập. Hiện kết thúc phiên
-trong Tray đưa F1 về `awaiting_profile`, vì vậy đây chưa phải cơ chế chống bypass.
+Nút Đổi hồ sơ giữ chính sách hiện tại tới khi xác thực PIN hồ sơ mới thành công.
+Vẫn cần quyết định hành vi khi chưa có child đăng nhập sau khi khởi động; chưa
+coi đây là cơ chế chống bypass hoàn chỉnh.

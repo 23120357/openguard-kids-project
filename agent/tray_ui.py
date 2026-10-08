@@ -21,6 +21,7 @@ import pystray
 from PIL import Image, ImageDraw, ImageTk
 
 from agent.named_pipe import NamedPipeClient, PipeUnavailableError, current_process_id
+from agent.ui_scheduler import MonotonicScheduler
 from agent.windows_activity import lock_workstation, sample_activity
 
 BRAND = "#123B5D"
@@ -248,6 +249,7 @@ class TrayApplication:
     def __init__(self, *, instance_guard: TrayInstanceGuard, start_open: bool = False):
         self.instance_guard = instance_guard
         self.root = tk.Tk()
+        self.scheduler = MonotonicScheduler()
         self.root.title("OpenGuard Kids")
         self.root.geometry("680x620")
         self.root.minsize(600, 540)
@@ -295,10 +297,10 @@ class TrayApplication:
         self.icon.run_detached()
         if not start_open:
             self.root.withdraw()
-        self.root.after(300, self._show_startup_notification)
-        self.root.after(100, self._poll_responses)
-        self.root.after(100, self._poll_show_requests)
-        self.root.after(150, self.refresh_status)
+        self.scheduler.after(300, self._show_startup_notification)
+        self.scheduler.after(100, self._poll_responses)
+        self.scheduler.after(100, self._poll_show_requests)
+        self.scheduler.after(150, self.refresh_status)
 
     def _configure_styles(self) -> None:
         style = ttk.Style(self.root)
@@ -651,20 +653,20 @@ class TrayApplication:
         if self.closing:
             return
         self.today_datetime_label.configure(text=format_local_datetime(datetime.now().astimezone()))
-        self.root.after(1000, self._update_today_datetime)
+        self.scheduler.after(1000, self._update_today_datetime)
 
     def _tray_status(self, _item) -> str:
         return "Dịch vụ: đã kết nối" if self.connected else "Dịch vụ: ngoại tuyến"
 
     def _tray_open(self, _icon=None, _item=None) -> None:
-        self.root.after(0, self.show_window)
+        self.scheduler.after(0, self.show_window)
 
     def _tray_open_privacy(self, _icon=None, _item=None) -> None:
         def open_tab():
             self.notebook.select(self.privacy_tab)
             self.show_window()
 
-        self.root.after(0, open_tab)
+        self.scheduler.after(0, open_tab)
 
     def _scroll_today(self, event) -> str | None:
         return self._scroll_tab(event, self.today_tab, self.today_canvas)
@@ -689,10 +691,10 @@ class TrayApplication:
             self._bind_tab_mousewheel(child, callback)
 
     def _tray_request_time(self, _icon=None, _item=None) -> None:
-        self.root.after(0, self._request_selected_time)
+        self.scheduler.after(0, self._request_selected_time)
 
     def _tray_exit(self, _icon=None, _item=None) -> None:
-        self.root.after(0, self.exit)
+        self.scheduler.after(0, self.exit)
 
     def show_window(self) -> None:
         self.root.deiconify()
@@ -786,7 +788,9 @@ class TrayApplication:
         self.request_more_time(minutes)
 
     def start_session(self) -> None:
-        if self.session_in_flight or self.current_user:
+        if self.session_in_flight or (
+            self.current_user and not getattr(self, "switching_profile", False)
+        ):
             return
         username = self.username_entry.get().strip()
         if self.profile_login_required and not username:
@@ -832,6 +836,10 @@ class TrayApplication:
     def end_session(self) -> None:
         if self.session_in_flight or not self.current_user:
             return
+        if self.profile_login_required:
+            self.switching_profile = True
+            self._update_session_ui()
+            return
         self.session_in_flight = True
         self.logout_button.state(["disabled"])
         self._send_async("session_end", "end_session")
@@ -856,7 +864,7 @@ class TrayApplication:
                 if action == "status":
                     self.status_in_flight = False
                     elapsed_ms = int((time.monotonic() - self.status_requested_at) * 1000)
-                    self.root.after(max(1, self.REFRESH_MS - elapsed_ms), self.refresh_status)
+                    self.scheduler.after(max(1, self.REFRESH_MS - elapsed_ms), self.refresh_status)
                     self._apply_status(result)
                 elif action == "request_time":
                     self._apply_request_result(result)
@@ -885,6 +893,7 @@ class TrayApplication:
                         self.login_button.state(["!disabled"])
                         self.logout_button.state(["disabled"])
                     else:
+                        self.switching_profile = False
                         self.current_user = result["data"].get("current_user")
                         self.active_child_id = result["data"].get("active_child_id")
                         self._update_session_ui()
@@ -896,7 +905,7 @@ class TrayApplication:
             self.status_label.configure(text="Giao diện gặp lỗi; đang thử cập nhật lại.")
         finally:
             if not self.closing:
-                self.root.after(100, self._poll_responses)
+                self.scheduler.after(100, self._poll_responses)
 
     def _poll_show_requests(self) -> None:
         if self.closing:
@@ -905,7 +914,7 @@ class TrayApplication:
             self.show_window()
         if self.instance_guard.consume_refresh_request():
             self.refresh_status()
-        self.root.after(100, self._poll_show_requests)
+        self.scheduler.after(100, self._poll_show_requests)
 
     def _apply_status(self, result: dict[str, Any] | Exception) -> None:
         if isinstance(result, Exception) or not result.get("ok"):
@@ -970,17 +979,9 @@ class TrayApplication:
                 grace = control.get("grace_remaining_seconds", 0)
                 detail = f"Đã hết giờ. Em có {grace} giây để lưu công việc."
             elif mode == "quota_exhausted":
-                detail = (
-                    "Đã hết thời gian. Bản demo đã khóa phiên một lần."
-                    if control.get("lock_completed")
-                    else "Đã hết thời gian và đang chuẩn bị khóa phiên."
-                )
+                detail = "Đã hết thời gian. Máy sẽ khóa cho đến khi được cấp thêm giờ."
             elif mode == "schedule_blocked":
-                detail = (
-                    "Ngoài lịch cho phép; bản demo đã khóa phiên một lần."
-                    if control.get("lock_completed")
-                    else "Hiện đang nằm ngoài lịch sử dụng được cho phép."
-                )
+                detail = "Ngoài lịch cho phép. Máy sẽ khóa cho đến khung giờ được sử dụng."
             elif mode == "remote_lock":
                 detail = "Phụ huynh vừa yêu cầu khóa máy từ dashboard."
             elif mode == "idle":
@@ -1051,7 +1052,7 @@ class TrayApplication:
         )
 
     def _update_session_ui(self) -> None:
-        if self.current_user:
+        if self.current_user and not getattr(self, "switching_profile", False):
             self.session_result.configure(text="")
             self.session_label.configure(text=f"Đã đăng nhập với tư cách {self.current_user}.")
             self.login_fields.pack_forget()
@@ -1062,6 +1063,9 @@ class TrayApplication:
             self.pin_entry.state(["disabled"])
             self.username_entry.state(["disabled"])
             self.logout_button.state(["!disabled"])
+            self.logout_button.configure(
+                text="Đổi hồ sơ" if self.profile_login_required else "Kết thúc phiên"
+            )
             if self.remote_requests_available:
                 self.request_button.state(["!disabled"])
             else:
@@ -1082,7 +1086,9 @@ class TrayApplication:
                 self.session_result.configure(text="")
             self.session_label.configure(
                 text=(
-                    "Đang đồng bộ hồ sơ; nếu chờ lâu, kiểm tra server và PIN trên dashboard."
+                    f"Đang đổi hồ sơ; chính sách của {self.current_user} vẫn áp dụng."
+                    if self.current_user
+                    else "Đang đồng bộ hồ sơ; nếu chờ lâu, kiểm tra server và PIN trên dashboard."
                     if self.profile_login_required and not self.profile_options
                     else "Nhập tên đăng nhập và PIN 6 chữ số để bắt đầu."
                 )
@@ -1140,10 +1146,6 @@ class TrayApplication:
             return "Hãy nhập mã ghép đôi để kích hoạt thiết bị"
         if not control.get("configured", True):
             return "Chính sách thời gian có lỗi - tính năng đang tắt an toàn"
-        if mode == "quota_exhausted" and control.get("lock_completed"):
-            return "Đã hết thời gian - khóa demo đã thực hiện một lần"
-        if mode == "schedule_blocked" and control.get("lock_completed"):
-            return "Ngoài lịch cho phép - khóa demo đã thực hiện một lần"
         if mode in {"quota_exhausted", "schedule_blocked", "remote_lock"}:
             return "Máy cần được khóa theo chính sách thời gian"
         if mode == "quota_grace":
@@ -1169,9 +1171,14 @@ class TrayApplication:
         if reason not in {"quota_exhausted", "outside_schedule", "remote_lock"}:
             return
         key = f"remote_lock:{command_id}" if reason == "remote_lock" else reason
-        if key in self.completed_lock_attempts:
+        if reason == "remote_lock" and key in self.completed_lock_attempts:
+            return
+        now = time.monotonic()
+        if reason != "remote_lock" and now < getattr(self, "next_policy_lock_attempt", 0):
             return
         if lock_workstation():
+            if reason != "remote_lock":
+                self.next_policy_lock_attempt = now + 10
             self.completed_lock_attempts.add(key)
             payload = {"reason": reason}
             if reason == "remote_lock":
@@ -1218,8 +1225,16 @@ class TrayApplication:
         )
 
     def run(self) -> None:
+        wait = threading.Event()
         try:
-            self.root.mainloop()
+            # Tk timers can stall after a wall-clock adjustment. Pump UI events
+            # without waiting on those timers; application deadlines are monotonic.
+            while not self.closing:
+                self.root.update()
+                if self.closing:
+                    break
+                self.scheduler.run_due()
+                wait.wait(0.02)
         finally:
             self.instance_guard.close()
 

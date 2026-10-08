@@ -159,7 +159,15 @@ def test_agent_switches_child_without_sharing_daily_usage():
         clock.value += 4
         heartbeat()
     assert controllers["child-a"].snapshot()["used_seconds"] == 20
-    core.handle(new_request("end_session"))
+    ended = core.handle(new_request("end_session"))
+    assert ended["ok"] is False
+    assert ended["error"]["code"] == "profile_switch_required"
+    wrong = core.handle(new_request("start_session", {"child_id": "child-b", "pin": "123456"}))
+    assert wrong["ok"] is False
+    clock.value += 4
+    heartbeat()
+    assert controllers["child-a"].snapshot()["used_seconds"] == 24
+    assert core.status()["active_child_id"] == "child-a"
 
     clock.value += 5
     assert core.handle(new_request("start_session", {"child_id": "child-b", "pin": "654321"}))["ok"]
@@ -168,7 +176,7 @@ def test_agent_switches_child_without_sharing_daily_usage():
         clock.value += 5
         heartbeat()
     assert controllers["child-b"].snapshot()["used_seconds"] == 10
-    assert controllers["child-a"].snapshot()["used_seconds"] == 20
+    assert controllers["child-a"].snapshot()["used_seconds"] == 24
 
     core.apply_remote_command(
         {"id": "grant-b", "type": "add_time", "child_id": "child-b", "payload": {"minutes": 15}}

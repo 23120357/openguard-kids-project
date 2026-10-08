@@ -180,6 +180,30 @@ def test_warning_events_are_emitted_once_at_10_5_and_1_minutes():
     assert len([event for event in store.events if event["type"] == "quota_warning"]) == 3
 
 
+@pytest.mark.parametrize("used_seconds", [45 * 60, 45 * 60 + 30, 49 * 60 + 30])
+def test_policy_reduction_only_warns_at_remaining_milestones(used_seconds):
+    instance, simulated, store = controller(policy(weekday_minutes=90))
+    advance_heartbeats(instance, simulated, used_seconds)
+    instance.replace_policy(policy(version=2, weekday_minutes=50))
+    result = heartbeat(instance)
+    remaining = 50 * 60 - used_seconds
+    assert result["remaining_seconds"] == remaining
+    warnings = [event for event in store.events if event["type"] == "quota_warning"]
+    expected_count = 1 if remaining == 300 else 0
+    assert len(warnings) == expected_count
+    if expected_count:
+        assert warnings[0]["message"] == "Em còn 5 phút sử dụng máy hôm nay."
+    heartbeat(instance)
+    assert (
+        len([event for event in store.events if event["type"] == "quota_warning"]) == expected_count
+    )
+    if remaining > 60:
+        advance_heartbeats(instance, simulated, remaining - 60)
+        warnings = [event for event in store.events if event["type"] == "quota_warning"]
+        assert len(warnings) == expected_count + 1
+        assert warnings[-1]["details"]["remaining_minutes"] == 1
+
+
 def test_quota_has_60_second_grace_then_requires_lock():
     instance, simulated, _ = controller(policy(weekday_minutes=1, warnings_minutes=(1,)))
     result = advance_heartbeats(instance, simulated, 60)
@@ -196,7 +220,7 @@ def test_quota_has_60_second_grace_then_requires_lock():
     assert result["lock_required"] is True
 
 
-def test_acknowledged_quota_lock_is_not_repeated_after_unlock():
+def test_acknowledged_quota_lock_is_repeated_after_unlock():
     instance, simulated, _ = controller(
         policy(weekday_minutes=1, warnings_minutes=(1,), grace_seconds=0)
     )
@@ -208,8 +232,18 @@ def test_acknowledged_quota_lock_is_not_repeated_after_unlock():
     assert result["lock_required"] is False
     result = heartbeat(instance, locked=False)
     assert result["mode"] == "quota_exhausted"
-    assert result["lock_required"] is False
+    assert result["lock_required"] is True
     assert result["lock_completed"] is True
+
+
+def test_outside_schedule_relocks_after_unlock_but_allows_parent_grant():
+    instance, _, _ = controller(policy(schedule=("0" * 48,) * 7))
+    assert heartbeat(instance)["lock_required"] is True
+    instance.acknowledge_lock("outside_schedule")
+    assert heartbeat(instance, locked=True)["lock_required"] is False
+    assert heartbeat(instance)["lock_required"] is True
+    instance.grant_extra_time(15, command_id="parent-grant")
+    assert heartbeat(instance)["lock_required"] is False
 
 
 def test_demo_control_reduces_remaining_time_and_records_event():
@@ -297,6 +331,41 @@ def test_policy_change_discards_one_time_grant_but_counts_time_used_from_it():
     assert result["extra_seconds"] == 0
     assert result["remaining_seconds"] == 120
     assert instance.grant_extra_time(15, command_id="once") == 0
+
+
+@pytest.mark.parametrize("milestone", [10, 5, 1])
+def test_extra_time_rearms_crossed_warning_once(milestone):
+    instance, simulated, store = controller(policy(weekday_minutes=11))
+    advance_heartbeats(instance, simulated, 11 * 60 - ((milestone - 1) * 60 + 7))
+
+    def warnings():
+        return [
+            event
+            for event in store.events
+            if event["type"] == "quota_warning"
+            and event["details"]["remaining_minutes"] == milestone
+        ]
+
+    assert len(warnings()) == 1
+    assert instance.grant_extra_time(1, command_id="extra") == 60
+    assert heartbeat(instance)["remaining_seconds"] == milestone * 60 + 7
+    advance_heartbeats(instance, simulated, 6)
+    assert len(warnings()) == 1
+    advance_heartbeats(instance, simulated, 1)
+    assert len(warnings()) == 2
+    assert instance.grant_extra_time(1, command_id="extra") == 0
+    heartbeat(instance)
+    advance_heartbeats(instance, simulated, 1)
+    assert len(warnings()) == 2
+
+
+def test_extra_time_warns_even_when_milestone_exceeds_base_quota():
+    instance, simulated, store = controller(policy(weekday_minutes=3))
+    advance_heartbeats(instance, simulated, 2 * 60)
+    instance.grant_extra_time(10, command_id="extra")
+    advance_heartbeats(instance, simulated, 60)
+    assert store.events[-1]["type"] == "quota_warning"
+    assert store.events[-1]["details"]["remaining_minutes"] == 10
 
 
 def test_one_time_grant_survives_restart_without_policy_change():
@@ -387,7 +456,7 @@ def test_state_and_grace_survive_service_restart(tmp_path):
     assert result["lock_required"] is True
 
 
-def test_completed_lock_survives_service_restart(tmp_path):
+def test_completed_lock_does_not_bypass_enforcement_after_service_restart(tmp_path):
     simulated = SimulatedTime()
     store = SQLiteTimeStore(tmp_path / "f1.db")
     selected = policy(weekday_minutes=1, warnings_minutes=(1,), grace_seconds=0)
@@ -398,7 +467,7 @@ def test_completed_lock_survives_service_restart(tmp_path):
     restarted, _, _ = controller(selected, simulated=simulated, store=store)
     result = heartbeat(restarted)
     assert result["mode"] == "quota_exhausted"
-    assert result["lock_required"] is False
+    assert result["lock_required"] is True
     assert result["lock_completed"] is True
 
 

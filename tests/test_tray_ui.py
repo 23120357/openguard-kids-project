@@ -69,6 +69,7 @@ def test_tray_poll_continues_after_a_status_render_error():
         status_in_flight=True,
         status_requested_at=time.monotonic(),
         root=root,
+        scheduler=root,
         REFRESH_MS=1000,
         refresh_status=Mock(),
         _apply_status=render,
@@ -83,6 +84,49 @@ def test_tray_poll_continues_after_a_status_render_error():
         for call in root.after.call_args_list
     )
     root.after.assert_any_call(100, ui._poll_responses)
+
+
+def test_policy_lock_retries_but_remote_command_remains_one_shot(monkeypatch):
+    ui = TrayApplication.__new__(TrayApplication)
+    ui.completed_lock_attempts = set()
+    ui._send_async = Mock()
+    lock = Mock(return_value=True)
+    now = [10.0]
+    monkeypatch.setattr("agent.tray_ui.lock_workstation", lock)
+    monkeypatch.setattr("agent.tray_ui.time.monotonic", lambda: now[0])
+    ui._request_workstation_lock("quota_exhausted")
+    ui._request_workstation_lock("quota_exhausted")
+    assert lock.call_count == 1
+    now[0] += 2
+    ui._request_workstation_lock("quota_exhausted")
+    assert lock.call_count == 2
+    ui._request_workstation_lock("remote_lock", "command-1")
+    now[0] += 2
+    ui._request_workstation_lock("remote_lock", "command-1")
+    assert lock.call_count == 3
+
+
+def test_switch_profile_keeps_current_session_until_pin_succeeds():
+    ui = TrayApplication.__new__(TrayApplication)
+    ui.session_in_flight = False
+    ui.current_user = "An"
+    ui.profile_login_required = True
+    ui._update_session_ui = Mock()
+    ui._send_async = Mock()
+    ui.end_session()
+    assert ui.switching_profile is True
+    assert ui.current_user == "An"
+    ui._send_async.assert_not_called()
+    ui.username_entry = Mock()
+    ui.username_entry.get.return_value = "Binh"
+    ui.pin_entry = Mock()
+    ui.pin_entry.get.return_value = "123456"
+    ui.login_button = Mock()
+    ui.session_result = Mock()
+    ui.start_session()
+    ui._send_async.assert_called_once_with(
+        "session_start", "start_session", {"username": "Binh", "pin": "123456"}
+    )
 
 
 def test_mouse_wheel_scrolls_today_tab():

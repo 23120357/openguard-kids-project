@@ -32,10 +32,11 @@ flowchart LR
     API <--> DB[(SQLite server)]
     API -->|SSE cập nhật dashboard| Parent
     Service[Windows Service LocalSystem] <-->|HTTP + WebSocket\nBearer token| API
-    Service <--> Cache[(ProgramData\nconfig, policy cache, F1 SQLite)]
-    Tray[Tray UI trong user session] <-->|Named pipe v1| Service
-    Tray -->|idle, lock state| Windows[Windows session]
-    Tray -->|LockWorkStation| Windows
+    Service <--> Cache[(ProgramData\nconfig, policy cache, SQLite)]
+    Tray[Tray UI trong user session] <-->|Named pipe| Service
+    
+    Windows -->|idle, lock state| Tray
+    Tray -->|LockWorkStation| Windows[Windows session]
 ```
 
 Ranh giới quan trọng:

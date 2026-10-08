@@ -31,19 +31,59 @@ function buildScheduleEditor() {
     const day = document.createElement("label"); day.className = "schedule-day";
     const label = document.createElement("span"); label.textContent = name;
     day.append(enabled, label);
-    const controls = document.createElement("div"); controls.className = "schedule-controls";
-    const separator = document.createElement("span"); separator.textContent = "đến";
-    controls.append(
-      scheduleTimeSelect("day_start_" + index, name + ", bắt đầu"),
-      separator,
-      scheduleTimeSelect("day_end_" + index, name + ", kết thúc"),
-    );
-    row.append(day, controls); return row;
+    const ranges = document.createElement("div"); ranges.className = "schedule-ranges";
+    const add = document.createElement("button"); add.type = "button";
+    add.textContent = "Thêm khoảng"; add.className = "secondary";
+    add.addEventListener("click", () => {
+      enabled.checked = true;
+      appendScheduleRange(ranges, index);
+    });
+    row.append(day, ranges, add);
+    appendScheduleRange(ranges, index);
+    return row;
   });
   el("schedule-grid").replaceChildren(...rows);
   el("schedule-grid").addEventListener("change", () => {
     if (el("schedule-error").textContent) validateSchedule(el("policy-form"), false);
   });
+}
+
+let scheduleRangeId = 0;
+function appendScheduleRange(container, dayIndex, start = 0, end = 48) {
+  const controls = document.createElement("div"); controls.className = "schedule-controls";
+  const prefix = "range_" + scheduleRangeId++;
+  controls.dataset.start = prefix + "_start";
+  controls.dataset.end = prefix + "_end";
+  const separator = document.createElement("span"); separator.textContent = "đến";
+  const remove = document.createElement("button"); remove.type = "button";
+  remove.textContent = "Xóa khoảng"; remove.className = "secondary";
+  remove.setAttribute("aria-label", "Xóa khoảng giờ " + dayNames[dayIndex]);
+  remove.addEventListener("click", () => {
+    controls.remove();
+    if (!container.children.length) {
+      el("policy-form").elements["day_enabled_" + dayIndex].checked = false;
+    }
+    validateSchedule(el("policy-form"), false);
+  });
+  controls.append(
+    scheduleTimeSelect(controls.dataset.start, dayNames[dayIndex] + ", bắt đầu"),
+    separator,
+    scheduleTimeSelect(controls.dataset.end, dayNames[dayIndex] + ", kết thúc"),
+    remove,
+  );
+  container.append(controls);
+  [start, end].forEach((slot, index) => {
+    const selects = controls.querySelectorAll("select");
+    selects[index * 2].value = String(Math.floor(slot / 2) % 24).padStart(2, "0");
+    selects[index * 2 + 1].value = slot % 2 ? "30" : "00";
+  });
+}
+
+function scheduleRanges(form, index) {
+  return Array.from(el("schedule-grid").children[index].querySelectorAll(".schedule-controls"), range => [
+    timeToSlot(scheduleTimeFromForm(form, range.dataset.start)),
+    timeToSlot(scheduleTimeFromForm(form, range.dataset.end), true),
+  ]);
 }
 
 function scheduleTimeSelect(name, label) {
@@ -94,9 +134,8 @@ function validateSchedule(form, focusFirst = true) {
   const invalidDays = [];
   dayNames.forEach((day, index) => {
     if (!form.elements["day_enabled_" + index].checked) return;
-    const start = timeToSlot(scheduleTimeFromForm(form, "day_start_" + index));
-    const end = timeToSlot(scheduleTimeFromForm(form, "day_end_" + index), true);
-    if (end > start) return;
+    const ranges = scheduleRanges(form, index);
+    if (ranges.length && ranges.every(([start, end]) => end > start)) return;
     const row = el("schedule-grid").children[index];
     row.classList.add("schedule-row--invalid");
     row.querySelectorAll("select").forEach(select => {
@@ -108,7 +147,7 @@ function validateSchedule(form, focusFirst = true) {
   if (!invalidDays.length) return true;
   el("schedule-error").textContent =
     "Giờ sử dụng không hợp lệ ở " + invalidDays.join(", ") +
-    ": giờ kết thúc phải sau giờ bắt đầu.";
+    ": cần ít nhất một khoảng và giờ kết thúc phải sau giờ bắt đầu.";
   if (focusFirst) document.querySelector(".schedule-row--invalid select")?.focus();
   return false;
 }
@@ -117,9 +156,8 @@ function scheduleFromForm(form) {
   if (!validateSchedule(form)) throw new Error(el("schedule-error").textContent);
   return dayNames.map((_, index) => {
     if (!form.elements["day_enabled_" + index].checked) return "0".repeat(48);
-    const start = timeToSlot(scheduleTimeFromForm(form, "day_start_" + index));
-    const end = timeToSlot(scheduleTimeFromForm(form, "day_end_" + index), true);
-    return Array.from({length: 48}, (_, slot) => slot >= start && slot < end ? "1" : "0").join("");
+    const ranges = scheduleRanges(form, index);
+    return Array.from({length: 48}, (_, slot) => ranges.some(([start, end]) => slot >= start && slot < end) ? "1" : "0").join("");
   });
 }
 
@@ -128,11 +166,15 @@ function showSchedule(schedule) {
   schedule.forEach((slots, index) => {
     const enabled = slots.includes("1");
     el("policy-form").elements["day_enabled_" + index].checked = enabled;
-    const first = enabled ? slots.indexOf("1") : 0;
-    const last = enabled ? slots.lastIndexOf("1") : 47;
-    const format = slot => slot >= 48 ? "00:00" : String(Math.floor(slot / 2)).padStart(2, "0") + ":" + (slot % 2 ? "30" : "00");
-    setScheduleTime(el("policy-form"), "day_start_" + index, format(first));
-    setScheduleTime(el("policy-form"), "day_end_" + index, format(enabled ? last + 1 : 48));
+    const container = el("schedule-grid").children[index].querySelector(".schedule-ranges");
+    container.replaceChildren();
+    for (let slot = 0; slot < 48;) {
+      if (slots[slot] !== "1") { slot++; continue; }
+      const start = slot;
+      while (slot < 48 && slots[slot] === "1") slot++;
+      appendScheduleRange(container, index, start, slot);
+    }
+    if (!enabled) appendScheduleRange(container, index);
   });
 }
 

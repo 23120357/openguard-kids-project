@@ -1,0 +1,4 @@
+Tool: built-in image_gen (generation followed by correction).
+Source: server/app/models.py and server/app/database.py.
+Prompt summary: Create a Vietnamese database ER diagram for OpenGuard Kids, SQLite and SQLAlchemy. Include all nine tables: parents, parent_sessions, children, policies, enrollment_codes, devices, audit, device_commands, time_requests. Display primary keys, all foreign keys, selected principal fields and main 1:N relationships. children to policies is 1:0..1. Distinguish devices.child_id from nullable devices.active_child_id. White background with navy headings, teal and orange table cards. Explicitly note that connectors illustrate main relationships while FK annotations specify all links.
+Correction: Add missing audit table with id, parent_id, child_id, action, ts, ip, old_value and new_value. Label both children/devices connectors.

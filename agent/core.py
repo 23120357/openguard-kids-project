@@ -199,8 +199,10 @@ class AgentCore:
                 self._session_changed()
             return True, self._active_user
 
-    def _end_session(self) -> None:
+    def _end_session(self) -> bool:
         with self._lock:
+            if self._profiles and self._active_user is not None:
+                return False
             self._active_user = None
             self._active_child_id = None
             self._active_since = None
@@ -208,6 +210,7 @@ class AgentCore:
                 self._time_controller = None
             if self._session_changed:
                 self._session_changed()
+            return True
 
     def pending_time_requests(self) -> list[dict[str, Any]]:
         with self._lock:
@@ -533,7 +536,12 @@ class AgentCore:
                 },
             )
         if request.message_type == "end_session":
-            self._end_session()
+            if not self._end_session():
+                return error_response(
+                    request.request_id,
+                    "profile_switch_required",
+                    "Sign in to another profile to switch; the current policy remains active",
+                )
             return success_response(
                 request.request_id, {"current_user": None, "active_child_id": None}
             )
