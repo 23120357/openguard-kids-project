@@ -517,3 +517,12 @@ Minimum acceptance tests for the contract are:
 - request creation, parent decision, child-visible response and audit entry;
 - data deletion while online and pending cleanup while offline;
 - attempts to send full URLs, extra event fields or another device's IDs fail.
+## Bổ sung sự kiện và luật lọc Tuần 3
+
+Các API chạy thực tế dùng `/api/device/activity-events`, `/api/device/event-state`,
+`/api/device/event-state/ack`, `/api/device/filtering` và các endpoint phụ huynh
+trong [WEEK3_EVENTS.md](WEEK3_EVENTS.md). Không dùng namespace `/api/v1/agent`
+trong hợp đồng đích cũ cho đợt này. Snapshot schema thực tế: `openapi-week3.json`.
+Payload F3 bảy trường nằm trong envelope UUID/generation/explanation. Xác nhận
+xóa cục bộ xảy ra trước upload; server có unique key và transaction chống race
+với xóa. Chi tiết retry, retention và nghiệm thu nằm trong tài liệu Tuần 3.

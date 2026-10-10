@@ -390,6 +390,61 @@ class TrayApplication:
         notebook.add(today, text="Hôm nay")
         notebook.add(policy, text="Chính sách")
         notebook.add(privacy, text="Ứng dụng ghi nhận gì?")
+        events_tab = ttk.Frame(notebook, style="Root.TFrame", padding=(0, 14))
+        notebook.add(events_tab, text="Sự kiện")
+        self.events_tab = events_tab
+        events_tab.columnconfigure(0, weight=1)
+        events_tab.rowconfigure(1, weight=3, minsize=90)
+        events_tab.rowconfigure(2, weight=1, minsize=110)
+        ttk.Label(
+            events_tab, text="Các lần ứng dụng hoặc trang web bị chặn", style="Body.TLabel"
+        ).grid(row=0, column=0, sticky="w", pady=8)
+        events_list = ttk.Frame(events_tab)
+        events_list.grid(row=1, column=0, sticky="nsew")
+        self.events_tree = ttk.Treeview(
+            events_list, columns=("time", "subject", "reason"), show="headings"
+        )
+        for column, title, width in [
+            ("time", "Thời gian", 150),
+            ("subject", "Trang web / ứng dụng", 180),
+            ("reason", "Lý do chặn", 300),
+        ]:
+            self.events_tree.heading(column, text=title)
+            self.events_tree.column(column, width=width, minwidth=100, stretch=True)
+        event_scroll = ttk.Scrollbar(events_list, orient="vertical", command=self.events_tree.yview)
+        self.events_tree.configure(yscrollcommand=event_scroll.set)
+        event_scroll.pack(side="right", fill="y")
+        self.events_tree.pack(fill="both", expand=True)
+        detail_frame = ttk.Frame(events_tab)
+        detail_frame.grid(row=2, column=0, sticky="nsew", pady=(12, 0))
+        self.event_detail = tk.Text(
+            detail_frame,
+            height=5,
+            width=1,
+            wrap="word",
+            font=("Segoe UI", 10),
+            background="white",
+            borderwidth=0,
+            padx=8,
+            pady=8,
+        )
+        self.event_detail_scrollbar = ttk.Scrollbar(
+            detail_frame, orient="vertical", command=self.event_detail.yview
+        )
+        self.event_detail.configure(yscrollcommand=self.event_detail_scrollbar.set)
+        self.event_detail_scrollbar.pack(side="right", fill="y")
+        self.event_detail.pack(side="left", fill="both", expand=True)
+        self._set_event_detail("Chọn một sự kiện để xem đầy đủ lý do.")
+
+        def show_event_detail(_event):
+            selected = self.events_tree.selection()
+            values = self.events_tree.item(selected[0], "values") if selected else []
+            self._set_event_detail("\n".join(values))
+
+        self.events_tree.bind("<<TreeviewSelect>>", show_event_detail)
+        self._bind_tab_mousewheel(events_tab, self._scroll_events)
+        self.block_popup = None
+        self.block_popup_ids = set()
         self.login_tab = login_tab
         self.today_tab = today
         self.policy_tab = policy
@@ -677,6 +732,26 @@ class TrayApplication:
     def _scroll_policy(self, event) -> str | None:
         return self._scroll_tab(event, self.policy_tab, self.policy_canvas)
 
+    def _scroll_events(self, event) -> str | None:
+        widget = getattr(event, "widget", None)
+        detail_widgets = (
+            getattr(self, "event_detail", None),
+            getattr(self, "event_detail_scrollbar", None),
+        )
+        target = (
+            self.event_detail
+            if widget is not None and widget in detail_widgets
+            else self.events_tree
+        )
+        return self._scroll_tab(event, self.events_tab, target)
+
+    def _set_event_detail(self, text: str) -> None:
+        self.event_detail.configure(state="normal")
+        self.event_detail.delete("1.0", "end")
+        self.event_detail.insert("1.0", text)
+        self.event_detail.configure(state="disabled")
+        self.event_detail.yview_moveto(0)
+
     def _scroll_tab(self, event, tab, canvas) -> str | None:
         if self.notebook.select() != str(tab) or not event.delta:
             return None
@@ -951,6 +1026,7 @@ class TrayApplication:
             )
             self._update_session_ui()
             self._update_request_status(data.get("time_requests", []))
+            self._update_activity_events(data)
             self.connected = True
             mode = control.get("mode", "disabled")
             self.status_label.configure(text=self._status_text(mode, control))
@@ -960,8 +1036,9 @@ class TrayApplication:
                     f"Máy chủ phụ huynh: {'đã kết nối' if remote.get('connected') else 'ngoại tuyến/chưa ghép'}\n"
                     f"Chế độ kiểm soát: {self._mode_text(mode)}\n"
                     "Ghi nhận: tổng thời gian, nghỉ quá 5 phút và khóa màn hình\n"
-                    "Theo dõi ứng dụng/trang web: không\n"
-                    "DNS: không lọc"
+                    "Sự kiện: tên ứng dụng/trang web, thời gian và lý do chặn\n"
+                    f"Lọc ứng dụng/DNS: {'đang bật' if data.get('filtering', {}).get('enabled') else 'đang tắt'}\n"
+                    f"{data.get('filtering', {}).get('error') or ''}"
                 )
             )
             self.icon.title = f"OpenGuard Kids - {self._mode_text(mode)}"
@@ -1022,6 +1099,87 @@ class TrayApplication:
                     control.get("lock_reason"), control.get("remote_command_id")
                 )
         self.icon.update_menu()
+
+    def _update_activity_events(self, data):
+        if not hasattr(self, "events_tree"):
+            return
+        selection = self.events_tree.selection()
+        previous_ids = list(self.events_tree.get_children())
+        scroll_position = self.events_tree.yview()
+        displayed_ids = set()
+        items = data.get("activity_events", [])
+        next_ids = [item["id"] for item in items]
+        obsolete_ids = [id for id in previous_ids if id not in next_ids]
+        if obsolete_ids:
+            self.events_tree.delete(*obsolete_ids)
+        for index, item in enumerate(items):
+            event = item["event"]
+            explanation = item["explanation"]
+            values = (
+                datetime.fromtimestamp(event["ts"], tz=UTC)
+                .astimezone()
+                .strftime("%d/%m/%Y %H:%M:%S"),
+                event["subject"],
+                explanation["reason"] + " · " + explanation["rule_author"],
+            )
+            if item["id"] in previous_ids:
+                if tuple(self.events_tree.item(item["id"], "values")) != values:
+                    self.events_tree.item(item["id"], values=values)
+                if previous_ids != next_ids:
+                    self.events_tree.move(item["id"], "", index)
+            else:
+                self.events_tree.insert("", index, iid=item["id"], values=values)
+            displayed_ids.add(item["id"])
+        if isinstance(scroll_position, tuple) and scroll_position and previous_ids:
+            self.events_tree.yview_moveto(scroll_position[0])
+        if isinstance(selection, tuple) and selection and selection[0] in displayed_ids:
+            if self.events_tree.selection() != selection:
+                self.events_tree.selection_set(selection)
+        elif hasattr(self, "event_detail"):
+            self._set_event_detail("Chọn một sự kiện để xem đầy đủ lý do.")
+        notifications = data.get("blocking_notifications", [])
+        live_ids = {item["id"] for item in data.get("activity_events", [])} | {
+            item["id"] for item in notifications
+        }
+        if self.block_popup is not None and not (self.block_popup_ids & live_ids):
+            self.block_popup.destroy()
+            self.block_popup = None
+            self.block_popup_ids.clear()
+        if not notifications or self.block_popup is not None:
+            return
+        popup = tk.Toplevel(self.root)
+        self.block_popup = popup
+        ids = [item["id"] for item in notifications]
+        self.block_popup_ids = set(ids)
+        popup.title("OpenGuard Kids · Lý do chặn")
+        popup.geometry("520x360")
+        popup.attributes("-topmost", True)
+        frame = ttk.Frame(popup, padding=20)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(
+            frame,
+            text="Ứng dụng hoặc trang web vừa bị chặn",
+            font=("Segoe UI", 12, "bold"),
+            wraplength=470,
+        ).pack(anchor="w")
+        text = tk.Text(frame, wrap="word", height=10, borderwidth=0, font=("Segoe UI", 10))
+        text.pack(fill="both", expand=True, pady=12)
+        for item in notifications:
+            explanation = item["explanation"]
+            text.insert(
+                "end",
+                f"{item['event']['subject']}\n{explanation['reason']}\nLuật do: {explanation['rule_author']}\n\n",
+            )
+        text.configure(state="disabled")
+
+        def dismiss():
+            self.block_popup = None
+            self.block_popup_ids.clear()
+            popup.destroy()
+            self._send_async("ack_blocking", "ack_blocking_events", {"event_ids": ids})
+
+        popup.protocol("WM_DELETE_WINDOW", dismiss)
+        ttk.Button(frame, text="Em đã hiểu", command=dismiss).pack(anchor="e")
 
     def _update_policy_ui(self, policy: dict[str, Any] | None) -> None:
         if not self.current_user:

@@ -251,12 +251,12 @@ def test_dashboard_assets_and_api_health(client):
     assert dashboard.status_code == 200
     assert "default-src 'self'" in dashboard.headers["content-security-policy"]
     assert dashboard.headers["cache-control"] == "no-store"
-    assert '/static/app.js?v=20261004-schedule-validation' in dashboard.text
-    assert '/static/style.css?v=20261004-schedule-validation' in dashboard.text
+    assert "/static/app.js?v=20261010-parent-tabs" in dashboard.text
+    assert "/static/style.css?v=20261010-parent-tabs" in dashboard.text
     assert 'id="schedule-error"' in dashboard.text
     for path in ("/static/style.css", "/static/app.js", "/api/health", "/openapi.json"):
         assert client.get(path).status_code == 200
-    script = client.get("/static/app.js?v=20261004-schedule-validation")
+    script = client.get("/static/app.js?v=20261010-parent-tabs")
     assert script.headers["cache-control"] == "no-store"
     assert 'new Option("30", "30")' in script.text
     assert 'type = "time"' not in script.text

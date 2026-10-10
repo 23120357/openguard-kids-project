@@ -23,15 +23,26 @@ Cần tự kiểm chứng văn bản gốc khi viết phần pháp lý trong bá
 | F1 local_date, used_seconds, extra_seconds, grace, warning state, recorded_at | Áp dụng quota và khoản cộng riêng theo từng hồ sơ | SQLite cục bộ cho mỗi trẻ; state giữ tới cleanup; extra_seconds hết vào ngày mới | Service; Tray chỉ đọc trạng thái của hồ sơ đang dùng |
 | F1 event: warning, lock directive, clock rollback, recorded_at | Giải thích việc cảnh báo/khóa và chẩn đoán đổi giờ; ISO UTC ghi cả ngày và giờ | Cửa sổ 90 ngày được dọn khi ghi event mới | SYSTEM/Administrators; thông báo liên quan hiển thị cho trẻ |
 
-Chưa ghi tên ứng dụng/trang web hay activity event chi tiết. Lược đồ sự kiện tương lai phải đúng:
+## Sự kiện F3 triển khai Tuần 3
+
+| Trường hoặc nhóm | Mục đích | Thời hạn | Ai truy cập |
+|---|---|---|---|
+| ts, device_id, child_id, type, subject, duration_sec, policy_id | Đồng bộ hoạt động ứng dụng và các lần chặn, giải thích chính sách | 90 ngày, tự xóa ở server/agent; xóa theo yêu cầu | Service/server; phụ huynh sở hữu; Tray chỉ hồ sơ đang đăng nhập |
+| explanation.reason, rule_author | Hiển thị cùng lý do/người đặt luật tại thời điểm chặn trên popup và lịch sử hai phía | Cùng sự kiện: 90 ngày hoặc xóa theo yêu cầu | Cùng quyền xem sự kiện |
+| UUID, generation, sent, notified | Chống trùng, trạng thái gửi/thông báo của sự kiện | Cùng thời hạn sự kiện | Service/server; UUID chỉ để đồng bộ |
+| generation/ACK theo trẻ và thiết bị | Ngăn agent offline gửi lại sự kiện đã xóa; báo trạng thái xóa | Giữ trong vòng đời hồ sơ/thiết bị; không chứa hoạt động truy cập | Service/server; phụ huynh xem trạng thái |
+| filtering rules: tên ứng dụng và SHA-256, tên miền và danh sách miễn chặn | Nhận diện executable và áp dụng luật do phụ huynh đặt | Chính sách hiện tại, bản cache có HMAC tại agent | Phụ huynh sở hữu, service/server |
+
+Đã ghi activity event tối thiểu. Payload sự kiện gồm:
 ts, device_id, child_id, type, subject, duration_sec, policy_id.
 Subject chỉ chứa tên ứng dụng hoặc tên miền phù hợp đề; không URL đầy đủ,
 tiêu đề cửa sổ, nội dung gõ phím, tin nhắn, tài liệu hay ảnh chụp màn hình.
 
 ## Phần cần làm
 
-- Tác vụ tự xóa dữ liệu hoạt động quá 90 ngày.
-- Xóa dữ liệu theo yêu cầu trên cả server và agent, kể cả agent đang offline.
+- Retention/xóa sự kiện F3 đã triển khai đầy đủ, gồm hàng rào xóa cho agent offline;
+  xem WEEK3_EVENTS.md. Các bảng tài khoản, audit/request Tuần 2 và state thực thi
+  quota vẫn có vòng đời riêng như bảng trên; chức năng mới không xóa tài khoản.
 - Hoàn thiện child-view production cho báo cáo/audit; hiện chỉ có device-scoped
   audit tối giản và cần quyết định cách hiển thị IP cho trẻ.
 - AES-GCM cho trường nhạy cảm; phân loại dữ liệu và quản lý khóa.

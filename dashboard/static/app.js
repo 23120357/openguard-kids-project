@@ -1,6 +1,14 @@
 "use strict";
 let csrf = "";
 let currentPolicy = null;
+let currentFiltering = null;
+let filteringDirty = false;
+let filteringSequence = 0;
+const domainLists = ['domain_block', 'domain_allow', 'safety_domains'];
+let domainDrafts = {domain_block: [], domain_allow: [], safety_domains: []};
+const dashboardTabs = ['overview', 'time-policy', 'filtering', 'activity'];
+let activityOffset = 0;
+let activitySequence = 0;
 let childProfiles = [];
 let liveEvents = null;
 let liveRefreshTimer = null;
@@ -197,8 +205,14 @@ function showLogin() {
   if (liveRefreshTimer) { clearTimeout(liveRefreshTimer); liveRefreshTimer = null; }
   pendingLiveKinds.clear();
   csrf = ""; currentPolicy = null; childProfiles = [];
+  currentFiltering = null; activityOffset = 0; activitySequence++;
+  filteringDirty = false;
+  domainDrafts = {domain_block: [], domain_allow: [], safety_domains: []};
+  renderDomainLists();
+  selectDashboardTab('overview');
   el("workspace").hidden = true; el("login-panel").hidden = false;
-  ["devices", "audit", "child-select", "pairing-code", "identity"].forEach(id => el(id).replaceChildren());
+  ["devices", "audit", "child-select", "pairing-code", "identity", "activity-rows"].forEach(id => el(id).replaceChildren());
+  el('filtering-form').reset(); el('deletion-status').textContent = ''; el('activity-empty').textContent = '';
   el("policy-form").reset(); el("code-form").reset();
 }
 async function loadPolicy() {
@@ -206,7 +220,7 @@ async function loadPolicy() {
   el("pairing-code").textContent = "";
   el("code-form").reset();
   const id = el("child-select").value;
-  if (!id) return;
+  if (!id) { currentFiltering = null; return; }
   const policy = await api("/children/" + encodeURIComponent(id) + "/policy");
   if (el("child-select").value !== id) return;
   currentPolicy = policy;
@@ -215,6 +229,7 @@ async function loadPolicy() {
   el("policy-form").elements.weekend_minutes.value = policy.weekend_minutes;
   el("policy-version").textContent = "Phiên bản " + policy.version;
   showSchedule(policy.schedule);
+  await loadFiltering(id);
 }
 async function loadChildren(preferredId = null) {
   const rows = await api("/children");
@@ -223,6 +238,7 @@ async function loadChildren(preferredId = null) {
   el("child-select").replaceChildren(...rows.map(row => new Option(row.display_name, row.id)));
   if (rows.some(row => row.id === oldId)) el("child-select").value = oldId;
   const selected = rows.find(row => row.id === el("child-select").value);
+  if (el('child-select').value !== oldId) activityOffset = 0;
   el("child-pin-status").textContent = selected ? (selected.has_pin ? "PIN đã được thiết lập." : "Hồ sơ cũ chưa có PIN; hãy tạo PIN trước khi đăng nhập trên máy trẻ.") : "";
   await loadPolicy();
 }
@@ -232,6 +248,7 @@ function renderList(id, lines, empty) {
   }));
 }
 async function refreshStatus() {
+  await refreshActivity();
   const [devices, audits, requests] = await Promise.all([
     api("/devices"), api("/audit"), api("/time-requests")
   ]);
@@ -384,7 +401,7 @@ async function enterWorkspace(user) {
 function form(id, handler) {
   el(id).addEventListener("submit", async (event) => {
     event.preventDefault(); tell("");
-    const button = event.target.querySelector("button");
+    const button = event.submitter || event.target.querySelector('button[type="submit"]') || event.target.querySelector("button");
     button.disabled = true;
     try { await handler(new FormData(event.target)); }
     catch (error) { tell(error.message); }
@@ -428,9 +445,13 @@ form("policy-form", async data => {
   await refreshStatus();
 });
 el("child-select").addEventListener("change", () => {
+  activityOffset = 0;
+  activitySequence++;
+  el('activity-rows').replaceChildren();
   const selected = childProfiles.find(row => row.id === el("child-select").value);
   el("child-pin-status").textContent = selected ? (selected.has_pin ? "PIN đã được thiết lập." : "Hồ sơ cũ chưa có PIN; hãy tạo PIN trước khi đăng nhập trên máy trẻ.") : "";
   loadPolicy().catch(e => tell(e.message));
+  refreshActivity().catch(e => tell(e.message));
 });
 el("logout").addEventListener("click", async () => {
   try { await api("/auth/logout", "POST", {}); showLogin(); tell(""); }
@@ -443,3 +464,189 @@ document.addEventListener("visibilitychange", () => {
 });
 buildScheduleEditor();
 api("/auth/me").then(enterWorkspace).catch(() => showLogin());
+
+async function loadFiltering(childId, force = false) {
+  if (el('child-select').value !== childId) return;
+  if (!force && filteringDirty && currentFiltering?.child_id === childId) return;
+  const sequence = ++filteringSequence;
+  if (currentFiltering?.child_id !== childId) currentFiltering = null;
+  const policy = await api('/children/' + encodeURIComponent(childId) + '/filtering');
+  if (!csrf || sequence !== filteringSequence || el('child-select').value !== childId) return;
+  if (!force && filteringDirty && currentFiltering?.child_id === childId) return;
+  currentFiltering = policy;
+  filteringDirty = false;
+  const fields = el('filtering-form').elements;
+  fields.enabled.checked = policy.enabled;
+  ['domain_mode', 'app_mode'].forEach(key => { fields[key].value = policy[key]; });
+  domainLists.forEach(key => { domainDrafts[key] = [...policy[key]]; el(key + '-new').value = ''; });
+  renderDomainLists();
+  ['app_allow', 'app_block'].forEach(key => { fields[key].value = policy[key].map(rule => rule.name + ' | ' + rule.sha256).join('\n'); });
+}
+
+function lines(value) { return value.split(/\r?\n/).map(line => line.trim()).filter(Boolean); }
+function appRules(value) {
+  return lines(value).map(line => {
+    const parts = line.split('|').map(part => part.trim());
+    if (parts.length !== 2 || !parts[0] || !/^[a-f0-9]{64}$/i.test(parts[1])) throw new Error('Mỗi ứng dụng cần tên tệp và mã SHA-256 gồm 64 ký tự, ngăn cách bằng |.');
+    return {name: parts[0], sha256: parts[1].toLowerCase()};
+  });
+}
+form('filtering-form', async data => {
+  if (!currentFiltering) throw new Error('Hãy chọn hồ sơ của con.');
+  if (document.querySelector('.domain-row-edit')) throw new Error('Hãy lưu hoặc hủy dòng tên miền đang chỉnh sửa trước.');
+  if (domainLists.some(key => el(key + '-new').value.trim())) throw new Error('Hãy bấm Thêm để đưa tên miền vừa nhập vào danh sách trước khi lưu.');
+  const childId = currentFiltering.child_id;
+  const body = {expected_version: currentFiltering.version, enabled: data.get('enabled') === 'on',
+    domain_mode: data.get('domain_mode'), app_mode: data.get('app_mode')};
+  domainLists.forEach(key => { body[key] = [...domainDrafts[key]]; });
+  ['app_allow', 'app_block'].forEach(key => { body[key] = appRules(data.get(key)); });
+  await api('/children/' + encodeURIComponent(childId) + '/filtering', 'PUT', body);
+  await loadFiltering(childId, true);
+  tell('Đã lưu quy tắc. Máy của con sẽ nhận khi kết nối với máy chủ.');
+});
+
+async function refreshActivity() {
+  const childId = el('child-select').value;
+  const sequence = ++activitySequence;
+  if (!childId) { el('activity-rows').replaceChildren(); el('activity-empty').textContent = 'Chưa có hồ sơ.'; return; }
+  const [result, deletion] = await Promise.all([
+    api('/children/' + encodeURIComponent(childId) + '/activity-events?offset=' + activityOffset),
+    api('/children/' + encodeURIComponent(childId) + '/activity-data/deletion')
+  ]);
+  if (!csrf || sequence !== activitySequence || childId !== el('child-select').value) return;
+  el('activity-rows').replaceChildren(...result.items.map(item => {
+    const row = document.createElement('tr');
+    [new Date(item.event.ts * 1000).toLocaleString('vi-VN', {hour12: false}), item.event.subject,
+      item.explanation.reason + ' · ' + item.explanation.rule_author].forEach(value => {
+      const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
+    });
+    return row;
+  }));
+  el('activity-empty').textContent = result.items.length ? '' : 'Chưa có sự kiện chặn trong trang này.';
+  el('activity-prev').disabled = activityOffset === 0;
+  el('activity-next').disabled = !result.has_more;
+  el('activity-page').textContent = 'Trang ' + (activityOffset / 50 + 1);
+  el('deletion-status').textContent = !deletion.generation ? '' : deletion.complete ?
+    'Dữ liệu cũ đã được xóa trên máy chủ và các agent đã xác nhận xóa bộ đệm.' :
+    'Đã xóa trên máy chủ. Đang chờ agent xóa bộ đệm: ' + deletion.pending_devices.map(device => device.name + (device.revoked ? ' (đã thu hồi, cần xóa dữ liệu trên máy)' : '')).join(', ') + '. Thiết bị ngoại tuyến còn được ghép đôi sẽ xóa khi kết nối lại.';
+}
+function selectDashboardTab(name) {
+  dashboardTabs.forEach(tab => {
+    const selected = tab === name;
+    el(tab + '-panel').hidden = !selected;
+    el(tab + '-tab').setAttribute('aria-selected', String(selected));
+    el(tab + '-tab').tabIndex = selected ? 0 : -1;
+  });
+  if (name === 'activity' && csrf) refreshActivity().catch(error => tell(error.message));
+}
+dashboardTabs.forEach((name, index) => {
+  const tab = el(name + '-tab');
+  tab.addEventListener('click', () => selectDashboardTab(name));
+  tab.addEventListener('keydown', event => {
+    let next;
+    if (event.key === 'ArrowRight') next = (index + 1) % dashboardTabs.length;
+    else if (event.key === 'ArrowLeft') next = (index + dashboardTabs.length - 1) % dashboardTabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = dashboardTabs.length - 1;
+    else return;
+    event.preventDefault();
+    selectDashboardTab(dashboardTabs[next]);
+    el(dashboardTabs[next] + '-tab').focus();
+  });
+});
+el('activity-prev').addEventListener('click', () => { activityOffset = Math.max(0, activityOffset - 50); refreshActivity().catch(error => tell(error.message)); });
+el('activity-next').addEventListener('click', () => { activityOffset += 50; refreshActivity().catch(error => tell(error.message)); });
+el('erase-activity').addEventListener('click', async () => {
+  const childId = el('child-select').value;
+  if (!childId || !window.confirm('Xóa toàn bộ lịch sử sự kiện hoạt động của hồ sơ này trên máy chủ và các máy của con? Thao tác này không thể hoàn tác.')) return;
+  const button = el('erase-activity'); button.disabled = true;
+  try {
+    await api('/children/' + encodeURIComponent(childId) + '/activity-data', 'DELETE');
+    activityOffset = 0;
+    await refreshActivity();
+  } catch (error) { tell(error.message); } finally { button.disabled = false; }
+});
+
+function normalizeDomain(value) {
+  value = value.trim();
+  if (!value || /\s/.test(value)) throw new Error('Nhập một tên miền hoặc URL hợp lệ.');
+  const url = new URL(value.includes('://') ? value : 'https://' + value);
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Chỉ nhập tên miền hoặc URL http/https không có thông tin đăng nhập.');
+  const domain = url.hostname.toLowerCase().replace(/\.$/, '');
+  if (domain.length > 253 || !domain.includes('.') || /^\d+(\.\d+){3}$/.test(domain) || domain.split('.').some(label => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label))) throw new Error('Nhập tên miền hợp lệ, ví dụ example.org.');
+  return domain;
+}
+function markFilteringDirty() {
+  filteringDirty = true;
+  el('filtering-draft-status').textContent = 'Có thay đổi chưa lưu. Bấm Lưu quy tắc kiểm soát để áp dụng.';
+}
+function domainInputValue(input, key, ignoredIndex = -1) {
+  input.setCustomValidity('');
+  try {
+    const domain = normalizeDomain(input.value);
+    if (domainDrafts[key].some((item, index) => index !== ignoredIndex && item === domain)) throw new Error('Tên miền này đã có trong danh sách.');
+    return domain;
+  } catch (error) {
+    input.setCustomValidity(error.message);
+    input.reportValidity();
+    return null;
+  }
+}
+function renderDomainLists() {
+  domainLists.forEach(key => {
+    const list = el(key + '-list');
+    const rows = domainDrafts[key].map((domain, index) => {
+      const row = document.createElement('li'); row.className = 'domain-row';
+      const name = document.createElement('span'); name.className = 'domain-name'; name.textContent = domain;
+      row.append(name);
+      const actions = document.createElement('div'); actions.className = 'domain-row-actions'; row.append(actions);
+      if (key === 'safety_domains' && domain === '111.vn') {
+        const note = document.createElement('span'); note.className = 'hint'; note.textContent = 'Luôn được phép'; actions.append(note); return row;
+      }
+      const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'secondary'; edit.textContent = 'Chỉnh sửa'; edit.setAttribute('aria-label', 'Chỉnh sửa ' + domain);
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'domain-delete'; remove.textContent = 'Xóa'; remove.setAttribute('aria-label', 'Xóa ' + domain);
+      remove.addEventListener('click', () => {
+        if (document.querySelector('.domain-row-edit')) { tell('Hãy lưu hoặc hủy dòng đang chỉnh sửa trước.'); return; }
+        domainDrafts[key].splice(index, 1); markFilteringDirty(); renderDomainLists();
+      });
+      edit.addEventListener('click', () => {
+        if (document.querySelector('.domain-row-edit')) { tell('Hãy lưu hoặc hủy dòng đang chỉnh sửa trước.'); return; }
+        markFilteringDirty();
+        const input = document.createElement('input'); input.value = domain; input.maxLength = 2048; input.setAttribute('aria-label', 'Tên miền thay thế cho ' + domain);
+        input.addEventListener('input', () => input.setCustomValidity(''));
+        row.classList.add('domain-row-edit'); row.replaceChildren(input, actions); actions.replaceChildren();
+        const save = document.createElement('button'); save.type = 'button'; save.textContent = 'Lưu dòng';
+        const cancel = document.createElement('button'); cancel.type = 'button'; cancel.className = 'secondary'; cancel.textContent = 'Hủy';
+        const commit = () => { const value = domainInputValue(input, key, index); if (!value) return; domainDrafts[key][index] = value; markFilteringDirty(); renderDomainLists(); };
+        save.addEventListener('click', commit); cancel.addEventListener('click', renderDomainLists);
+        input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); commit(); } else if (event.key === 'Escape') { event.preventDefault(); renderDomainLists(); } });
+        actions.append(save, cancel); input.focus(); input.select();
+      });
+      actions.append(edit, remove); return row;
+    });
+    if (!rows.length) { const empty = document.createElement('li'); empty.className = 'domain-empty'; empty.textContent = 'Chưa có tên miền trong danh sách này.'; rows.push(empty); }
+    list.replaceChildren(...rows);
+  });
+  el('filtering-draft-status').textContent = filteringDirty ? 'Có thay đổi chưa lưu. Bấm Lưu quy tắc kiểm soát để áp dụng.' : '';
+}
+function addDomain(key) {
+  if (document.querySelector('.domain-row-edit')) { tell('Hãy lưu hoặc hủy dòng đang chỉnh sửa trước.'); return; }
+  const input = el(key + '-new');
+  const value = domainInputValue(input, key);
+  if (!value) return;
+  domainDrafts[key].push(value); input.value = ''; markFilteringDirty(); renderDomainLists(); input.focus();
+}
+domainLists.forEach(key => {
+  document.querySelector('[data-add-domain="' + key + '"]').addEventListener('click', () => addDomain(key));
+  el(key + '-new').addEventListener('input', () => el(key + '-new').setCustomValidity(''));
+  el(key + '-new').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); addDomain(key); } });
+});
+el('filtering-form').addEventListener('input', event => {
+  if (event.target.matches('input, select, textarea')) markFilteringDirty();
+});
+el('reload-filtering').addEventListener('click', () => {
+  if (filteringDirty && !window.confirm('Tải lại sẽ bỏ các thay đổi quy tắc chưa lưu. Tiếp tục?')) return;
+  const childId = el('child-select').value;
+  if (childId) loadFiltering(childId, true).catch(error => tell(error.message));
+});
+renderDomainLists();

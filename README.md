@@ -216,3 +216,11 @@ Database được tạo bằng `create_all` cho bộ khung ban đầu; chưa có
 
 Tham khảo kỹ thuật: [FastAPI testing](https://fastapi.tiangolo.com/tutorial/testing/),
 [SQLAlchemy ORM](https://docs.sqlalchemy.org/en/20/orm/quickstart.html).
+## Bổ sung Tuần 3: sự kiện và kiểm soát ứng dụng
+
+Popup lý do chặn, tab Sự kiện trên Tray/dashboard, SQLite outbox, server chống
+trùng và retention/xóa sự kiện 90 ngày được mô tả trong
+[docs/WEEK3_EVENTS.md](docs/WEEK3_EVENTS.md). Cập nhật dependencies theo
+`requirements-lock.txt` trước khi restart server/service. Lọc website cần cấu
+hình DNS adapter máy lab về `127.0.0.1`; ghi lại và khôi phục DNS trước khi gỡ
+service. Không tự đổi DNS máy đang phát triển khi chạy test.

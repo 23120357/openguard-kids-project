@@ -15,8 +15,19 @@ server.
 - Mỗi thông điệp là một JSON UTF-8 tối đa 64 KiB. Audit trả cho Tray được giới hạn
   5 mục gần nhất; phản hồi vượt ngưỡng trả lỗi thay vì làm service dừng.
 - Service kiểm tra phiên bản, kiểu dữ liệu và giới hạn giá trị trước khi xử lý.
-- Không truyền token thiết bị, mật khẩu, nội dung gõ phím hoặc dữ liệu duyệt web qua
-  giao thức này.
+- Không truyền token thiết bị, mật khẩu, nội dung gõ phím hoặc URL/nội dung duyệt web.
+  Tuần 3 truyền tên miền tối thiểu và lời giải thích sự kiện chặn cho hồ sơ hiện tại.
+
+## Bổ sung Tuần 3
+
+- `get_status`/`ui_heartbeat` trả `activity_events` (30 lần chặn gần nhất),
+  `blocking_notifications` (tối đa 10 mục chưa xác nhận), `filtering` (trạng thái/lỗi).
+- `ack_blocking_events` nhận `event_ids` tối đa 10 UUID. Service chỉ xác nhận mục
+  thuộc hồ sơ đang đăng nhập. Tray xác nhận sau khi trẻ đóng popup.
+- Named pipe dùng PID thật của caller cho ui_heartbeat thay vì tin process_id
+  do payload khai báo; App Controller giới hạn trong Windows session của Tray.
+- Chuyển hồ sơ hoặc xóa dữ liệu làm đóng popup không còn thuộc dữ liệu hiển thị;
+  popup không tự hiện lịch sử của trẻ khác. Token và cache service không đưa cho Tray.
 
 ## Envelope
 

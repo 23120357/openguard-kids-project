@@ -5,7 +5,7 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 
 (async () => {
-  const browser = await chromium.launch({ headless: true, channel: process.env.TEST_BROWSER_CHANNEL || undefined });
+  const browser = await chromium.launch({ headless: true, channel: process.env.TEST_BROWSER_CHANNEL || undefined, executablePath: process.env.TEST_BROWSER_EXECUTABLE || undefined });
   try {
     const page = await browser.newPage();
     await page.setContent('<form id="policy-form"><p id="schedule-error"></p><div id="schedule-grid"></div></form>');

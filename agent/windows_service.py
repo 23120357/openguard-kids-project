@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from agent.core import AgentCore
+from agent.filtering import AppController, DNSProxy
 from agent.named_pipe import NamedPipeClient, NamedPipeServer
 from agent.remote_sync import RemoteSync, enroll, load_cached_remote_policy
 from agent.time_control import (
@@ -88,6 +89,8 @@ class ServiceRuntime:
         self.pipe = NamedPipeServer(self.core.handle)
         signed_policy_path = config_path.with_name("remote-policy.json")
         self.remote = None
+        self.app_controller = AppController(self.core)
+        self.dns_proxy = DNSProxy(self.core, upstream=os.getenv("OGK_DNS_UPSTREAM", "1.1.1.1"))
         if config_path.exists():
             self.core.mark_enrolled()
             try:
@@ -121,17 +124,25 @@ class ServiceRuntime:
 
     def run(self) -> None:
         self._running = True
+        self.app_controller.start()
+        try:
+            self.dns_proxy.start()
+        except OSError as exc:
+            self.core._filtering_error = f"DNS proxy could not bind 127.0.0.1:53: {exc}"
         if self.remote is not None:
             self.remote.start()
         try:
             self.pipe.serve_forever()
         finally:
             self._running = False
+            self.app_controller.stop()
+            self.dns_proxy.stop()
             if self.remote is not None:
                 self.remote.stop()
 
     def stop(self) -> None:
         self.pipe.stop()
+        self.app_controller.stop()
         if self.remote is not None:
             self.remote.stop()
 

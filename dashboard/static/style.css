@@ -10,3 +10,28 @@ fieldset{border:1px solid #dce6e0;border-radius:10px;margin:18px 0;padding:14px}
 *{box-sizing:border-box}body{margin:0}header{display:flex;justify-content:space-between;gap:16px;padding:22px 6%;background:#fff;border-bottom:1px solid #dce6e0}.brand{font-weight:750;font-size:21px}main{max-width:1080px;margin:45px auto;padding:0 24px}h1{font-size:clamp(30px,5vw,46px);letter-spacing:-1.5px;line-height:1.15;margin:12px 0}h2{font-size:20px;margin-top:0}.intro{font-size:18px;color:#4d6864}.badge{color:#327e68;font-size:12px;font-weight:700;letter-spacing:2px}.notice{padding:14px 18px;background:#fff2d9;border-radius:10px;color:#725422}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{padding:25px;background:white;border:1px solid #dce6e0;border-radius:16px;margin-bottom:20px}.grid .card{margin:0}label{display:block;margin:14px 0;font-weight:600}input,select{width:100%;padding:12px;border:1px solid #afc5bc;border-radius:8px;font:inherit;background:#fff}input:focus,select:focus,button:focus-visible{outline:3px solid #72b6a2;outline-offset:2px}button{border:0;background:#226b54;color:white;border-radius:8px;padding:12px 18px;cursor:pointer;font:inherit;font-weight:600}button:disabled{opacity:.5;cursor:wait}.secondary{background:#e6f0e9;color:#226b54}.check{display:flex;align-items:start;gap:10px;font-weight:400}.check input{width:18px;margin-top:5px;flex-shrink:0}.toolbar{display:flex;justify-content:space-between;align-items:center;margin:18px 0}#login-panel{max-width:460px}#pairing-code{display:block;font:700 30px monospace;letter-spacing:4px;margin-top:18px}#message{min-height:26px;color:#a13027;white-space:pre-wrap}#workspace>.card{margin-top:20px}ul{padding-left:22px;overflow-wrap:anywhere}li{margin:10px 0}.privacy{padding:24px 0;max-width:760px;color:#4d6864}footer{padding:25px 6%;border-top:1px solid #dce6e0;color:#4d6864} [hidden]{display:none!important}@media(max-width:650px){.grid{grid-template-columns:1fr}header{flex-direction:column;gap:0}main{margin-top:25px}.card{padding:20px}}
 
 .schedule-ranges{display:grid;gap:8px}.schedule-controls button{padding:7px 10px;font-size:13px}
+textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #b9cbd8; border-radius: 8px; font: inherit; resize: vertical; }
+.event-table-scroll { overflow-x: auto; }
+.event-table { width: 100%; border-collapse: collapse; }
+.event-table th, .event-table td { text-align: left; vertical-align: top; padding: 12px; border-bottom: 1px solid #dce7ed; overflow-wrap: anywhere; }
+.event-table th { background: #eaf6f4; }
+.danger { background: #a33333; }
+.workspace-context { display: flex; justify-content: flex-start; }
+.workspace-context label { width: min(100%, 340px); margin: 0 0 18px; }
+.workspace-tabs { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px; overflow: visible; border-bottom: 2px solid #c7d9d0; margin-bottom: 24px; }
+.workspace-tabs [role="tab"] { flex: 0 0 auto; background: transparent; color: #536a61; border: 1px solid transparent; border-bottom: 3px solid transparent; border-radius: 10px 10px 0 0; padding: 13px 18px; margin-bottom: -2px; white-space: nowrap; }
+.workspace-tabs [role="tab"]:hover { background: #edf4ef; color: #226b54; }
+.workspace-tabs [role="tab"][aria-selected="true"] { background: #fff; color: #185940; border-color: #c7d9d0; border-bottom-color: #226b54; }
+.domain-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.domain-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid #cbdcd1; border-radius: 10px; background: #fff; margin: 0; }
+.domain-name { overflow-wrap: anywhere; min-width: 0; }
+.domain-row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.domain-row-actions button { font-size: 13px; padding: 7px 10px; }
+.domain-delete { color: #a33333; background: #fff0f0; }
+.domain-empty { color: #536a61; font-size: 14px; margin: 0; padding: 10px 0; }
+.domain-add { display: flex; gap: 10px; margin-top: 14px; }
+.domain-add input { min-width: 0; flex: 1; }
+.domain-add button { flex-shrink: 0; }
+.filtering-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width:650px) { .workspace-tabs [role="tab"] { padding: 12px; font-size: 14px; } .domain-row, .domain-add { flex-direction: column; align-items: stretch; } .domain-row-actions { justify-content: flex-end; } }

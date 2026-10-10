@@ -90,6 +90,9 @@ class NamedPipeServer:
         try:
             _, raw = win32file.ReadFile(pipe, MAX_MESSAGE_BYTES + 1)
             message = decode_message(raw)
+            if message.get("type") == "ui_heartbeat" and isinstance(message.get("payload"), dict):
+                # Session-scoped app enforcement uses the real pipe caller PID.
+                message["payload"]["process_id"] = win32pipe.GetNamedPipeClientProcessId(pipe)
             request_id = str(message.get("request_id", "unknown"))[:80]
             response = self._handler(message)
         except ProtocolError as exc:

@@ -1,4 +1,5 @@
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -7,6 +8,8 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import Settings
 from .database import build_database, migrate_development_schema
+from .event_routes import expire_events, retention_loop
+from .event_routes import router as event_router
 from .models import Base
 from .realtime import DeviceConnections, ParentEvents
 from .routes import router
@@ -26,8 +29,15 @@ def create_app(settings: Settings | None = None):
         # Initial scaffold only. Replace with migrations before schema evolution.
         Base.metadata.create_all(engine)
         migrate_development_schema(engine)
-        yield
-        engine.dispose()
+        expire_events(sessions)
+        retention = asyncio.create_task(retention_loop(sessions))
+        try:
+            yield
+        finally:
+            retention.cancel()
+            with suppress(asyncio.CancelledError):
+                await retention
+            engine.dispose()
 
     app = FastAPI(title="OpenGuard Kids API", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
@@ -54,6 +64,7 @@ def create_app(settings: Settings | None = None):
         return response
 
     app.include_router(router)
+    app.include_router(event_router)
     app.mount("/static", StaticFiles(directory=DASHBOARD / "static"), name="static")
 
     @app.get("/", include_in_schema=False)

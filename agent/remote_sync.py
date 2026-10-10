@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sqlite3
 import threading
 import time
 import uuid
@@ -17,6 +18,7 @@ import httpx
 import websocket
 from dotenv import load_dotenv
 
+from agent.event_queue import EventQueue
 from agent.time_control import F1Controller, SQLiteTimeStore, TimePolicy
 from server.app.policy_signing import verify_policy
 
@@ -131,6 +133,16 @@ class RemoteSync:
         self.core.set_session_change_callback(self._wake_session_sync)
         self.core.set_time_request_callback(self._request_wake.set)
         self.core.configure_remote_pending()
+        self.events = EventQueue(self.policy_path.with_name("activity-events.db"))
+        self.core.configure_events(self.events, self.config.device_id)
+        self.filtering_path = self.policy_path.with_name("filtering-cache.json")
+        if self.filtering_path.exists():
+            try:
+                self._configure_filtering(
+                    json.loads(self.filtering_path.read_text(encoding="utf-8"))
+                )
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                self.core.set_remote_status(connected=False, error=str(exc))
         if self.profiles_path.exists():
             try:
                 cached = verified_profiles_document(
@@ -150,6 +162,44 @@ class RemoteSync:
         store = SQLiteTimeStore(database_path)
         return F1Controller(policy, store)
 
+    def _configure_filtering(self, document):
+        envelope = dict(document)
+        integrity = envelope.pop("integrity", {})
+        if (
+            integrity.get("algorithm") != "hmac-sha256"
+            or envelope.get("device_id") != self.config.device_id
+            or not verify_policy(
+                envelope, integrity.get("signature", ""), self.config.policy_signing_key
+            )
+        ):
+            raise ValueError("Filtering policy integrity check failed")
+        self.core.configure_filtering(envelope["policies"])
+
+    def sync_activity(self, client):
+        state = self._request(client, "GET", "/api/device/event-state").json()
+        with self.core._lock:
+            self.events.apply_generations(state["generations"])
+        self._request(client, "POST", "/api/device/event-state/ack", json=state)
+        document = self._request(client, "GET", "/api/device/filtering").json()
+        self._configure_filtering(document)
+        save_signed_policy(self.filtering_path, document)
+        pending = self.events.pending()
+        if pending:
+            result = self._request(
+                client, "POST", "/api/device/activity-events", json={"events": pending}
+            ).json()
+            self.events.acknowledge(result["acknowledged"] + result["discarded"])
+
+    def _activity_loop(self):
+        with httpx.Client(base_url=self.config.server_url, timeout=10, trust_env=False) as client:
+            while not self.stop_event.is_set():
+                try:
+                    self.events.expire()
+                    self.sync_activity(client)
+                except (httpx.HTTPError, OSError, ValueError, KeyError, sqlite3.Error) as exc:
+                    self.core.set_remote_status(connected=False, error=str(exc))
+                self.stop_event.wait(5)
+
     def _configure_profiles(self, document: dict[str, Any]) -> None:
         self.primary_child_id = document["primary_child_id"]
         self.core.configure_profiles(
@@ -166,6 +216,7 @@ class RemoteSync:
             threading.Thread(target=self._websocket_loop, name="ogk-emergency", daemon=True),
             threading.Thread(target=self._time_request_loop, name="ogk-time-requests", daemon=True),
             threading.Thread(target=self._time_status_loop, name="ogk-time-status", daemon=True),
+            threading.Thread(target=self._activity_loop, name="ogk-activity-sync", daemon=True),
         ]
         for thread in self._threads:
             thread.start()

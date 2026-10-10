@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import threading
 import time
 import uuid
@@ -71,6 +72,78 @@ class AgentCore:
         self._pairing_required = pairing_required
         self._enrolled = not pairing_required
         self._enroll_callback: Callable[[str], None] | None = None
+        self.event_queue = None
+        self.event_device_id = None
+        self._filtering_policies = {}
+        self._tray_process_id = None
+        self._filtering_error = None
+
+    def configure_events(self, queue, device_id):
+        with self._lock:
+            self.event_queue = queue
+            self.event_device_id = device_id
+
+    def configure_filtering(self, policies):
+        with self._lock:
+            for policy in policies:
+                old = self._filtering_policies.get(policy["child_id"])
+                if old and policy["version"] < old["version"]:
+                    raise ValueError("Filtering policy version rollback")
+            self._filtering_policies = {item["child_id"]: item for item in policies}
+
+    def filter_context(self):
+        with self._lock:
+            present = (
+                self._last_ui_heartbeat is not None
+                and self._clock() - self._last_ui_heartbeat <= self.UI_PRESENCE_TIMEOUT_SECONDS
+            )
+            rules = self._filtering_policies.get(self._active_child_id)
+            if not (
+                present
+                and self._active_child_id
+                and self._tray_process_id
+                and self.event_queue
+                and rules
+                and rules.get("enabled")
+            ):
+                return None
+            return self._active_child_id, dict(rules), self._tray_process_id
+
+    def record_activity(self, child_id, event_type, subject, reason, rules, duration_sec=0):
+        with self._lock:
+            # A profile switch cannot attribute an old callback to the new child.
+            if child_id != self._active_child_id or self.event_queue is None:
+                return None
+            return self.event_queue.append(
+                device_id=self.event_device_id,
+                child_id=child_id,
+                type=event_type,
+                subject=subject,
+                reason=reason,
+                rule_author="Phụ huynh",
+                policy_id=f"filter:{child_id}:{rules['version']}",
+                duration_sec=duration_sec,
+            )
+
+    def _activity_snapshot(self):
+        if not self.event_queue or not self._active_child_id:
+            return [], []
+        notifications = self.event_queue.notifications(self._active_child_id)
+        history = self.event_queue.history(self._active_child_id)
+        # Reserve room for policies/audit in the 64 KiB named-pipe message.
+        while (
+            history
+            and len(json.dumps([history, notifications], ensure_ascii=False).encode("utf-8"))
+            > 24 * 1024
+        ):
+            history.pop()
+        while (
+            notifications
+            and len(json.dumps([history, notifications], ensure_ascii=False).encode("utf-8"))
+            > 24 * 1024
+        ):
+            notifications.pop()
+        return history, notifications
 
     def set_enrollment_callback(self, callback: Callable[[str], None]) -> None:
         with self._lock:
@@ -314,6 +387,7 @@ class AgentCore:
 
     def status(self) -> dict[str, Any]:
         with self._lock:
+            activity_history, blocking_notifications = self._activity_snapshot()
             ui_connected = (
                 self._last_ui_heartbeat is not None
                 and self._clock() - self._last_ui_heartbeat <= self.UI_PRESENCE_TIMEOUT_SECONDS
@@ -400,6 +474,12 @@ class AgentCore:
                 },
                 "enrollment": {"required": self._pairing_required, "enrolled": self._enrolled},
                 "child_audit": list(self._child_audit),
+                "activity_events": activity_history,
+                "blocking_notifications": blocking_notifications,
+                "filtering": {
+                    "enabled": bool(self.filter_context()),
+                    "error": self._filtering_error,
+                },
                 "current_policy": (
                     {
                         "version": self._time_controller.policy.version,
@@ -448,6 +528,20 @@ class AgentCore:
             )
         if request.message_type == "get_status":
             return success_response(request.request_id, self.status())
+        if request.message_type == "ack_blocking_events":
+            ids = request.payload.get("event_ids")
+            if (
+                not isinstance(ids, list)
+                or len(ids) > 10
+                or any(not isinstance(id, str) or len(id) > 80 for id in ids)
+            ):
+                return error_response(
+                    request.request_id, "invalid_event_ids", "Invalid blocking event IDs"
+                )
+            with self._lock:
+                if self.event_queue and self._active_child_id:
+                    self.event_queue.acknowledge_notifications(self._active_child_id, ids)
+            return success_response(request.request_id, {"acknowledged": True})
         if request.message_type == "enroll_device":
             code = request.payload.get("code")
             if (
@@ -501,6 +595,13 @@ class AgentCore:
             with self._lock:
                 if visible:
                     self._last_ui_heartbeat = self._clock()
+                    process_id = request.payload.get("process_id")
+                    if (
+                        isinstance(process_id, int)
+                        and not isinstance(process_id, bool)
+                        and process_id > 0
+                    ):
+                        self._tray_process_id = process_id
                 else:
                     self._last_ui_heartbeat = None
                 if self._time_controller is not None:

@@ -20,6 +20,69 @@ from agent.tray_ui import (
 )
 
 
+def test_events_mousewheel_scrolls_tree_only_in_events_tab():
+    tab = "events-tab"
+    notebook = Mock()
+    notebook.select.return_value = tab
+    tree = Mock()
+    ui = TrayApplication.__new__(TrayApplication)
+    ui.events_tab = tab
+    ui.events_tree = tree
+    ui.notebook = notebook
+    assert ui._scroll_events(SimpleNamespace(delta=-120)) == "break"
+    tree.yview_scroll.assert_called_once_with(1, "units")
+    tree.reset_mock()
+    assert ui._scroll_events(SimpleNamespace(delta=240)) == "break"
+    tree.yview_scroll.assert_called_once_with(-2, "units")
+    tree.reset_mock()
+    notebook.select.return_value = "today-tab"
+    assert ui._scroll_events(SimpleNamespace(delta=-120)) is None
+    tree.yview_scroll.assert_not_called()
+
+
+def test_event_poll_preserves_rows_and_scrolled_position():
+    ui = TrayApplication.__new__(TrayApplication)
+    ui.events_tree = Mock()
+    ui.events_tree.get_children.return_value = ("event-1",)
+    ui.events_tree.selection.return_value = ("event-1",)
+    ui.events_tree.yview.return_value = (0.5, 0.8)
+    event = {
+        "id": "event-1",
+        "event": {"ts": 0, "subject": "example.org"},
+        "explanation": {"reason": "blocked", "rule_author": "parent"},
+    }
+
+    values = (
+        datetime.fromtimestamp(0, UTC).astimezone().strftime("%d/%m/%Y %H:%M:%S"),
+        "example.org",
+        "blocked · parent",
+    )
+    ui.events_tree.item.return_value = values
+    ui.block_popup = None
+    ui.block_popup_ids = set()
+    ui._update_activity_events({"activity_events": [event], "blocking_notifications": []})
+    ui.events_tree.delete.assert_not_called()
+    ui.events_tree.insert.assert_not_called()
+    ui.events_tree.move.assert_not_called()
+    ui.events_tree.yview_moveto.assert_called_once_with(0.5)
+    ui.events_tree.selection_set.assert_not_called()
+
+
+def test_mousewheel_over_event_details_scrolls_details_instead_of_list():
+    ui = TrayApplication.__new__(TrayApplication)
+    ui.events_tab = "events-tab"
+    ui.notebook = Mock()
+    ui.notebook.select.return_value = ui.events_tab
+    ui.events_tree = Mock()
+    ui.event_detail = Mock()
+    ui.event_detail_scrollbar = Mock()
+    for widget in (ui.event_detail, ui.event_detail_scrollbar):
+        ui.event_detail.reset_mock()
+        assert ui._scroll_events(SimpleNamespace(delta=-120, widget=widget)) == "break"
+        ui.event_detail.yview_scroll.assert_called_once_with(1, "units")
+    ui.events_tree.yview_scroll.assert_not_called()
+
+
 @pytest.mark.parametrize(
     ("seconds", "expected"),
     [(0, "00:00:00"), (5, "00:00:05"), (65, "00:01:05"), (3661, "01:01:01")],
@@ -98,6 +161,10 @@ def test_policy_lock_retries_but_remote_command_remains_one_shot(monkeypatch):
     ui._request_workstation_lock("quota_exhausted")
     assert lock.call_count == 1
     now[0] += 2
+    ui._request_workstation_lock("quota_exhausted")
+    assert lock.call_count == 1
+    # The existing controller retries policy locks every ten seconds.
+    now[0] += 8
     ui._request_workstation_lock("quota_exhausted")
     assert lock.call_count == 2
     ui._request_workstation_lock("remote_lock", "command-1")
@@ -192,6 +259,36 @@ def test_policy_tab_shows_active_child_policy_and_schedule():
         "Thứ hai: 00:00–00:00 (hôm sau)"
         in ui.policy_schedule_label.configure.call_args.kwargs["text"]
     )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Tk layout verification requires Windows")
+def test_event_details_remain_visible_and_scroll_at_small_window_sizes():
+    app = TrayApplication.__new__(TrayApplication)
+    app.root = tk.Tk()
+    app.root.withdraw()
+    try:
+        app.paired = False
+        app._configure_styles()
+        app._build_window()
+        app._set_pairing_view(True)
+        app.notebook.select(app.events_tab)
+        app._set_event_detail("\n".join(f"Lý do chặn dòng {index}" for index in range(80)))
+        for width, height in [(600, 540), (680, 620)]:
+            app.root.geometry(f"{width}x{height}+10000+10000")
+            app.root.deiconify()
+            app.root.update()
+            detail_frame = app.event_detail.master
+            assert app.event_detail.winfo_height() >= 80
+            assert (
+                detail_frame.winfo_y() + detail_frame.winfo_height()
+                <= app.events_tab.winfo_height()
+            )
+            assert app.event_detail.cget("state") == "disabled"
+            app.event_detail.yview_moveto(0)
+            app._scroll_events(SimpleNamespace(delta=-120, widget=app.event_detail))
+            assert app.event_detail.yview()[0] > 0
+    finally:
+        app.root.destroy()
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Tk layout verification requires Windows")

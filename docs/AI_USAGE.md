@@ -23,3 +23,22 @@
   “cần acceptance” không được nâng thành hoàn thành chỉ từ test mô phỏng.
 - Nhóm vẫn phải tự chạy khóa Windows thật, đo latency đầu-cuối, sai số một giờ,
   thử trên máy sạch và chịu trách nhiệm về trích dẫn pháp lý trước khi nộp.
+## Phát triển sự kiện Tuần 3
+
+- OpenAI Codex hỗ trợ thiết kế và triển khai event outbox, ingestion chống trùng,
+  deletion generation, retention 90 ngày cho sự kiện F3, popup/Tray/dashboard,
+  kiểm soát executable SHA-256 và DNS proxy cơ bản.
+- Mã và test được viết theo yêu cầu bổ sung của người dùng về popup và tab Sự kiện;
+  `explanation` là mở rộng có mục đích ngoài payload bảy trường F3.
+- Kiểm thử tự động không thay thế nghiệm thu service/Tray/Windows DNS trên máy
+  lab sạch. Không tự thay DNS hoặc chạy kết thúc ứng dụng trên máy người dùng.
+
+## Cập nhật giao diện phụ huynh và cuộn sự kiện
+
+- Codex hỗ trợ tách web phụ huynh thành bốn tab: Dashboard, Chính sách thời gian,
+  Quản lí web & ứng dụng, Sự kiện. Danh sách tên miền có từng dòng thêm/sửa/xóa;
+  thay đổi áp dụng khi lưu quy tắc, và giữ bản nháp khi dữ liệu tự làm mới.
+- Tray hỗ trợ cuộn chuột trong tab Sự kiện và giữ vị trí cuộn khi nhận cập nhật.
+- Kiểm thử trình duyệt dùng API mô phỏng để kiểm tra đăng nhập/đăng xuất, chuyển
+  tab, đổi hồ sơ, lưu chính sách/quy tắc, sự kiện, lệnh khóa, ghép đôi, bàn phím
+  và bố cục di động. API server được kiểm tra riêng bằng pytest.

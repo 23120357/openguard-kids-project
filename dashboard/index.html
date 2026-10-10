@@ -2,16 +2,16 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css?v=20261004-schedule-validation">
-  <script src="/static/app.js?v=20261004-schedule-validation" defer></script>
+  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css?v=20261010-parent-tabs">
+  <script src="/static/app.js?v=20261010-parent-tabs" defer></script>
 </head>
 <body>
 <header><span class="brand">OpenGuard Kids</span><span>Bố mẹ và con cùng đồng hành</span></header>
 <main>
-  <p class="badge">BẢN PHÁT TRIỂN · TUẦN 2</p>
+  <p class="badge">BẢN PHÁT TRIỂN · TUẦN 3</p>
   <h1>Một khởi đầu an toàn.</h1>
   <p class="intro">Kết nối thiết bị và cùng con thiết lập thời gian sử dụng máy tính.</p>
-  <p class="notice">Bản Tuần 2 đồng bộ quota/lịch tuần và gửi lệnh khẩn tới Windows agent. Chỉ dùng trên máy lab.</p>
+  <p class="notice">Đồng bộ thời gian, luật kiểm soát và sự kiện chặn giữa máy của con và phụ huynh. Chỉ dùng trên máy lab.</p>
   <p id="message" role="status" aria-live="polite"></p>
   <section id="login-panel" class="card">
     <h2>Đăng nhập phụ huynh</h2>
@@ -23,6 +23,14 @@
   </section>
   <div id="workspace" hidden>
     <div class="toolbar"><p id="identity"></p><button id="logout" class="secondary">Đăng xuất</button></div>
+    <div class="workspace-context"><label>Hồ sơ đang quản lý<select id="child-select"></select></label></div>
+    <nav class="workspace-tabs" role="tablist" aria-label="Bảng điều khiển phụ huynh">
+      <button type="button" id="overview-tab" role="tab" aria-selected="true" aria-controls="overview-panel" tabindex="0">Dashboard</button>
+      <button type="button" id="time-policy-tab" role="tab" aria-selected="false" aria-controls="time-policy-panel" tabindex="-1">Chính sách thời gian</button>
+      <button type="button" id="filtering-tab" role="tab" aria-selected="false" aria-controls="filtering-panel" tabindex="-1">Quản lí web &amp; ứng dụng</button>
+      <button type="button" id="activity-tab" role="tab" aria-selected="false" aria-controls="activity-panel" tabindex="-1">Sự kiện</button>
+    </nav>
+    <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab">
     <div class="grid">
       <section class="card">
         <h2>1. Hồ sơ của con</h2>
@@ -32,7 +40,6 @@
           <label>Nhập lại PIN<input name="pin_confirm" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required></label>
           <button>Tạo hồ sơ</button>
         </form>
-        <label>Hồ sơ đang chọn<select id="child-select"></select></label>
         <p id="child-pin-status" class="hint"></p>
         <form id="pin-form">
           <label>Đổi hoặc bổ sung PIN cho hồ sơ đang chọn<input name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required></label>
@@ -49,16 +56,8 @@
         </form>
         <output id="pairing-code"></output>
       </section>
-      <section class="card">
-        <h2>3. Chính sách thời gian</h2>
-        <form id="policy-form">
-          <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát thời gian</label>
-          <label>Ngày thường (phút)<input name="weekday_minutes" type="number" min="1" max="1440" required></label>
-          <label>Cuối tuần (phút)<input name="weekend_minutes" type="number" min="1" max="1440" required></label>
-          <fieldset><legend>Lịch dùng máy theo ngày</legend><p class="hint">Giờ theo định dạng 24h; phút chỉ chọn 00 hoặc 30. Mỗi ngày có thể thêm nhiều khoảng giờ; các khoảng chồng nhau được gộp. Giờ kết thúc 00:00 nghĩa là hết ngày (nửa đêm hôm sau).</p><p id="schedule-error" class="validation-error" role="alert" aria-live="assertive"></p><div id="schedule-grid"></div></fieldset>
-          <p id="policy-version"></p><button>Lưu chính sách</button>
-        </form>
-      </section>
+
+
       <section class="card">
         <h2>Thiết bị đã kết nối</h2>
         <p>Tự cập nhật khi có thay đổi; kiểm tra lại mỗi 10 giây nếu mất kết nối thời gian thực.</p>
@@ -71,12 +70,77 @@
       </section>
     </div>
     <section class="card"><h2>Thay đổi gần đây</h2><ul id="audit"></ul></section>
+    </div>
+    <div id="time-policy-panel" role="tabpanel" aria-labelledby="time-policy-tab" hidden>
+      <section class="card">
+        <h2>Chính sách thời gian</h2>
+        <form id="policy-form">
+          <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát thời gian</label>
+          <label>Ngày thường (phút)<input name="weekday_minutes" type="number" min="1" max="1440" required></label>
+          <label>Cuối tuần (phút)<input name="weekend_minutes" type="number" min="1" max="1440" required></label>
+          <fieldset><legend>Lịch dùng máy theo ngày</legend><p class="hint">Giờ theo định dạng 24h; phút chỉ chọn 00 hoặc 30. Mỗi ngày có thể thêm nhiều khoảng giờ; các khoảng chồng nhau được gộp. Giờ kết thúc 00:00 nghĩa là hết ngày (nửa đêm hôm sau).</p><p id="schedule-error" class="validation-error" role="alert" aria-live="assertive"></p><div id="schedule-grid"></div></fieldset>
+          <p id="policy-version"></p><button>Lưu chính sách</button>
+        </form>
+      </section>
+    </div>
+    <div id="filtering-panel" role="tabpanel" aria-labelledby="filtering-tab" hidden>
+      <section class="card">
+        <h2>Quản lí web &amp; ứng dụng</h2><p class="hint">Mỗi dòng là một tên miền. Có thể nhập URL; hệ thống chỉ lưu tên miền. Bấm Lưu quy tắc kiểm soát để áp dụng các thay đổi.</p>
+        <form id="filtering-form">
+          <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát ứng dụng và trang web</label>
+          <label>Quy tắc trang web<select name="domain_mode"><option value="blocklist">Cho phép, trừ danh sách bị chặn</option><option value="allowlist">Chỉ cho phép danh sách đã chọn</option></select></label>
+          <fieldset class="domain-editor" data-domain-list="domain_block">
+            <legend>Trang web bị chặn</legend>
+            <ul id="domain_block-list" class="domain-list" aria-label="Trang web bị chặn"></ul>
+            <div class="domain-add">
+              <label for="domain_block-new" class="sr-only">Tên miền hoặc URL mới: Trang web bị chặn</label>
+              <input id="domain_block-new" type="text" maxlength="2048" placeholder="example.org hoặc https://example.org" autocomplete="off">
+              <button type="button" data-add-domain="domain_block" class="secondary">+ Thêm trang bị chặn</button>
+            </div>
+          </fieldset>
+          <fieldset class="domain-editor" data-domain-list="domain_allow">
+            <legend>Trang web được phép</legend>
+            <ul id="domain_allow-list" class="domain-list" aria-label="Trang web được phép"></ul>
+            <div class="domain-add">
+              <label for="domain_allow-new" class="sr-only">Tên miền hoặc URL mới: Trang web được phép</label>
+              <input id="domain_allow-new" type="text" maxlength="2048" placeholder="example.org hoặc https://example.org" autocomplete="off">
+              <button type="button" data-add-domain="domain_allow" class="secondary">+ Thêm trang được phép</button>
+            </div>
+          </fieldset>
+          <fieldset class="domain-editor" data-domain-list="safety_domains">
+            <legend>Trường học và hỗ trợ khẩn cấp luôn được phép</legend>
+            <ul id="safety_domains-list" class="domain-list" aria-label="Trường học và hỗ trợ khẩn cấp luôn được phép"></ul>
+            <div class="domain-add">
+              <label for="safety_domains-new" class="sr-only">Tên miền hoặc URL mới: Trường học và hỗ trợ khẩn cấp luôn được phép</label>
+              <input id="safety_domains-new" type="text" maxlength="2048" placeholder="example.org hoặc https://example.org" autocomplete="off">
+              <button type="button" data-add-domain="safety_domains" class="secondary">+ Thêm trang miễn chặn</button>
+            </div>
+          </fieldset>
+          <p class="hint">Tổng đài 111 luôn được phép. Thêm cổng thông tin trường của con trước khi bật lọc. Quy tắc tên miền áp dụng cả tên miền con.</p>
+          <label>Quy tắc ứng dụng<select name="app_mode"><option value="blocklist">Cho phép, trừ danh sách bị chặn</option><option value="allowlist">Chỉ cho phép danh sách đã chọn</option></select></label>
+          <label>Ứng dụng được phép<textarea name="app_allow" rows="2" placeholder="Mỗi dòng: tên.exe | SHA-256 của tệp"></textarea></label>
+          <label>Ứng dụng bị chặn<textarea name="app_block" rows="2" placeholder="Mỗi dòng: tên.exe | SHA-256 của tệp"></textarea></label>
+          <p class="hint">Mã SHA-256 giúp nhận diện ứng dụng ngay cả khi tệp được đổi tên. Khi cập nhật ứng dụng, cần cập nhật mã này.</p>
+          <p id="filtering-draft-status" class="hint" role="status" aria-live="polite"></p>
+          <div class="filtering-actions"><button type="submit">Lưu quy tắc kiểm soát</button><button id="reload-filtering" type="button" class="secondary">Tải lại dữ liệu</button></div>
+        </form>
+      </section>
+    </div>
+    <section id="activity-panel" role="tabpanel" aria-labelledby="activity-tab" class="card" hidden>
+      <h2>Sự kiện</h2>
+      <p>Hiển thị cùng thời gian, tên trang web hoặc ứng dụng và lý do chặn như trên máy của con. Dữ liệu được giữ tối đa 90 ngày.</p>
+      <div class="event-table-scroll"><table class="event-table"><thead><tr><th>Thời gian</th><th>Trang web / ứng dụng</th><th>Lý do chặn</th></tr></thead><tbody id="activity-rows"></tbody></table></div>
+      <p id="activity-empty" role="status"></p>
+      <div class="toolbar"><button id="activity-prev" class="secondary">Trang trước</button><span id="activity-page"></span><button id="activity-next" class="secondary">Trang sau</button></div>
+      <button id="erase-activity" class="danger">Xóa toàn bộ dữ liệu hoạt động của con tôi</button>
+      <p id="deletion-status" role="status" aria-live="polite"></p>
+    </section>
   </div>
   <section class="privacy">
     <h2>Ứng dụng này biết gì về em?</h2>
     <p>Bản mẫu lưu tên gọi của em, tên thiết bị, lần thiết bị kết nối gần nhất và thời gian bố mẹ cài đặt.
-    Ứng dụng chưa đọc nội dung em gõ, tin nhắn, tài liệu hay chụp màn hình.</p>
-    <p>Bố mẹ hãy dùng tên gọi, không cần nhập họ tên đầy đủ. Chức năng xem báo cáo dành cho trẻ sẽ được bổ sung.</p>
+    Ứng dụng ghi nhận tên ứng dụng, tên miền, thời gian và lý do chặn; không đọc nội dung em gõ, tin nhắn, tài liệu hay chụp màn hình.</p>
+    <p>Em có thể xem các lần bị chặn trong tab Sự kiện trên máy của mình. Bố mẹ hãy dùng tên gọi, không cần nhập họ tên đầy đủ.</p>
   </section>
 </main><footer>OpenGuard Kids · Công cụ đồng hành cùng trẻ</footer>
 </body></html>
