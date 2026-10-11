@@ -8,6 +8,7 @@ from unittest.mock import Mock
 import pytest
 from dnslib import DNSRecord
 from PIL import Image
+from pypdf import PdfReader
 
 from agent.core import AgentCore
 from agent.event_queue import EventQueue
@@ -131,6 +132,7 @@ def test_report_and_export_require_ownership_and_valid_dates(parent, child):
     assert parent.get(base + "/activity-report?days=91").status_code == 422
     assert parent.get(base + "/activity-report?end_date=not-a-date").status_code == 422
     assert parent.get(base + "/activity-report.csv?week_start=not-a-date").status_code == 422
+    assert parent.get(base + "/activity-report.pdf?week_start=not-a-date").status_code == 422
     assert parent.get(base + "/activity-report/chart.png?kind=invalid").status_code == 422
     for kind in ("daily", "weekly", "apps"):
         response = parent.get(base + "/activity-report/chart.png?kind=" + kind + "&days=7")
@@ -142,6 +144,7 @@ def test_report_and_export_require_ownership_and_valid_dates(parent, child):
     assert parent.get(base + "/activity-report").status_code == 404
     assert parent.get(base + "/activity-report/chart.png?kind=daily").status_code == 404
     assert parent.get(base + "/activity-report.csv").status_code == 404
+    assert parent.get(base + "/activity-report.pdf").status_code == 404
     parent.cookies.clear()
     assert parent.get(base + "/activity-report").status_code == 401
 
@@ -177,6 +180,24 @@ def test_weekly_csv_is_utf8_safe_and_includes_requests(parent, child):
     assert len([row for row in rows if row[0] == "Thời gian dùng máy"]) == 7
     assert result.headers["cache-control"] == "no-store"
     assert "attachment" in result.headers["content-disposition"]
+
+
+def test_weekly_pdf_contains_child_activity_and_download_headers(parent, child):
+    tokens, _ = pair(parent, child)
+    assert post(parent, tokens, [
+        event(tokens, child, type="app_stop", subject="Ứng dụng vẽ.exe", duration_sec=120),
+    ]).status_code == 200
+    result = parent.get(f"/api/children/{child['id']}/activity-report.pdf")
+    assert result.status_code == 200
+    assert result.headers["content-type"] == "application/pdf"
+    assert result.headers["cache-control"] == "no-store"
+    assert result.headers["content-disposition"].endswith('.pdf"')
+    assert result.content.startswith(b"%PDF-")
+    reader = PdfReader(io.BytesIO(result.content))
+    content = "\n".join(page.extract_text() for page in reader.pages)
+    assert "Báo cáo hoạt động tuần" in content
+    assert "Bé An" in content
+    assert "Ứng dụng vẽ.exe" in content
 
 
 def test_erasure_and_retention_include_request_activity(parent, child, app):

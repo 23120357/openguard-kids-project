@@ -224,3 +224,19 @@ trùng và retention/xóa sự kiện 90 ngày được mô tả trong
 `requirements-lock.txt` trước khi restart server/service. Lọc website cần cấu
 hình DNS adapter máy lab về `127.0.0.1`; ghi lại và khôi phục DNS trước khi gỡ
 service. Không tự đổi DNS máy đang phát triển khi chạy test.
+
+## F3: báo cáo hoạt động và màn hình cho trẻ
+
+Tab **Báo cáo** có biểu đồ cột theo ngày/tuần (rê chuột để xem tên cột), top 10
+ứng dụng theo 1 ngày/1 tuần/toàn bộ 90 ngày lưu trữ, top tên miền, số lần chặn,
+yêu cầu của trẻ và nút **Xuất báo cáo tuần (PDF)**. Tab **Dashboard** hiện audit
+chi tiết từng thay đổi. Tray **Hôm nay** đặt thời gian còn lại và nút xin thêm
+giờ ở đầu; mục **Hôm nay em đã dùng gì?** chỉ hiển thị thời gian dùng máy và số
+lượt hỏi địa chỉ web. Sau mỗi 20 phút sử dụng, Windows hiện lời nhắc nghỉ mắt.
+Biểu đồ **Top 10 ứng dụng** nằm ở thẻ riêng bên dưới trên Tray, có chọn
+1 ngày/1 tuần/toàn thời gian; khoảng dài trên Tray dùng dữ liệu máy này.
+Phạm vi thu thập, cách tính, retention/xóa và hướng dẫn kiểm tra tại
+[docs/F3_REPORTS.md](docs/F3_REPORTS.md); bảng từng trường dữ liệu tại
+[docs/PRIVACY.md](docs/PRIVACY.md). Cập nhật mã rồi khởi động lại server,
+service và Tray; làm mới web bằng Ctrl+F5. Báo cáo không tạo lại dữ liệu hoạt động
+trước thời điểm bản agent này được chạy.

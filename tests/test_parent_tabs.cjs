@@ -46,7 +46,7 @@ const assert = require('node:assert/strict');
       else if (api.startsWith('/devices/') && api.endsWith('/commands')) body={realtime_delivered:true};
       else if (api.endsWith('/activity-events')) body={items:[{id:'evt',event:{ts:1700000000,subject:'example.test'},explanation:{reason:'Trang web bị chặn',rule_author:'Phụ huynh'}}],has_more:false};
       else if (api.endsWith('/activity-data/deletion')) body={generation:0,pending_devices:[],complete:true};
-      else if (api.endsWith('/activity-report.csv')) return route.fulfill({contentType:'text/csv; charset=utf-8',headers:{'Content-Disposition':'attachment; filename="test-week.csv"'},body:'\ufeffNhóm,Ngày,Giá trị\r\nThời gian dùng máy,2026-10-11,120\r\n'});
+      else if (api.endsWith('/activity-report.pdf')) return route.fulfill({contentType:'application/pdf',headers:{'Content-Disposition':'attachment; filename="test-week.pdf"'},body:'%PDF-1.4\n%%EOF'});
       else if (api.endsWith('/activity-report/chart.png')) { chartRequests++; return route.fulfill({contentType:'image/png',body:fs.readFileSync(path.join(root,'tests/assets',url.searchParams.get('kind')==='apps'?'sample-apps.png':'sample-columns.png'))}); }
       else if (api.endsWith('/activity-report')) { const id=api.split('/')[2]; const days=Number(url.searchParams.get('days')); const daily=days===56?Array.from({length:56},(_,i)=>({date:new Date(Date.UTC(2026,9,11-55+i)).toISOString().slice(0,10),duration_sec:i>=54?(i===54?40:chartSeconds):0})):[{date:'2026-10-10',duration_sec:40},{date:'2026-10-11',duration_sec:chartSeconds}]; body={start_date:'2026-10-05',end_date:'2026-10-11',total_duration_sec:40+chartSeconds,blocked_count:2,daily,weekly:[{week_start:'2026-10-05',duration_sec:40+chartSeconds}],top_apps:[{subject:id+'-paint.exe',duration_sec:days===1?60:days===7?420:900,starts:1}],top_domains:[{subject:id+'.example.test',queries:domainQueries}],requests:[{created_at:1700000000,minutes:15,status:'pending'}]}; }
       else { status=404; body={detail:'Unknown '+api}; }
@@ -99,7 +99,7 @@ const assert = require('node:assert/strict');
     await page.locator('#report-days').selectOption('7');
     const downloadPromise = page.waitForEvent('download');
     await page.locator('#export-week').click();
-    assert.equal((await downloadPromise).suggestedFilename(),'bao-cao-tuan.csv');
+    assert.equal((await downloadPromise).suggestedFilename(),'bao-cao-tuan.pdf');
     if (process.env.REPORT_SCREENSHOT_PATH) await page.screenshot({path:process.env.REPORT_SCREENSHOT_PATH,fullPage:true});
     for (const id of ['overview','report','time-policy','filtering','activity']) {
       await page.locator('#'+id+'-tab').click();
@@ -164,6 +164,6 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('#login-panel').isVisible(),true);
     assert.equal(await page.locator('#workspace').isVisible(),false);
     assert.deepEqual(errors,[]);
-    console.log('Parent dashboard checks passed: login, reports/charts/CSV download, five tabs, audit details, policy save, domain add/edit/delete/persistence, draft refresh, profile switching, events, commands, enrollment, keyboard, mobile, logout.');
+    console.log('Parent dashboard checks passed: login, reports/charts/PDF download, five tabs, audit details, policy save, domain add/edit/delete/persistence, draft refresh, profile switching, events, commands, enrollment, keyboard, mobile, logout.');
   } finally { await browser.close(); }
 })().catch(error => {console.error(error);process.exitCode=1;});

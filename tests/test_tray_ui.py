@@ -14,6 +14,7 @@ from agent.named_pipe import PipeUnavailableError
 from agent.tray_ui import (
     TrayApplication,
     TrayInstanceGuard,
+    disabled_time_detail,
     format_clock,
     format_local_datetime,
     format_policy_schedule,
@@ -48,11 +49,28 @@ def test_eye_reminder_appears_once_per_twenty_minutes_of_local_use():
     app.current_user = "An"
     app.active_child_id = "child"
     app._show_eye_reminder = Mock()
-    for seconds in (1199, 1200, 1250, 2400, 2410):
+    for seconds in (1199, 1200, 1250, 2399, 2400, 2410, 3600):
         app._check_eye_reminder({"end_date": "2026-10-11", "local_duration_sec": seconds})
     assert app._show_eye_reminder.call_count == 2
     app._check_eye_reminder({"end_date": "2026-10-12", "local_duration_sec": 1200})
+    assert app._show_eye_reminder.call_count == 2
+    app._check_eye_reminder({"end_date": "2026-10-12", "local_duration_sec": 2400})
     assert app._show_eye_reminder.call_count == 3
+
+
+def test_eye_reminder_waits_twenty_minutes_after_profile_switch_or_restart():
+    app = TrayApplication.__new__(TrayApplication)
+    app.current_user = "An"
+    app.active_child_id = "child-a"
+    app._show_eye_reminder = Mock()
+    app._check_eye_reminder({"end_date": "2026-10-11", "local_duration_sec": 7200})
+    app._check_eye_reminder({"end_date": "2026-10-11", "local_duration_sec": 8399})
+    assert app._show_eye_reminder.call_count == 0
+    app._check_eye_reminder({"end_date": "2026-10-11", "local_duration_sec": 8400})
+    assert app._show_eye_reminder.call_count == 1
+    app.active_child_id = "child-b"
+    app._check_eye_reminder({"end_date": "2026-10-11", "local_duration_sec": 1200})
+    assert app._show_eye_reminder.call_count == 1
 
 
 def test_eye_reminder_uses_the_same_windows_notification_as_time_warnings():
@@ -321,6 +339,10 @@ def test_tray_initializes_switch_state_before_first_status(monkeypatch):
         assert "Đang đồng bộ" not in app.session_label.cget("text")
     finally:
         app.root.destroy()
+
+
+def test_disabled_time_policy_still_shows_recorded_usage():
+    assert "160 phút" in disabled_time_detail({"used_seconds": 9600, "policy_error": None})
 
 
 def test_mouse_wheel_scrolls_today_tab():

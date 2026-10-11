@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -28,6 +29,8 @@ except ImportError as exc:  # pragma: no cover - exercised by runtime dependency
 
 
 ERROR_PIPE_CONNECTED = 535
+TRANSIENT_PIPE_ERRORS = {2, 121, 231}  # Missing listener, timeout, or busy pipe.
+MAX_PIPE_CLIENTS = 8
 PIPE_REJECT_REMOTE_CLIENTS = getattr(win32pipe, "PIPE_REJECT_REMOTE_CLIENTS", 0x00000008)
 LOGGER = logging.getLogger(__name__)
 
@@ -53,22 +56,32 @@ class NamedPipeServer:
     def __init__(self, handler: Callable[[dict[str, Any]], dict[str, Any]]):
         self._handler = handler
         self._stopping = threading.Event()
+        self._slots = threading.BoundedSemaphore(MAX_PIPE_CLIENTS)
 
     def serve_forever(self) -> None:
         while not self._stopping.is_set():
-            pipe = win32pipe.CreateNamedPipe(
-                PIPE_NAME,
-                win32pipe.PIPE_ACCESS_DUPLEX,
-                win32pipe.PIPE_TYPE_MESSAGE
-                | win32pipe.PIPE_READMODE_MESSAGE
-                | win32pipe.PIPE_WAIT
-                | PIPE_REJECT_REMOTE_CLIENTS,
-                4,
-                MAX_MESSAGE_BYTES,
-                MAX_MESSAGE_BYTES,
-                1000,
-                _security_attributes(),
-            )
+            self._slots.acquire()
+            if self._stopping.is_set():
+                self._slots.release()
+                break
+            try:
+                pipe = win32pipe.CreateNamedPipe(
+                    PIPE_NAME,
+                    win32pipe.PIPE_ACCESS_DUPLEX,
+                    win32pipe.PIPE_TYPE_MESSAGE
+                    | win32pipe.PIPE_READMODE_MESSAGE
+                    | win32pipe.PIPE_WAIT
+                    | PIPE_REJECT_REMOTE_CLIENTS,
+                    MAX_PIPE_CLIENTS,
+                    MAX_MESSAGE_BYTES,
+                    MAX_MESSAGE_BYTES,
+                    1000,
+                    _security_attributes(),
+                )
+            except Exception:
+                self._slots.release()
+                raise
+            handed_off = False
             try:
                 try:
                     win32pipe.ConnectNamedPipe(pipe, None)
@@ -77,13 +90,32 @@ class NamedPipeServer:
                         raise
                 if self._stopping.is_set():
                     continue
-                self._serve_client(pipe)
+                threading.Thread(
+                    target=self._serve_and_close,
+                    args=(pipe,),
+                    name="OpenGuardPipeClient",
+                    daemon=True,
+                ).start()
+                handed_off = True
             finally:
-                try:
-                    win32pipe.DisconnectNamedPipe(pipe)
-                except pywintypes.error:
-                    pass
-                win32file.CloseHandle(pipe)
+                if not handed_off:
+                    self._close_pipe(pipe)
+                    self._slots.release()
+
+    @staticmethod
+    def _close_pipe(pipe) -> None:
+        try:
+            win32pipe.DisconnectNamedPipe(pipe)
+        except pywintypes.error:
+            pass
+        win32file.CloseHandle(pipe)
+
+    def _serve_and_close(self, pipe) -> None:
+        try:
+            self._serve_client(pipe)
+        finally:
+            self._close_pipe(pipe)
+            self._slots.release()
 
     def _serve_client(self, pipe) -> None:
         request_id = "unknown"
@@ -135,19 +167,25 @@ class NamedPipeClient:
 
     def request(self, message_type: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         message = new_request(message_type, payload)
-        try:
-            win32pipe.WaitNamedPipe(PIPE_NAME, self.timeout_ms)
-            pipe = win32file.CreateFile(
-                PIPE_NAME,
-                win32file.GENERIC_READ | win32file.GENERIC_WRITE,
-                0,
-                None,
-                win32file.OPEN_EXISTING,
-                0,
-                None,
-            )
-        except pywintypes.error as exc:
-            raise PipeUnavailableError("OpenGuard Kids service is unavailable") from exc
+        deadline = time.monotonic() + self.timeout_ms / 1000
+        while True:
+            try:
+                remaining_ms = max(1, int((deadline - time.monotonic()) * 1000))
+                win32pipe.WaitNamedPipe(PIPE_NAME, remaining_ms)
+                pipe = win32file.CreateFile(
+                    PIPE_NAME,
+                    win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+                    0,
+                    None,
+                    win32file.OPEN_EXISTING,
+                    0,
+                    None,
+                )
+                break
+            except pywintypes.error as exc:
+                if exc.winerror not in TRANSIENT_PIPE_ERRORS or time.monotonic() >= deadline:
+                    raise PipeUnavailableError("OpenGuard Kids service is unavailable") from exc
+                time.sleep(min(0.05, max(0, deadline - time.monotonic())))
         try:
             win32pipe.SetNamedPipeHandleState(pipe, win32pipe.PIPE_READMODE_MESSAGE, None, None)
             win32file.WriteFile(pipe, encode_message(message))

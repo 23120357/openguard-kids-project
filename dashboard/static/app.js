@@ -819,10 +819,10 @@ el('export-week').addEventListener('click', async () => {
   if (!childId) { tell('Hãy chọn hồ sơ của con.'); return; }
   const button = el('export-week'); button.disabled = true;
   try {
-    const response = await fetch('/api/children/' + encodeURIComponent(childId) + '/activity-report.csv', {credentials:'same-origin'});
+    const response = await fetch('/api/children/' + encodeURIComponent(childId) + '/activity-report.pdf', {credentials:'same-origin'});
     if (!response.ok) { if (response.status === 401) showLogin(); throw new Error('Chưa thể xuất báo cáo. Hãy thử lại.'); }
     const url = URL.createObjectURL(await response.blob());
-    const link = document.createElement('a'); link.href = url; link.download = 'bao-cao-tuan.csv'; document.body.append(link); link.click(); link.remove();
+    const link = document.createElement('a'); link.href = url; link.download = 'bao-cao-tuan.pdf'; document.body.append(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     tell('Đã tải báo cáo tuần. Tệp tải về nằm ngoài phạm vi tự xóa 90 ngày của hệ thống.');
   } catch (error) { tell(error.message); } finally { button.disabled = false; }

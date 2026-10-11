@@ -54,6 +54,13 @@ def format_used_duration(seconds: float) -> str:
     return f"{minutes:02d} phút {seconds_part:02d} giây"
 
 
+def disabled_time_detail(control: dict[str, Any]) -> str:
+    return control.get("policy_error") or (
+        "Chính sách thời gian đang tắt. "
+        f"Hôm nay đã dùng {format_used_duration(control.get('used_seconds', 0))}."
+    )
+
+
 def format_local_datetime(moment: datetime) -> str:
     weekdays = ("Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy", "Chủ nhật")
     return f"{weekdays[moment.weekday()]}, {moment:%d/%m/%Y · %H:%M:%S}"
@@ -885,7 +892,8 @@ class TrayApplication:
     ) -> None:
         def work():
             try:
-                result: dict[str, Any] | Exception = self.client.request(message_type, payload)
+                client = NamedPipeClient(timeout_ms=5000) if action == "session_start" else self.client
+                result: dict[str, Any] | Exception = client.request(message_type, payload)
             except Exception as exc:
                 LOGGER.debug("Local IPC request failed: %s", action, exc_info=True)
                 result = exc
@@ -1143,7 +1151,12 @@ class TrayApplication:
             self.icon.title = f"OpenGuard Kids - {self._mode_text(mode)}"
             remaining = control.get("remaining_seconds")
             if remaining is None:
-                self.time_label.configure(text="--:--:--")
+                unlimited = (
+                    mode == "disabled"
+                    and self.current_user
+                    and not control.get("policy_error")
+                )
+                self.time_label.configure(text="Không giới hạn" if unlimited else "--:--:--")
                 self.demo_button.state(["disabled"])
             else:
                 self.time_label.configure(text=format_clock(remaining))
@@ -1167,7 +1180,7 @@ class TrayApplication:
             elif mode == "inert_no_tray":
                 detail = "Việc đếm chỉ hoạt động khi giao diện khay đang hiện diện."
             elif mode == "disabled":
-                detail = control.get("policy_error") or "Chính sách thời gian đang tắt."
+                detail = disabled_time_detail(control)
             elif mode == "awaiting_profile":
                 detail = "Hãy đăng nhập bằng PIN để bắt đầu phiên sử dụng máy."
             else:
@@ -1405,13 +1418,18 @@ class TrayApplication:
         if not getattr(self, "current_user", None):
             return
         key = (self.active_child_id, report["end_date"])
-        period = int(report.get("local_duration_sec", 0)) // (20 * 60)
-        if getattr(self, "_eye_reminder_key", None) != key:
+        used = max(0, int(report.get("local_duration_sec", 0)))
+        if (
+            getattr(self, "_eye_reminder_key", None) != key
+            or used < getattr(self, "_eye_reminder_baseline", 0)
+        ):
             self._eye_reminder_key = key
-            self._eye_reminder_period = 0
-        if period <= self._eye_reminder_period:
+            # Existing use must not trigger a notification on login or Tray restart.
+            self._eye_reminder_baseline = used
             return
-        self._eye_reminder_period = period
+        if used - self._eye_reminder_baseline < 20 * 60:
+            return
+        self._eye_reminder_baseline = used
         self._show_eye_reminder()
 
     def _show_eye_reminder(self):

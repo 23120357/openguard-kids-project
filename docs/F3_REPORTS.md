@@ -11,7 +11,7 @@ không bao gồm các hạng mục F2 còn lại như SafeSearch/phân loại/Do
 | Top 10 ứng dụng trên Tray | Thẻ riêng dưới thống kê Hôm nay; thanh Canvas như giao diện Tray cũ, chọn 1/7/90 ngày; dùng dữ liệu đúng hồ sơ từ server khi đã đồng bộ, dữ liệu cục bộ khi ngoại tuyến | Test Tk và bộ tổng hợp |
 | Retention 90 ngày và xóa cả server/agent | Job server mỗi giờ, agent vòng 5 giây kể cả offline; generation/ACK; xóa cả lịch sử F1 và request liên quan | Test retention, erasure, reconnect; giữ state quota |
 | PRIVACY.md từng trường, mục đích, hạn, người xem | Bảng bảy trường và metadata/cache/export | Kiểm tra nội dung |
-| Xuất báo cáo tuần PDF hoặc CSV (nên có) | CSV UTF-8 BOM, thứ Hai đến Chủ nhật, bảo vệ công thức bảng tính | Test CSV, quyền sở hữu, tải tệp trình duyệt |
+| Xuất báo cáo tuần PDF hoặc CSV (nên có) | Nút tải PDF có biểu đồ và số liệu tuần; API CSV UTF-8 BOM vẫn khả dụng | Test PDF/CSV, quyền sở hữu, tải tệp trình duyệt |
 | Gợi ý 20-20-20 (có thì tốt) | Popup Windows sau mỗi 20 phút dùng máy cục bộ: nhìn xa 6 mét trong 20 giây | Kiểm tra UI và ngưỡng |
 
 ## Cách đo và phạm vi
@@ -46,7 +46,7 @@ không bao gồm các hạng mục F2 còn lại như SafeSearch/phân loại/Do
   Ngày trống hiện 0. Biểu đồ ngày luôn có 7 cột ngày; biểu đồ tuần luôn có
   8 cột, mỗi cột gom 7 ngày liên tiếp. Cả hai có tổng thời gian và trục Y theo
   giờ. Bộ chọn 7/28/90 ngày áp dụng cho thống kê khác; top 10 ứng dụng chọn
-  riêng 1/7/90 ngày. CSV dùng tuần hiện tại.
+  riêng 1/7/90 ngày. PDF dùng tuần hiện tại.
 - Trẻ thấy báo cáo từ tất cả thiết bị cùng hồ sơ sau đồng bộ; snapshot chỉ RAM,
   tối đa 15 giây. Offline dùng dữ liệu máy này và ghi rõ nguồn. Không hiển thị
   báo cáo của trẻ khác trong Tray khi đổi hồ sơ.
@@ -54,7 +54,7 @@ không bao gồm các hạng mục F2 còn lại như SafeSearch/phân loại/Do
   giờ, lịch sử sự kiện F1 cục bộ và bộ đệm request trong agent. State quota,
   PIN, tài khoản, luật và audit cấu hình F4 giữ nguyên để việc xóa lịch sử không
   vượt chính sách. Agent offline xác nhận sau reconnect; snapshot báo cáo cũ
-  được bỏ. Bản CSV đã tải nằm ngoài tác vụ xóa của hệ thống.
+  được bỏ. Bản PDF đã tải nằm ngoài tác vụ xóa của hệ thống.
 
 ## API bổ sung
 
@@ -63,6 +63,7 @@ không bao gồm các hạng mục F2 còn lại như SafeSearch/phân loại/Do
 | GET /api/children/{child_id}/activity-report?days=28&end_date=YYYY-MM-DD | Phụ huynh sở hữu | daily, weekly, top_apps, top_domains, total_duration_sec, blocked_count, requests |
 | GET /api/children/{child_id}/activity-report/chart.png?kind=daily\|weekly\|apps&days=7 | Phụ huynh sở hữu | Ảnh PNG dựng bằng Pillow; ngày cố định 7 ngày, tuần cố định 56 ngày, `days` chỉ áp dụng cho apps; không cache |
 | GET /api/children/{child_id}/activity-report.csv?week_start=YYYY-MM-DD | Phụ huynh sở hữu | Tải CSV tuần chứa ngày được chọn, mặc định tuần hiện tại |
+| GET /api/children/{child_id}/activity-report.pdf?week_start=YYYY-MM-DD | Phụ huynh sở hữu | Tải PDF tuần chứa ngày được chọn, mặc định tuần hiện tại |
 | GET /api/device/activity-report?child_id=...&days=1\|7\|90 | Thiết bị cùng household | Báo cáo theo hồ sơ và khoảng ngày + generation; service đưa dữ liệu 1/7/90 ngày tới Tray |
 
 Các API từ chối phiên/token hết hạn, thiết bị đã thu hồi, truy cập chéo tài khoản.
@@ -89,7 +90,7 @@ CSRF; báo cáo chỉ đọc dữ liệu còn trong cửa sổ retention.
    các lượt hỏi vẫn được đếm.
 4. Xin thêm giờ và duyệt từ dashboard. Kiểm tra danh sách yêu cầu, thông báo
    được cộng giờ và sự kiện F3. Chặn/rút quota chỉ thử trên máy lab.
-5. Xuất CSV tuần; mở bằng trình đọc UTF-8/Excel và đối chiếu số liệu tuần.
+5. Xuất PDF tuần; mở tệp và đối chiếu biểu đồ, thời lượng, ứng dụng, tên miền, yêu cầu.
 6. Tắt server: Tray ghi rõ báo cáo cục bộ; bật server: đồng bộ không nhân đôi
    dữ liệu. Đổi hồ sơ không được giữ số liệu trẻ trước.
 7. Xóa hoạt động khi agent offline: Dashboard về 0, có trạng thái chờ ACK;

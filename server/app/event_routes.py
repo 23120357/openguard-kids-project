@@ -14,6 +14,7 @@ from sqlalchemy.dialects.sqlite import insert
 from agent.event_queue import RETENTION_SECONDS
 from common.activity_reports import REPORT_ZONE, activity_report, report_bounds
 from common.report_charts import render_report_chart, rolling_week_columns
+from common.report_pdf import render_weekly_pdf
 
 from .dependencies import DB, DeviceAuth, ParentAuth, owned_child
 from .event_models import ActivityEvent, EventDeletionAck, EventGeneration, FilteringPolicy
@@ -272,6 +273,8 @@ def weekly_csv(child_id: str, auth: ParentAuth, db: DB, week_start: str | None =
         report["blocked_count"],
         "lần",
     )
+
+
     for item in report["requests"]:
         row(
             "Xin thêm giờ",
@@ -284,6 +287,25 @@ def weekly_csv(child_id: str, auth: ParentAuth, db: DB, week_start: str | None =
         media_type="text/csv; charset=utf-8",
         headers={
             "Content-Disposition": f'attachment; filename="ogk-week-{start.isoformat()}.csv"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@router.get("/children/{child_id}/activity-report.pdf")
+def weekly_pdf(child_id: str, auth: ParentAuth, db: DB, week_start: str | None = None):
+    child = owned_child(db, child_id, auth.parent_id)
+    try:
+        start = date.fromisoformat(week_start) if week_start else datetime.now(REPORT_ZONE).date()
+    except ValueError as exc:
+        raise HTTPException(422, "Invalid week date") from exc
+    start -= timedelta(days=start.weekday())
+    report = build_report(db, child_id, (start + timedelta(days=6)).isoformat(), 7)
+    return Response(
+        render_weekly_pdf(report, child.display_name),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="ogk-week-{start.isoformat()}.pdf"',
             "Cache-Control": "no-store",
         },
     )

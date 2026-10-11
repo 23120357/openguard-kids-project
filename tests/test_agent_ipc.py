@@ -1,4 +1,6 @@
 import json
+import threading
+import uuid
 from datetime import UTC, datetime
 
 import pytest
@@ -115,6 +117,80 @@ def test_oversized_pipe_response_does_not_crash_service(monkeypatch):
     response = decode_message(written[0])
     assert response["ok"] is False
     assert response["error"]["code"] == "response_too_large"
+
+
+def test_pipe_client_retries_when_listener_is_temporarily_missing(monkeypatch):
+    calls = []
+    request = new_request("ping")
+    monkeypatch.setattr(named_pipe, "new_request", lambda *_args: request)
+
+    def wait_for_pipe(*_args):
+        calls.append("wait")
+        if len(calls) == 1:
+            raise named_pipe.pywintypes.error(2, "WaitNamedPipe", "File not found")
+
+    monkeypatch.setattr(named_pipe.win32pipe, "WaitNamedPipe", wait_for_pipe)
+    monkeypatch.setattr(named_pipe.win32file, "CreateFile", lambda *_args: "pipe")
+    monkeypatch.setattr(named_pipe.win32pipe, "SetNamedPipeHandleState", lambda *_args: None)
+    monkeypatch.setattr(named_pipe.win32file, "WriteFile", lambda *_args: None)
+    monkeypatch.setattr(
+        named_pipe.win32file,
+        "ReadFile",
+        lambda *_args: (0, encode_message(success_response(request["request_id"], {}))),
+    )
+    monkeypatch.setattr(named_pipe.win32file, "CloseHandle", lambda *_args: None)
+
+    assert named_pipe.NamedPipeClient(timeout_ms=500).request("ping")["ok"] is True
+    assert len(calls) == 2
+
+
+def test_pipe_client_does_not_retry_access_denied(monkeypatch):
+    calls = []
+
+    def wait_for_pipe(*_args):
+        calls.append(1)
+        raise named_pipe.pywintypes.error(5, "WaitNamedPipe", "Access denied")
+
+    monkeypatch.setattr(named_pipe.win32pipe, "WaitNamedPipe", wait_for_pipe)
+    with pytest.raises(named_pipe.PipeUnavailableError):
+        named_pipe.NamedPipeClient(timeout_ms=500).request("ping")
+    assert len(calls) == 1
+
+
+def test_pipe_server_serves_second_client_while_first_is_busy(monkeypatch):
+    monkeypatch.setattr(
+        named_pipe, "PIPE_NAME", rf"\\.\pipe\OpenGuardKids.Test.{uuid.uuid4().hex}"
+    )
+    entered = threading.Event()
+    release = threading.Event()
+    first_result = []
+
+    def handler(message):
+        if message["type"] == "slow":
+            entered.set()
+            assert release.wait(5)
+        return success_response(message["request_id"], {})
+
+    server = named_pipe.NamedPipeServer(handler)
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+    first_thread = threading.Thread(
+        target=lambda: first_result.append(
+            named_pipe.NamedPipeClient(timeout_ms=2000).request("slow")
+        ),
+        daemon=True,
+    )
+    try:
+        first_thread.start()
+        assert entered.wait(3)
+        assert named_pipe.NamedPipeClient(timeout_ms=2000).request("ping")["ok"] is True
+    finally:
+        release.set()
+        first_thread.join(3)
+        server.stop()
+        server_thread.join(3)
+    assert first_result[0]["ok"] is True
+    assert not server_thread.is_alive()
 
 
 def test_core_status_is_transparent_when_f1_is_unavailable():

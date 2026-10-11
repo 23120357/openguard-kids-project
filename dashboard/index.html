@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css?v=20261010-parent-tabs">
-  <script src="/static/app.js?v=20261010-parent-tabs" defer></script>
+  <script src="/static/app.js?v=20261011-pdf-report" defer></script>
 </head>
 <body>
 <header><span class="brand">OpenGuard Kids</span><span>Bố mẹ và con cùng đồng hành</span></header>
@@ -34,7 +34,7 @@
     <div id="report-panel" role="tabpanel" aria-labelledby="report-tab" hidden>
     <section class="card" aria-labelledby="report-title">
       <h2 id="report-title">Hoạt động của con</h2>
-      <div class="report-controls"><label>Khoảng báo cáo<select id="report-days"><option value="7">7 ngày</option><option value="28" selected>28 ngày</option><option value="90">90 ngày</option></select></label><button id="export-week" type="button" class="secondary">Xuất báo cáo tuần (CSV)</button></div>
+      <div class="report-controls"><label>Khoảng báo cáo<select id="report-days"><option value="7">7 ngày</option><option value="28" selected>28 ngày</option><option value="90">90 ngày</option></select></label><button id="export-week" type="button" class="secondary">Xuất báo cáo tuần (PDF)</button></div>
       <p id="report-status" role="status" aria-live="polite"></p>
       <p class="hint">Giờ Việt Nam (UTC+7). Hai biểu đồ luôn hiển thị 7 ngày và 8 tuần; “Khoảng báo cáo” áp dụng cho tổng quan, tên miền và yêu cầu bên dưới. Thời gian dùng máy bỏ qua lúc khóa máy, nghỉ quá 5 phút hoặc Tray vắng mặt. Các ứng dụng có thể chạy cùng lúc; lượt DNS không đồng nghĩa với lượt mở trang.</p>
       <div class="report-totals"><p id="report-duration"></p><p id="report-blocked"></p></div>
@@ -45,7 +45,7 @@
         <section><h3>Top 10 tên miền</h3><ol id="report-domains"></ol></section>
       </div>
       <h3>Yêu cầu của con trong khoảng báo cáo</h3><ul id="report-requests"></ul>
-      <p class="hint">Sự kiện đã đồng bộ từ các máy của con. Máy ngoại tuyến sẽ bổ sung dữ liệu khi kết nối lại. Báo cáo tuần CSV dùng tuần hiện tại từ thứ Hai đến Chủ nhật.</p>
+      <p class="hint">Sự kiện đã đồng bộ từ các máy của con. Máy ngoại tuyến sẽ bổ sung dữ liệu khi kết nối lại. Báo cáo tuần PDF dùng tuần hiện tại từ thứ Hai đến Chủ nhật.</p>
     </section>
     </div>
     <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab">
