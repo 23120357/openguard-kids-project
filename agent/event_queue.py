@@ -7,6 +7,8 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
+from common.activity_reports import activity_report, report_bounds
+
 RETENTION_SECONDS = 90 * 86400
 EVENT_TYPES = {
     "app_start",
@@ -67,13 +69,15 @@ class EventQueue:
         reason="",
         rule_author="Phụ huynh",
         duration_sec=0,
+        event_id=None,
+        timestamp=None,
     ):
         if type not in EVENT_TYPES:
             raise ValueError("Unsupported event type")
         if not child_id or not device_id or not 1 <= len(subject) <= 253:
             raise ValueError("Invalid event identity/subject")
         payload = {
-            "ts": self.clock(),
+            "ts": self.clock() if timestamp is None else timestamp,
             "device_id": device_id,
             "child_id": child_id,
             "type": type,
@@ -81,7 +85,7 @@ class EventQueue:
             "duration_sec": duration_sec,
             "policy_id": policy_id,
         }
-        event_id = str(uuid.uuid4())
+        event_id = event_id or str(uuid.uuid4())
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
@@ -89,7 +93,7 @@ class EventQueue:
             ).fetchone()
             generation = row[0] if row else 0
             db.execute(
-                "INSERT INTO activity_events(id, child_id, ts, generation, payload, reason, rule_author) VALUES (?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO activity_events(id, child_id, ts, generation, payload, reason, rule_author) VALUES (?,?,?,?,?,?,?)",
                 (
                     event_id,
                     child_id,
@@ -135,6 +139,7 @@ class EventQueue:
             return [self.document(row) for row in rows]
 
     def notifications(self, child_id):
+        self.expire()
         with self.connect() as db:
             rows = db.execute(
                 "SELECT * FROM activity_events WHERE child_id=? AND notified=0 AND json_extract(payload, '$.type') IN ('blocked_app','blocked_domain') ORDER BY ts LIMIT 10",
@@ -151,6 +156,7 @@ class EventQueue:
 
     def apply_generations(self, generations):
         """Purge atomically before acknowledging deletion or uploading any batch."""
+        changed = []
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             for child_id, generation in generations.items():
@@ -162,6 +168,7 @@ class EventQueue:
                     raise ValueError("Deletion generation rollback")
                 if generation > old:
                     db.execute("DELETE FROM activity_events WHERE child_id=?", (child_id,))
+                    changed.append(child_id)
                 db.execute(
                     "DELETE FROM activity_events WHERE child_id=? AND generation<>?",
                     (child_id, generation),
@@ -171,3 +178,16 @@ class EventQueue:
                     (child_id, generation),
                 )
         self.expire()
+        return changed
+
+    def report(self, child_id, *, end_date=None, days=1):
+        self.expire()
+        _, _, lower, upper = report_bounds(end_date, days, self.clock())
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT payload FROM activity_events WHERE child_id=? AND ts>=? AND ts<=? ORDER BY ts",
+                (child_id, lower, upper + RETENTION_SECONDS),
+            )
+            return activity_report(
+                (json.loads(row[0]) for row in rows), end_date=end_date, days=days, now=self.clock()
+            )

@@ -4,11 +4,13 @@ import time
 import tkinter as tk
 import uuid
 from datetime import UTC, datetime
+from tkinter import ttk
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 
+from agent.named_pipe import PipeUnavailableError
 from agent.tray_ui import (
     TrayApplication,
     TrayInstanceGuard,
@@ -17,6 +19,7 @@ from agent.tray_ui import (
     format_policy_schedule,
     format_used_duration,
     has_remaining_time,
+    session_error_message,
 )
 
 
@@ -38,6 +41,56 @@ def test_events_mousewheel_scrolls_tree_only_in_events_tab():
     notebook.select.return_value = "today-tab"
     assert ui._scroll_events(SimpleNamespace(delta=-120)) is None
     tree.yview_scroll.assert_not_called()
+
+
+def test_eye_reminder_appears_once_per_twenty_minutes_of_local_use():
+    app = TrayApplication.__new__(TrayApplication)
+    app.current_user = "An"
+    app.active_child_id = "child"
+    app._show_eye_reminder = Mock()
+    for seconds in (1199, 1200, 1250, 2400, 2410):
+        app._check_eye_reminder({"end_date": "2026-10-11", "local_duration_sec": seconds})
+    assert app._show_eye_reminder.call_count == 2
+    app._check_eye_reminder({"end_date": "2026-10-12", "local_duration_sec": 1200})
+    assert app._show_eye_reminder.call_count == 3
+
+
+def test_eye_reminder_uses_the_same_windows_notification_as_time_warnings():
+    app = TrayApplication.__new__(TrayApplication)
+    app.icon = Mock()
+    app._show_eye_reminder()
+    app.icon.notify.assert_called_once_with(
+        "Hãy nghỉ mắt! Nhìn ra xa khoảng 6 mét trong 20 giây.",
+        "OpenGuard Kids",
+    )
+
+
+def test_domain_query_chart_updates_at_most_once_per_minute():
+    app = TrayApplication.__new__(TrayApplication)
+    app.active_child_id = "child"
+    app.activity_summary = Mock()
+    app._check_eye_reminder = Mock()
+    app._draw_activity_report = Mock()
+    app._draw_top_apps = Mock()
+    report = {
+        "end_date": "2026-10-11", "total_duration_sec": 0, "source": "local",
+        "top_domains": [{"subject": "example.org", "queries": 1}],
+        "top_apps": [], "app_periods": {},
+    }
+    app._update_activity_report(report)
+    assert app._draw_activity_report.call_count == 1
+    updated = {**report, "top_domains": [{"subject": "example.org", "queries": 2}]}
+    app._update_activity_report(updated)
+    assert app._draw_activity_report.call_count == 1
+    app._visual_report_checked_at -= 61
+    app._update_activity_report(updated)
+    assert app._draw_activity_report.call_count == 2
+    app._visual_report_checked_at -= 61
+    app._update_activity_report(updated)
+    assert app._draw_activity_report.call_count == 2
+    app.active_child_id = "another-child"
+    app._update_activity_report(updated)
+    assert app._draw_activity_report.call_count == 3
 
 
 def test_event_poll_preserves_rows_and_scrolled_position():
@@ -196,6 +249,80 @@ def test_switch_profile_keeps_current_session_until_pin_succeeds():
     )
 
 
+def test_successful_pin_switch_updates_tray_session():
+    ui = TrayApplication.__new__(TrayApplication)
+    ui.closing = False
+    ui.switching_profile = True
+    ui.session_in_flight = True
+    ui.current_user = "An"
+    ui.active_child_id = "child-a"
+    ui.responses = queue.Queue()
+    ui.responses.put(("session_start", {
+        "ok": True, "data": {"current_user": "Binh", "active_child_id": "child-b"},
+    }))
+    ui.scheduler = Mock()
+    ui._update_session_ui = Mock()
+    ui.refresh_status = Mock()
+    ui._poll_responses()
+    assert ui.switching_profile is False
+    assert ui.current_user == "Binh"
+    assert ui.active_child_id == "child-b"
+    ui._update_session_ui.assert_called_once()
+    ui.refresh_status.assert_called_once()
+
+
+@pytest.mark.parametrize("failure, expected", [
+    ({"error": {"code": "login_failed", "message": "Unknown child username"}}, "Không tìm thấy tên hồ sơ"),
+    ({"error": {"code": "login_failed", "message": "Incorrect child PIN"}}, "PIN không đúng"),
+    ({"error": {"code": "invalid_pin", "message": "pin must contain exactly six digits"}}, "6 chữ số"),
+    (PipeUnavailableError("pipe missing"), "Không kết nối được"),
+])
+def test_profile_switch_explains_actual_failure(failure, expected):
+    assert expected in session_error_message(failure)
+
+
+def test_unknown_profile_keeps_current_session_and_shows_specific_error():
+    ui = TrayApplication.__new__(TrayApplication)
+    ui.closing = False
+    ui.switching_profile = True
+    ui.session_in_flight = True
+    ui.current_user = "An"
+    ui.responses = queue.Queue()
+    ui.responses.put(("session_start", {
+        "ok": False, "error": {"code": "login_failed", "message": "Unknown child username"},
+    }))
+    ui.scheduler = Mock()
+    ui.session_result = Mock()
+    ui.login_button = Mock()
+    ui.logout_button = Mock()
+    ui._poll_responses()
+    assert ui.current_user == "An"
+    assert ui.switching_profile is True
+    assert "Không tìm thấy tên hồ sơ" in ui.session_result.configure.call_args.kwargs["text"]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Tk layout verification requires Windows")
+def test_tray_initializes_switch_state_before_first_status(monkeypatch):
+    monkeypatch.setattr("agent.tray_ui.pystray.Icon", Mock(return_value=Mock()))
+    app = TrayApplication(instance_guard=Mock(), start_open=True)
+    try:
+        assert app.switching_profile is False
+        app.icon = Mock()
+        app._apply_status({"ok": True, "data": {
+            "current_user": None, "active_child_id": None,
+            "profiles": [{"id": "child-a", "display_name": "An"}],
+            "capabilities": {"child_profile_login": True, "remote_parent_requests": False},
+            "enrollment": {"required": False}, "remote": {"connected": True},
+            "time_control": {"mode": "awaiting_profile", "remaining_seconds": None},
+            "activity_events": [], "activity_report": None, "time_requests": [],
+            "child_audit": [], "current_policy": None, "filtering": {"enabled": False},
+        }})
+        assert app.profile_options == {"An": "child-a"}
+        assert "Đang đồng bộ" not in app.session_label.cget("text")
+    finally:
+        app.root.destroy()
+
+
 def test_mouse_wheel_scrolls_today_tab():
     ui = TrayApplication.__new__(TrayApplication)
     ui.notebook = Mock()
@@ -292,6 +419,77 @@ def test_event_details_remain_visible_and_scroll_at_small_window_sizes():
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Tk layout verification requires Windows")
+def test_child_activity_view_renders_shared_data_and_scrolls_long_top_ten():
+    from common.activity_reports import activity_report
+
+    app = TrayApplication.__new__(TrayApplication)
+    app.root = tk.Tk()
+    app.root.withdraw()
+    try:
+        app.paired = False
+        app._configure_styles()
+        app._build_window()
+        app._set_pairing_view(True)
+        report = activity_report([], end_date="2026-10-11", days=1)
+        report.update(
+            total_duration_sec=120,
+            blocked_count=2,
+            source="synced",
+            requests=[{"minutes": 15, "status": "approved"}],
+        )
+        report["top_apps"] = [
+            {"subject": "school-" + "a" * 90 + str(i) + ".exe", "duration_sec": 60, "starts": 1}
+            for i in range(10)
+        ]
+        report["top_domains"] = [{"subject": f"school-{i}.test", "queries": 2} for i in range(10)]
+        report["app_periods"] = {
+            "1": report["top_apps"],
+            "7": [{"subject": "week.exe", "duration_sec": 600, "starts": 1}],
+            "90": [{"subject": "all.exe", "duration_sec": 3600, "starts": 1}],
+        }
+        app._update_activity_report(report)
+        app.root.geometry("600x540+10000+10000")
+        app.notebook.select(app.today_tab)
+        app.root.deiconify()
+        app.root.update()
+        assert "02 phút 00 giây" in app.activity_summary.cget("text")
+        assert "giống báo cáo của bố mẹ" in app.activity_summary.cget("text")
+        today_titles = [
+            child.cget("text")
+            for widget in app.today_content.winfo_children()
+            if isinstance(widget, ttk.Frame)
+            for child in widget.winfo_children()
+            if isinstance(child, ttk.Label)
+        ]
+        assert sum(title.startswith("Hôm nay em đã dùng gì") for title in today_titles) == 1
+        cards = app.today_content.pack_slaves()
+        assert "Thời gian còn lại" in [
+            child.cget("text") for child in cards[1].winfo_children() if isinstance(child, ttk.Label)
+        ]
+        assert "Em cần thêm thời gian?" in [
+            child.cget("text") for child in cards[2].winfo_children() if isinstance(child, ttk.Label)
+        ]
+        assert len(app.activity_chart.find_all()) > 20
+        assert "school-0.test" in app.activity_chart.itemcget(
+            app.activity_chart.find_all()[1], "text"
+        )
+        assert any("school-" in app.top_apps_chart.itemcget(item, "text") for item in app.top_apps_chart.find_withtag("all") if app.top_apps_chart.type(item) == "text")
+        app.top_apps_period.set("1 tuần")
+        app._draw_top_apps()
+        assert "máy này" in app.top_apps_source.cget("text")
+        assert any("week.exe" in app.top_apps_chart.itemcget(item, "text") for item in app.top_apps_chart.find_withtag("all") if app.top_apps_chart.type(item) == "text")
+        app.top_apps_period.set("Toàn thời gian")
+        app._draw_top_apps()
+        assert any("all.exe" in app.top_apps_chart.itemcget(item, "text") for item in app.top_apps_chart.find_withtag("all") if app.top_apps_chart.type(item) == "text")
+        app._scroll_today(SimpleNamespace(delta=-120))
+        assert app.today_canvas.yview()[0] > 0
+        app._update_activity_report(None)
+        assert app.activity_summary.cget("text") == "Đăng nhập để xem hoạt động của em."
+    finally:
+        app.root.destroy()
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Tk layout verification requires Windows")
 def test_login_has_own_default_tab_and_scrollable_today():
     app = TrayApplication.__new__(TrayApplication)
     app.root = tk.Tk()
@@ -334,11 +532,17 @@ def test_login_has_own_default_tab_and_scrollable_today():
         assert not app.login_fields.winfo_manager()
         assert app.logout_button.winfo_manager() == "pack"
         assert "Đã đăng nhập với tư cách An" in app.session_label.cget("text")
+        app.end_session()
+        assert app.username_entry.get() == ""
+        app.username_entry.insert(0, "Bình")
+        app._update_session_ui()
+        assert app.username_entry.get() == "Bình"
+        app.switching_profile = False
         app.current_user = None
         app._update_session_ui()
         assert app.login_fields.winfo_manager() == "pack"
         assert not app.logout_button.winfo_manager()
-        assert app.username_entry.get() == ""
+        assert app.username_entry.get() == "Bình"
     finally:
         app.root.destroy()
 

@@ -42,3 +42,13 @@
 - Kiểm thử trình duyệt dùng API mô phỏng để kiểm tra đăng nhập/đăng xuất, chuyển
   tab, đổi hồ sơ, lưu chính sách/quy tắc, sự kiện, lệnh khóa, ghép đôi, bàn phím
   và bố cục di động. API server được kiểm tra riêng bằng pytest.
+
+## Hoàn thiện F3 ngày 11/10/2026
+
+- Codex đối chiếu F3 trang 7-8 của PDF và bổ sung ghi nhận chín loại sự kiện,
+  tổng hợp ngày/tuần/top 10, CSV tuần, báo cáo cho trẻ kèm minh họa và gợi ý nghỉ mắt.
+- Agent/server dùng chung bộ tổng hợp; trẻ nhận báo cáo từ các thiết bị cùng hồ
+  sơ khi online, dùng báo cáo cục bộ có ghi rõ nguồn khi offline.
+- Retention/xóa mở rộng đến request và lịch sử F1 liên quan, giữ quota và cấu hình.
+- Test kiểm tra dữ liệu/mốc thời gian/quyền/CSV/Tk và regression; không thay thế
+  nghiệm thu service, DNS adapter hay hành vi khóa/chặn trên máy lab thật.

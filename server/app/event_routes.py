@@ -1,18 +1,24 @@
 """Authenticated activity ingestion, browsing, filtering and erasure."""
 
 import asyncio
+import csv
+import io
 import time
+from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import Response
 from sqlalchemy import delete, select, text
 from sqlalchemy.dialects.sqlite import insert
 
 from agent.event_queue import RETENTION_SECONDS
+from common.activity_reports import REPORT_ZONE, activity_report, report_bounds
+from common.report_charts import render_report_chart, rolling_week_columns
 
 from .dependencies import DB, DeviceAuth, ParentAuth, owned_child
 from .event_models import ActivityEvent, EventDeletionAck, EventGeneration, FilteringPolicy
 from .event_schemas import EventBatch, FilterInput, FilterRules, GenerationAck
-from .models import Audit, Child, Device
+from .models import Audit, Child, Device, TimeRequest
 from .policy_signing import sign_policy
 from .routes import accessible_child, client_ip, device_parent_id
 
@@ -37,6 +43,17 @@ def expire_events(sessions, now=None):
     with sessions() as db:
         db.execute(
             delete(ActivityEvent).where(ActivityEvent.ts < (now or time.time()) - RETENTION_SECONDS)
+        )
+        db.execute(
+            delete(TimeRequest).where(
+                TimeRequest.created_at < (now or time.time()) - RETENTION_SECONDS
+            )
+        )
+        db.execute(
+            delete(Audit).where(
+                Audit.action == "time_request_decided",
+                Audit.ts < (now or time.time()) - RETENTION_SECONDS,
+            )
         )
         db.commit()
 
@@ -145,6 +162,133 @@ def history(
     return {"items": [serialize(row) for row in rows[:limit]], "has_more": len(rows) > limit}
 
 
+def build_report(db, child_id, end_date=None, days=28):
+    try:
+        _, _, lower, upper = report_bounds(end_date, days)
+    except ValueError as exc:
+        raise HTTPException(422, "Invalid report dates") from exc
+    rows = db.scalars(
+        select(ActivityEvent.payload)
+        .where(
+            ActivityEvent.child_id == child_id,
+            ActivityEvent.ts >= max(lower, time.time() - RETENTION_SECONDS),
+        )
+        .execution_options(yield_per=1000)
+    )
+    report = activity_report(rows, end_date=end_date, days=days)
+    requests = db.scalars(
+        select(TimeRequest)
+        .where(
+            TimeRequest.child_id == child_id,
+            TimeRequest.created_at >= max(lower, time.time() - RETENTION_SECONDS),
+            TimeRequest.created_at < upper,
+        )
+        .order_by(TimeRequest.created_at.desc())
+    )
+    report["requests"] = [
+        {"created_at": item.created_at, "minutes": item.minutes, "status": item.status}
+        for item in requests
+    ]
+    return report
+
+
+@router.get("/children/{child_id}/activity-report")
+def parent_report(
+    child_id: str,
+    auth: ParentAuth,
+    db: DB,
+    end_date: str | None = None,
+    days: int = Query(28, ge=1, le=90),
+):
+    owned_child(db, child_id, auth.parent_id)
+    return build_report(db, child_id, end_date, days)
+
+
+@router.get("/children/{child_id}/activity-report/chart.png")
+def parent_report_chart(
+    child_id: str,
+    auth: ParentAuth,
+    db: DB,
+    kind: str = Query(pattern="^(daily|weekly|apps)$"),
+    days: int = Query(28, ge=1, le=90),
+):
+    owned_child(db, child_id, auth.parent_id)
+    chart_days = {"daily": 7, "weekly": 56, "apps": days}[kind]
+    report = build_report(db, child_id, days=chart_days)
+    items = {
+        "daily": lambda: report["daily"],
+        "weekly": lambda: rolling_week_columns(report["daily"]),
+        "apps": lambda: report["top_apps"],
+    }[kind]()
+    return Response(
+        render_report_chart(items, kind),
+        media_type="image/png",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.get("/device/activity-report")
+def child_report(child_id: str, device: DeviceAuth, db: DB, days: int = Query(1, ge=1, le=90)):
+    accessible_child(db, device, child_id)
+    return {
+        "child_id": child_id,
+        "generation": generation_for(db, child_id),
+        "report": build_report(db, child_id, days=days),
+    }
+
+
+@router.get("/children/{child_id}/activity-report.csv")
+def weekly_csv(child_id: str, auth: ParentAuth, db: DB, week_start: str | None = None):
+    owned_child(db, child_id, auth.parent_id)
+    try:
+        start = date.fromisoformat(week_start) if week_start else datetime.now(REPORT_ZONE).date()
+    except ValueError as exc:
+        raise HTTPException(422, "Invalid week date") from exc
+    start -= timedelta(days=start.weekday())
+    report = build_report(db, child_id, (start + timedelta(days=6)).isoformat(), 7)
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+
+    def row(*values):
+        writer.writerow(
+            [
+                "'" + value
+                if isinstance(value, str) and value.lstrip()[:1] in {"=", "+", "-", "@"}
+                else value
+                for value in values
+            ]
+        )
+
+    row("Nhóm", "Ngày / tên", "Giá trị", "Đơn vị")
+    for item in report["daily"]:
+        row("Thời gian dùng máy", item["date"], item["duration_sec"], "giây")
+    for item in report["top_apps"]:
+        row("Ứng dụng", item["subject"], item["duration_sec"], "giây chạy")
+    for item in report["top_domains"]:
+        row("Tên miền", item["subject"], item["queries"], "lượt truy vấn")
+    row(
+        "Lần bị chặn",
+        f"{report['start_date']} - {report['end_date']}",
+        report["blocked_count"],
+        "lần",
+    )
+    for item in report["requests"]:
+        row(
+            "Xin thêm giờ",
+            datetime.fromtimestamp(item["created_at"], REPORT_ZONE).isoformat(),
+            item["minutes"],
+            item["status"],
+        )
+    return Response(
+        output.getvalue().encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="ogk-week-{start.isoformat()}.csv"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 def deletion_status(db, child_id, parent_id):
     generation = generation_for(db, child_id)
     # Every household device can cache events for this child, not only its enrollment child.
@@ -178,6 +322,10 @@ def erase(child_id: str, request: Request, auth: ParentAuth, db: DB):
         .on_conflict_do_update(index_elements=["child_id"], set_={"generation": generation})
     )
     db.execute(delete(ActivityEvent).where(ActivityEvent.child_id == child_id))
+    db.execute(delete(TimeRequest).where(TimeRequest.child_id == child_id))
+    db.execute(
+        delete(Audit).where(Audit.child_id == child_id, Audit.action == "time_request_decided")
+    )
     db.commit()
     request.app.state.parent_events.notify(auth.parent_id, "activity")
     return deletion_status(db, child_id, auth.parent_id)

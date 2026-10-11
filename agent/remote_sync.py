@@ -178,23 +178,43 @@ class RemoteSync:
     def sync_activity(self, client):
         state = self._request(client, "GET", "/api/device/event-state").json()
         with self.core._lock:
-            self.events.apply_generations(state["generations"])
+            changed = self.events.apply_generations(state["generations"])
+            self.core.clear_activity(changed)
         self._request(client, "POST", "/api/device/event-state/ack", json=state)
-        document = self._request(client, "GET", "/api/device/filtering").json()
-        self._configure_filtering(document)
-        save_signed_policy(self.filtering_path, document)
         pending = self.events.pending()
         if pending:
             result = self._request(
                 client, "POST", "/api/device/activity-events", json={"events": pending}
             ).json()
             self.events.acknowledge(result["acknowledged"] + result["discarded"])
+        document = self._request(client, "GET", "/api/device/filtering").json()
+        self._configure_filtering(document)
+        save_signed_policy(self.filtering_path, document)
+        with self.core._lock:
+            child_id = self.core._active_child_id
+        if child_id:
+            snapshot = self._request(
+                client, "GET", "/api/device/activity-report", params={"child_id": child_id}
+            ).json()
+            if snapshot["generation"] == state["generations"].get(child_id, 0):
+                periods = {}
+                for days in (7, 90):
+                    period = self._request(
+                        client, "GET", "/api/device/activity-report",
+                        params={"child_id": child_id, "days": days},
+                    ).json()
+                    if period["generation"] != snapshot["generation"] or period["child_id"] != child_id:
+                        return
+                    periods[str(days)] = period["report"]["top_apps"]
+                snapshot["report"]["app_periods"] = periods
+                self.core.set_activity_report(snapshot)
 
     def _activity_loop(self):
         with httpx.Client(base_url=self.config.server_url, timeout=10, trust_env=False) as client:
             while not self.stop_event.is_set():
                 try:
                     self.events.expire()
+                    self.core.expire_activity()
                     self.sync_activity(client)
                 except (httpx.HTTPError, OSError, ValueError, KeyError, sqlite3.Error) as exc:
                     self.core.set_remote_status(connected=False, error=str(exc))

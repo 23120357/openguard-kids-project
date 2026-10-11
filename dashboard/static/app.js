@@ -4,9 +4,14 @@ let currentPolicy = null;
 let currentFiltering = null;
 let filteringDirty = false;
 let filteringSequence = 0;
+let reportSequence = 0;
+let appReportSequence = 0;
+const REPORT_REFRESH_MS = 60 * 1000;
+let reportCache = {key: '', loadedAt: 0};
+let appReportCache = {key: '', loadedAt: 0};
 const domainLists = ['domain_block', 'domain_allow', 'safety_domains'];
 let domainDrafts = {domain_block: [], domain_allow: [], safety_domains: []};
-const dashboardTabs = ['overview', 'time-policy', 'filtering', 'activity'];
+const dashboardTabs = ['overview', 'report', 'time-policy', 'filtering', 'activity'];
 let activityOffset = 0;
 let activitySequence = 0;
 let childProfiles = [];
@@ -18,6 +23,7 @@ const el = (id) => document.getElementById(id);
 const tell = (message) => { el("message").textContent = message; };
 const dayNames = ["Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy", "Chủ nhật"];
 const formatDuration = seconds => Math.floor(seconds / 60) + " phút " + String(seconds % 60).padStart(2, "0") + " giây";
+const formatChartDuration = seconds => Math.floor(seconds / 3600) + ' giờ ' + String(Math.floor(seconds % 3600 / 60)).padStart(2, '0') + ' phút' + (seconds % 60 ? ' ' + String(seconds % 60).padStart(2, '0') + ' giây' : '');
 
 function updateDeviceCountdowns() {
   document.querySelectorAll(".device-countdown").forEach(line => {
@@ -189,6 +195,7 @@ function showSchedule(schedule) {
 async function api(path, method = "GET", body) {
   const response = await fetch("/api" + path, {
     method, credentials: "same-origin",
+    cache: method === "GET" ? "no-store" : "default",
     headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -206,6 +213,11 @@ function showLogin() {
   pendingLiveKinds.clear();
   csrf = ""; currentPolicy = null; childProfiles = [];
   currentFiltering = null; activityOffset = 0; activitySequence++;
+  reportSequence++;
+  appReportSequence++;
+  reportCache = {key: '', loadedAt: 0};
+  appReportCache = {key: '', loadedAt: 0};
+  clearReport();
   filteringDirty = false;
   domainDrafts = {domain_block: [], domain_allow: [], safety_domains: []};
   renderDomainLists();
@@ -241,14 +253,54 @@ async function loadChildren(preferredId = null) {
   if (el('child-select').value !== oldId) activityOffset = 0;
   el("child-pin-status").textContent = selected ? (selected.has_pin ? "PIN đã được thiết lập." : "Hồ sơ cũ chưa có PIN; hãy tạo PIN trước khi đăng nhập trên máy trẻ.") : "";
   await loadPolicy();
+  await refreshReport();
 }
 function renderList(id, lines, empty) {
   el(id).replaceChildren(...(lines.length ? lines : [empty]).map(line => {
     const li = document.createElement("li"); li.textContent = line; return li;
   }));
 }
+function auditSchedule(row) {
+  if (typeof row !== 'string') return 'chưa đặt';
+  const ranges = [];
+  for (let start = 0; start < 48;) {
+    if (row[start] !== '1') { start++; continue; }
+    let end = start + 1; while (end < 48 && row[end] === '1') end++;
+    const clock = slot => slot === 48 ? '24:00' : String(Math.floor(slot / 2)).padStart(2, '0') + ':' + (slot % 2 ? '30' : '00');
+    ranges.push(clock(start) + '–' + clock(end)); start = end;
+  }
+  return ranges.join(', ') || 'không cho dùng';
+}
+function formatAuditEntry(a) {
+  const old = a.old_value || {}, next = a.new_value || {}, changes = [];
+  const labels = {enabled:'Kiểm soát', weekday_minutes:'Ngày thường', weekend_minutes:'Cuối tuần', domain_mode:'Quy tắc web', app_mode:'Quy tắc ứng dụng'};
+  const value = (key, item) => key === 'enabled' ? (item ? 'bật' : 'tắt') : key.endsWith('_minutes') ? item + ' phút' : key.endsWith('_mode') ? ({blocklist:'chặn theo danh sách',allowlist:'chỉ cho phép danh sách'}[item] || item) : String(item);
+  for (const key of Object.keys(labels)) {
+    if (key in next && old[key] !== next[key]) changes.push(labels[key] + ': ' + (key in old ? value(key, old[key]) + ' → ' : '') + value(key, next[key]));
+  }
+  for (const [key, label] of Object.entries({domain_block:'web bị chặn', domain_allow:'web được phép', safety_domains:'web an toàn', app_block:'ứng dụng bị chặn', app_allow:'ứng dụng được phép'})) {
+    const describe = item => typeof item === 'string' ? item : item.name + ' (SHA-256 ' + item.sha256 + ')';
+    const before = new Set((old[key] || []).map(describe)), after = new Set((next[key] || []).map(describe));
+    for (const item of after) if (!before.has(item)) changes.push('Thêm ' + label + ': ' + item);
+    for (const item of before) if (!after.has(item)) changes.push('Xóa ' + label + ': ' + item);
+  }
+  if (Array.isArray(next.schedule)) next.schedule.forEach((row, index) => {
+    if (row !== (old.schedule || [])[index]) changes.push(dayNames[index] + ': ' + auditSchedule((old.schedule || [])[index]) + ' → ' + auditSchedule(row));
+  });
+  if (next.type) changes.push('Lệnh: ' + ({lock_now:'khóa máy ngay',add_time:'cộng thêm giờ'}[next.type] || next.type));
+  if (next.payload?.minutes) changes.push('Cộng ' + next.payload.minutes + ' phút');
+  if (next.minutes && a.action !== 'policy_updated') changes.push(next.minutes + ' phút');
+  if (next.requester) changes.push('Người gửi: ' + next.requester);
+  if (next.status) changes.push('Trạng thái: ' + ({pending:'đang chờ',approved:'đã đồng ý',rejected:'đã từ chối',acknowledged:'đã xác nhận'}[next.status] || next.status));
+  if (a.action === 'child_pin_changed') changes.push('PIN 6 số đã đổi');
+  if (a.action === 'enrollment_consent') changes.push('Đã đồng ý ghép thiết bị');
+  const action = ({policy_updated:'Chính sách thời gian',filtering_updated:'Kiểm soát web và ứng dụng',enrollment_consent:'Ghép thiết bị',emergency_command_created:'Lệnh thiết bị',emergency_command_acknowledged:'Thiết bị xác nhận lệnh',time_requested:'Yêu cầu thêm giờ',time_request_decided:'Trả lời yêu cầu thêm giờ',child_pin_changed:'PIN hồ sơ'}[a.action] || a.action);
+  const child = childProfiles.find(item => item.id === a.child_id);
+  return new Date(a.ts * 1000).toLocaleString('vi-VN') + ' · ' + action + (child ? ' · ' + child.display_name : '') + (a.actor ? ' · ' + a.actor : '') + (changes.length ? ': ' + changes.join('; ') : '');
+}
 async function refreshStatus() {
   await refreshActivity();
+  await refreshReport().catch(error => { el('report-status').textContent = error.message; });
   const [devices, audits, requests] = await Promise.all([
     api("/devices"), api("/audit"), api("/time-requests")
   ]);
@@ -315,13 +367,7 @@ async function refreshStatus() {
   }) : [Object.assign(document.createElement("li"), {textContent: "Chưa có thiết bị. Hãy tạo mã ghép đôi."})];
   el("devices").replaceChildren(...deviceItems);
   updateDeviceCountdowns();
-  renderList("audit", audits.slice(0, 10).map(a =>
-    new Date(a.ts * 1000).toLocaleString("vi-VN") + " · " +
-    ({policy_updated: "Đã cập nhật chính sách", enrollment_consent: "Đã đồng ý ghép thiết bị",
-      emergency_command_created: "Đã gửi lệnh khẩn", emergency_command_acknowledged: "Agent đã xác nhận lệnh",
-      time_requested: "Trẻ đã xin thêm giờ", time_request_decided: "Đã trả lời yêu cầu xin giờ",
-      child_pin_changed: "Đã đổi PIN hồ sơ"}[a.action] || a.action)
-  ), "Chưa có thay đổi.");
+  renderList("audit", audits.slice(0, 10).map(formatAuditEntry), "Chưa có thay đổi.");
   const requestItems = requests.length ? requests.map(request => {
     const li = document.createElement("li");
     const detail = document.createElement("span");
@@ -445,6 +491,7 @@ form("policy-form", async data => {
   await refreshStatus();
 });
 el("child-select").addEventListener("change", () => {
+  clearReport();
   activityOffset = 0;
   activitySequence++;
   el('activity-rows').replaceChildren();
@@ -452,6 +499,7 @@ el("child-select").addEventListener("change", () => {
   el("child-pin-status").textContent = selected ? (selected.has_pin ? "PIN đã được thiết lập." : "Hồ sơ cũ chưa có PIN; hãy tạo PIN trước khi đăng nhập trên máy trẻ.") : "";
   loadPolicy().catch(e => tell(e.message));
   refreshActivity().catch(e => tell(e.message));
+  refreshReport().catch(e => tell(e.message));
 });
 el("logout").addEventListener("click", async () => {
   try { await api("/auth/logout", "POST", {}); showLogin(); tell(""); }
@@ -564,6 +612,7 @@ el('erase-activity').addEventListener('click', async () => {
     await api('/children/' + encodeURIComponent(childId) + '/activity-data', 'DELETE');
     activityOffset = 0;
     await refreshActivity();
+    await refreshReport();
   } catch (error) { tell(error.message); } finally { button.disabled = false; }
 });
 
@@ -650,3 +699,131 @@ el('reload-filtering').addEventListener('click', () => {
   if (childId) loadFiltering(childId, true).catch(error => tell(error.message));
 });
 renderDomainLists();
+
+function clearReport() {
+  reportCache = {key: '', loadedAt: 0};
+  appReportCache = {key: '', loadedAt: 0};
+  ['report-daily', 'report-weekly', 'report-apps', 'report-domains', 'report-requests', 'report-duration', 'report-blocked'].forEach(id => el(id).replaceChildren());
+  ['report-domains', 'report-requests'].forEach(id => { delete el(id).dataset.signature; });
+  el('report-daily-total').textContent = '—';
+  el('report-weekly-total').textContent = '—';
+  el('report-status').textContent = '';
+}
+function rollingWeeksFromDaily(daily) {
+  if (daily.length !== 56) throw new Error('Chưa đủ dữ liệu 8 tuần để vẽ biểu đồ.');
+  const weeks = [];
+  for (let index = 0; index < 56; index += 7) {
+    const group = daily.slice(index, index + 7);
+    weeks.push({week_start: group[0].date, week_end: group[6].date,
+      duration_sec: group.reduce((total, day) => total + day.duration_sec, 0)});
+  }
+  return weeks;
+}
+function renderReportColumns(id, childId, kind, items) {
+  const days = kind === 'daily' ? 7 : 56;
+  const signature = childId + ':' + kind + ':' + JSON.stringify(items);
+  if (el(id).firstElementChild?.dataset.signature === signature) return;
+  const wrap = document.createElement('div'); wrap.className = 'report-chart-image';
+  wrap.dataset.signature = signature;
+  const image = document.createElement('img');
+  image.alt = 'Biểu đồ thời lượng theo ' + (kind === 'daily' ? 'ngày' : 'tuần');
+  image.src = '/api/children/' + encodeURIComponent(childId) + '/activity-report/chart.png?kind=' + kind + '&days=' + days + '&t=' + Date.now();
+  wrap.append(image);
+  items.forEach((item, index) => {
+    const hit = document.createElement('button'); hit.type = 'button'; hit.className = 'report-column-hit';
+    const label = (kind === 'daily' ? 'Ngày ' + item.date : 'Tuần ' + item.week_start + ' – ' + item.week_end) + ': ' + formatDuration(item.duration_sec);
+    hit.title = label; hit.setAttribute('aria-label', label);
+    hit.style.left = (9 + index * 88.5 / items.length) + '%';
+    hit.style.width = (88.5 / items.length) + '%';
+    wrap.append(hit);
+  });
+  el(id).replaceChildren(wrap);
+}
+function renderAppChart(childId, days, items) {
+  const signature = childId + ':' + days + ':' + JSON.stringify(items);
+  if (el('report-apps').firstElementChild?.dataset.signature === signature) return;
+  const image = document.createElement('img'); image.alt = 'Biểu đồ top 10 ứng dụng';
+  image.dataset.signature = signature;
+  image.src = '/api/children/' + encodeURIComponent(childId) + '/activity-report/chart.png?kind=apps&days=' + days + '&t=' + Date.now();
+  const list = document.createElement('ol'); list.className = 'sr-only';
+  items.forEach(item => {
+    const line = document.createElement('li');
+    line.textContent = item.subject + ': ' + formatDuration(item.duration_sec);
+    list.append(line);
+  });
+  el('report-apps').replaceChildren(image, list);
+}
+function renderReportList(id, lines, empty) {
+  const signature = JSON.stringify(lines);
+  if (el(id).dataset.signature === signature) return;
+  renderList(id, lines, empty);
+  el(id).dataset.signature = signature;
+}
+function setReportText(id, value) {
+  if (el(id).textContent !== value) el(id).textContent = value;
+}
+async function refreshAppChart() {
+  const childId = el('child-select').value;
+  if (!childId) return;
+  const days = el('report-app-period').value;
+  const key = childId + ':' + days;
+  if (appReportCache.key === key && Date.now() - appReportCache.loadedAt < REPORT_REFRESH_MS) return;
+  const sequence = ++appReportSequence;
+  appReportCache = {key, loadedAt: Date.now()};
+  try {
+    const result = await api('/children/' + encodeURIComponent(childId) + '/activity-report?days=' + days);
+    if (!csrf || sequence !== appReportSequence || el('child-select').value !== childId || el('report-app-period').value !== days) return;
+    renderAppChart(childId, days, result.top_apps);
+  } catch (error) {
+    if (appReportCache.key === key) appReportCache = {key: '', loadedAt: 0};
+    throw error;
+  }
+}
+async function refreshReport() {
+  const childId = el('child-select').value;
+  if (!childId) { clearReport(); el('report-status').textContent = 'Hãy chọn hồ sơ của con để xem hoạt động.'; return; }
+  const days = el('report-days').value;
+  const key = childId + ':' + days;
+  if (reportCache.key === key && Date.now() - reportCache.loadedAt < REPORT_REFRESH_MS) return;
+  const sequence = ++reportSequence;
+  reportCache = {key, loadedAt: Date.now()};
+  let result, chartReport;
+  try {
+    [result, chartReport] = await Promise.all([
+      api('/children/' + encodeURIComponent(childId) + '/activity-report?days=' + days),
+      api('/children/' + encodeURIComponent(childId) + '/activity-report?days=56'),
+    ]);
+  } catch (error) {
+    if (reportCache.key === key) reportCache = {key: '', loadedAt: 0};
+    throw error;
+  }
+  if (!csrf || sequence !== reportSequence || el('child-select').value !== childId || el('report-days').value !== days) return;
+  setReportText('report-status', result.start_date + ' → ' + result.end_date + ' · giờ Việt Nam');
+  setReportText('report-duration', 'Dùng máy: ' + formatDuration(result.total_duration_sec));
+  setReportText('report-blocked', 'Bị chặn: ' + result.blocked_count + ' lần');
+  const daily = chartReport.daily.slice(-7);
+  const weekly = rollingWeeksFromDaily(chartReport.daily);
+  setReportText('report-daily-total', formatChartDuration(daily.reduce((total, day) => total + day.duration_sec, 0)));
+  setReportText('report-weekly-total', formatChartDuration(weekly.reduce((total, week) => total + week.duration_sec, 0)));
+  renderReportColumns('report-daily', childId, 'daily', daily);
+  renderReportColumns('report-weekly', childId, 'weekly', weekly);
+  await refreshAppChart();
+  renderReportList('report-domains', result.top_domains.map(item => item.subject + ': ' + item.queries + ' lượt truy vấn'), 'Chưa có truy vấn tên miền.');
+  const statuses = {pending:'Đang chờ', approved:'Được đồng ý', rejected:'Chưa được đồng ý'};
+  renderReportList('report-requests', result.requests.map(item => new Date(item.created_at * 1000).toLocaleString('vi-VN', {timeZone:'Asia/Ho_Chi_Minh'}) + ': xin ' + item.minutes + ' phút · ' + (statuses[item.status] || item.status)), 'Chưa có yêu cầu trong khoảng này.');
+}
+el('report-days').addEventListener('change', () => refreshReport().catch(error => { el('report-status').textContent = error.message; }));
+el('report-app-period').addEventListener('change', () => refreshAppChart().catch(error => { el('report-status').textContent = error.message; }));
+el('export-week').addEventListener('click', async () => {
+  const childId = el('child-select').value;
+  if (!childId) { tell('Hãy chọn hồ sơ của con.'); return; }
+  const button = el('export-week'); button.disabled = true;
+  try {
+    const response = await fetch('/api/children/' + encodeURIComponent(childId) + '/activity-report.csv', {credentials:'same-origin'});
+    if (!response.ok) { if (response.status === 401) showLogin(); throw new Error('Chưa thể xuất báo cáo. Hãy thử lại.'); }
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a'); link.href = url; link.download = 'bao-cao-tuan.csv'; document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    tell('Đã tải báo cáo tuần. Tệp tải về nằm ngoài phạm vi tự xóa 90 ngày của hệ thống.');
+  } catch (error) { tell(error.message); } finally { button.disabled = false; }
+});

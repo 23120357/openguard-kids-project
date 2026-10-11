@@ -15,6 +15,7 @@ from argon2.exceptions import VerificationError, VerifyMismatchError
 
 from agent.ipc_protocol import ProtocolError, error_response, parse_request, success_response
 from agent.time_control import F1Controller
+from common.activity_reports import SESSION_SUBJECT, report_bounds
 
 
 class AgentCore:
@@ -77,11 +78,118 @@ class AgentCore:
         self._filtering_policies = {}
         self._tray_process_id = None
         self._filtering_error = None
+        self._activity_sample = None
+        self._activity_fraction = 0.0
+        self._activity_epoch = 0
+        self._remote_activity_report = None
+        self._app_period_cache = None
 
     def configure_events(self, queue, device_id):
         with self._lock:
             self.event_queue = queue
             self.event_device_id = device_id
+            for child_id, controller in self._controllers.items():
+                self._bind_time_events(child_id, controller)
+
+    def _bind_time_events(self, child_id, controller):
+        controller.event_sink = lambda event: self._record_time_event(child_id, event)
+
+    def _record_time_event(self, child_id, event):
+        kinds = {
+            "quota_warning": "quota_warning",
+            "locked": "locked",
+            "remote_time_added": "override_granted",
+        }
+        kind = kinds.get(event["type"])
+        if kind and self.event_queue and self.event_device_id:
+            self.event_queue.append(
+                device_id=self.event_device_id,
+                child_id=child_id,
+                type=kind,
+                subject=SESSION_SUBJECT,
+                policy_id=f"time:{child_id}:{event['details'].get('policy_version', 0)}",
+                reason=event["message"],
+                event_id=event["id"],
+                timestamp=event["ts"],
+            )
+
+    def clear_activity(self, child_ids):
+        for child_id in child_ids:
+            controller = self._controllers.get(child_id)
+            if controller and hasattr(controller.store, "erase_events"):
+                controller.store.erase_events()
+            self._time_requests = [
+                item for item in self._time_requests if item["child_id"] != child_id
+            ]
+            self._request_history = [
+                item for item in self._request_history if item["child_id"] != child_id
+            ]
+        if self._active_child_id in child_ids:
+            self._activity_sample = None
+            self._activity_fraction = 0.0
+            self._activity_epoch += 1
+            self._remote_activity_report = None
+            self._app_period_cache = None
+
+    def set_activity_report(self, snapshot):
+        with self._lock:
+            report = snapshot["report"]
+            report["request_count"] = len(report.get("requests", []))
+            report["requests"] = report.get("requests", [])[:20]
+            self._remote_activity_report = (self._clock(), snapshot)
+
+    def expire_activity(self):
+        with self._lock:
+            cutoff = self._wall_clock() - 90 * 86400
+            self._request_history = [
+                item for item in self._request_history if item["created_at"] >= cutoff
+            ]
+            self._time_requests = [
+                item for item in self._time_requests if item["created_at"] >= cutoff
+            ]
+            for controller in self._controllers.values():
+                controller.store.expire_events(self._wall_clock())
+
+    def activity_report(self):
+        if not self.event_queue or not self._active_child_id:
+            return None
+        local = self.event_queue.report(self._active_child_id)
+        cache = self._app_period_cache
+        cache_key = (self._active_child_id, local["end_date"])
+        if not cache or cache[0] != cache_key or self._clock() - cache[1] >= 60:
+            periods = {
+                "7": self.event_queue.report(self._active_child_id, days=7)["top_apps"],
+                "90": self.event_queue.report(self._active_child_id, days=90)["top_apps"],
+            }
+            self._app_period_cache = (cache_key, self._clock(), periods)
+        else:
+            periods = cache[2]
+        remote = self._remote_activity_report
+        if (
+            remote
+            and self._clock() - remote[0] <= 15
+            and remote[1]["child_id"] == self._active_child_id
+            and remote[1]["report"]["end_date"] == local["end_date"]
+        ):
+            synced_periods = remote[1]["report"].get("app_periods", {})
+            return {
+                **remote[1]["report"],
+                "source": "synced",
+                "local_duration_sec": local["total_duration_sec"],
+                "app_periods": {"1": remote[1]["report"]["top_apps"], **periods, **synced_periods},
+            }
+        _, _, lower, upper = report_bounds(days=1, now=self.event_queue.clock())
+        return {
+            **local,
+            "source": "local",
+            "local_duration_sec": local["total_duration_sec"],
+            "app_periods": {"1": local["top_apps"], **periods},
+            "requests": [
+                item
+                for item in self._request_history
+                if item["child_id"] == self._active_child_id and lower <= item["created_at"] < upper
+            ],
+        }
 
     def configure_filtering(self, policies):
         with self._lock:
@@ -91,30 +199,33 @@ class AgentCore:
                     raise ValueError("Filtering policy version rollback")
             self._filtering_policies = {item["child_id"]: item for item in policies}
 
-    def filter_context(self):
+    def activity_context(self):
         with self._lock:
             present = (
                 self._last_ui_heartbeat is not None
                 and self._clock() - self._last_ui_heartbeat <= self.UI_PRESENCE_TIMEOUT_SECONDS
             )
-            rules = self._filtering_policies.get(self._active_child_id)
+            rules = self._filtering_policies.get(
+                self._active_child_id, {"enabled": False, "version": 0}
+            )
             if not (
-                present
-                and self._active_child_id
-                and self._tray_process_id
-                and self.event_queue
-                and rules
-                and rules.get("enabled")
+                present and self._active_child_id and self._tray_process_id and self.event_queue
             ):
                 return None
-            return self._active_child_id, dict(rules), self._tray_process_id
+            rules = dict(rules)
+            rules["_activity_epoch"] = self._activity_epoch
+            return self._active_child_id, rules, self._tray_process_id
+
+    def filter_context(self):
+        context = self.activity_context()
+        return context if context and context[1].get("enabled") else None
 
     def record_activity(self, child_id, event_type, subject, reason, rules, duration_sec=0):
         with self._lock:
             # A profile switch cannot attribute an old callback to the new child.
             if child_id != self._active_child_id or self.event_queue is None:
                 return None
-            return self.event_queue.append(
+            event = self.event_queue.append(
                 device_id=self.event_device_id,
                 child_id=child_id,
                 type=event_type,
@@ -124,6 +235,9 @@ class AgentCore:
                 policy_id=f"filter:{child_id}:{rules['version']}",
                 duration_sec=duration_sec,
             )
+            if event_type == "app_stop":
+                self._app_period_cache = None
+            return event
 
     def _activity_snapshot(self):
         if not self.event_queue or not self._active_child_id:
@@ -204,6 +318,7 @@ class AgentCore:
                     "pin_hash": profile["pin_hash"],
                 }
                 next_controllers[child_id] = controller
+                self._bind_time_events(child_id, controller)
             self._profiles = next_profiles
             self._controllers = next_controllers
             self._remote_profiles_enabled = True
@@ -263,6 +378,8 @@ class AgentCore:
             self._pin_failures = 0
             self._pin_locked_until = 0.0
             self._active_child_id = child_id
+            self._activity_sample = None
+            self._activity_fraction = 0.0
             self._active_user = profile["display_name"]
             self._active_since = self._wall_clock()
             self._time_controller = self._controllers.get(child_id)
@@ -475,6 +592,7 @@ class AgentCore:
                 "enrollment": {"required": self._pairing_required, "enrolled": self._enrolled},
                 "child_audit": list(self._child_audit),
                 "activity_events": activity_history,
+                "activity_report": self.activity_report(),
                 "blocking_notifications": blocking_notifications,
                 "filtering": {
                     "enabled": bool(self.filter_context()),
@@ -509,7 +627,7 @@ class AgentCore:
                     "demo_time_reduction": self._time_controller is not None,
                     "remote_parent_requests": bool(self._profiles),
                     "child_profile_login": self._remote_profiles_enabled,
-                    "activity_monitoring": False,
+                    "activity_monitoring": bool(self.activity_context()),
                     "dns_filtering": False,
                 },
             }
@@ -610,6 +728,7 @@ class AgentCore:
                         session_locked=session_locked,
                         ui_present=visible and self._active_user is not None,
                     )
+                self._record_usage_sample(visible, idle_seconds, session_locked)
             return success_response(request.request_id, self.status())
         if request.message_type == "start_session":
             pin = request.payload.get("pin")
@@ -686,6 +805,15 @@ class AgentCore:
                     self._command_acks.append(
                         {"command_id": command_id, "result": "workstation_lock_requested"}
                     )
+                    if self.event_queue and self._active_child_id:
+                        self.event_queue.append(
+                            device_id=self.event_device_id,
+                            child_id=self._active_child_id,
+                            type="locked",
+                            subject=SESSION_SUBJECT,
+                            policy_id="command:" + command_id,
+                            reason="Phụ huynh yêu cầu khóa máy từ xa.",
+                        )
             elif self._time_controller is not None:
                 self._time_controller.acknowledge_lock(reason)
             return success_response(request.request_id, {"acknowledged": True, "reason": reason})
@@ -746,6 +874,15 @@ class AgentCore:
                 self._time_requests.append(time_request)
                 self._request_history.append(dict(time_request))
                 self._request_history = self._request_history[-20:]
+                if self.event_queue:
+                    self.event_queue.append(
+                        device_id=self.event_device_id,
+                        child_id=self._active_child_id,
+                        type="unlock_request",
+                        subject=SESSION_SUBJECT,
+                        policy_id=f"time:{self._active_child_id}:{self._time_controller.policy.version if self._time_controller else 0}",
+                        reason=f"Em xin thêm {minutes} phút.",
+                    )
                 request_callback = self._time_request_queued
             if request_callback is not None:
                 request_callback()
@@ -765,3 +902,31 @@ class AgentCore:
             "unsupported_operation",
             f"Unsupported operation: {request.message_type}",
         )
+
+    def _record_usage_sample(self, visible, idle_seconds, session_locked):
+        now = self._clock()
+        threshold = (
+            self._time_controller.policy.idle_threshold_seconds if self._time_controller else 300
+        )
+        active = bool(
+            visible and self._active_child_id and not session_locked and idle_seconds < threshold
+        )
+        previous = self._activity_sample
+        self._activity_sample = (now, self._active_child_id, active)
+        if not self.event_queue or not active or not previous:
+            return
+        elapsed = now - previous[0]
+        if not previous[2] or previous[1] != self._active_child_id or not 0 < elapsed <= 5:
+            return
+        self._activity_fraction += elapsed
+        seconds = int(self._activity_fraction)
+        if seconds:
+            self._activity_fraction -= seconds
+            self.event_queue.append(
+                device_id=self.event_device_id,
+                child_id=self._active_child_id,
+                type="app_stop",
+                subject=SESSION_SUBJECT,
+                duration_sec=seconds,
+                policy_id=f"time:{self._active_child_id}:{self._time_controller.policy.version if self._time_controller else 0}",
+            )

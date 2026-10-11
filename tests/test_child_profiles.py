@@ -170,7 +170,8 @@ def test_agent_switches_child_without_sharing_daily_usage():
     assert core.status()["active_child_id"] == "child-a"
 
     clock.value += 5
-    assert core.handle(new_request("start_session", {"child_id": "child-b", "pin": "654321"}))["ok"]
+    assert core.handle(new_request("start_session", {"username": "CHILD-B", "pin": "654321"}))["ok"]
+    assert core.status()["active_child_id"] == "child-b"
     heartbeat()
     for _ in range(2):
         clock.value += 5

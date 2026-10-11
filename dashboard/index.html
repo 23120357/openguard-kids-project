@@ -26,10 +26,28 @@
     <div class="workspace-context"><label>Hồ sơ đang quản lý<select id="child-select"></select></label></div>
     <nav class="workspace-tabs" role="tablist" aria-label="Bảng điều khiển phụ huynh">
       <button type="button" id="overview-tab" role="tab" aria-selected="true" aria-controls="overview-panel" tabindex="0">Dashboard</button>
+      <button type="button" id="report-tab" role="tab" aria-selected="false" aria-controls="report-panel" tabindex="-1">Báo cáo</button>
       <button type="button" id="time-policy-tab" role="tab" aria-selected="false" aria-controls="time-policy-panel" tabindex="-1">Chính sách thời gian</button>
       <button type="button" id="filtering-tab" role="tab" aria-selected="false" aria-controls="filtering-panel" tabindex="-1">Quản lí web &amp; ứng dụng</button>
       <button type="button" id="activity-tab" role="tab" aria-selected="false" aria-controls="activity-panel" tabindex="-1">Sự kiện</button>
     </nav>
+    <div id="report-panel" role="tabpanel" aria-labelledby="report-tab" hidden>
+    <section class="card" aria-labelledby="report-title">
+      <h2 id="report-title">Hoạt động của con</h2>
+      <div class="report-controls"><label>Khoảng báo cáo<select id="report-days"><option value="7">7 ngày</option><option value="28" selected>28 ngày</option><option value="90">90 ngày</option></select></label><button id="export-week" type="button" class="secondary">Xuất báo cáo tuần (CSV)</button></div>
+      <p id="report-status" role="status" aria-live="polite"></p>
+      <p class="hint">Giờ Việt Nam (UTC+7). Hai biểu đồ luôn hiển thị 7 ngày và 8 tuần; “Khoảng báo cáo” áp dụng cho tổng quan, tên miền và yêu cầu bên dưới. Thời gian dùng máy bỏ qua lúc khóa máy, nghỉ quá 5 phút hoặc Tray vắng mặt. Các ứng dụng có thể chạy cùng lúc; lượt DNS không đồng nghĩa với lượt mở trang.</p>
+      <div class="report-totals"><p id="report-duration"></p><p id="report-blocked"></p></div>
+      <div class="grid report-grid">
+        <section><h3>Thời lượng theo ngày</h3><p class="report-chart-summary"><strong id="report-daily-total">—</strong><span>Tổng thời gian đã sử dụng trong 7 ngày qua</span></p><div id="report-daily" class="report-chart"></div><div class="report-axis"><span>7 ngày trước</span><span>Ngay bây giờ</span></div></section>
+        <section><h3>Thời lượng theo tuần</h3><p class="report-chart-summary"><strong id="report-weekly-total">—</strong><span>Tổng thời gian đã sử dụng trong 8 tuần qua</span></p><div id="report-weekly" class="report-chart"></div><div class="report-axis"><span>8 tuần trước</span><span>Ngay bây giờ</span></div></section>
+        <section><h3>Top 10 ứng dụng</h3><label>Khoảng thời gian<select id="report-app-period"><option value="1">1 ngày</option><option value="7" selected>1 tuần</option><option value="90">Toàn thời gian (90 ngày lưu trữ)</option></select></label><p class="hint">Thời gian chạy, có thể gồm ứng dụng chạy nền.</p><div id="report-apps" class="report-chart"></div></section>
+        <section><h3>Top 10 tên miền</h3><ol id="report-domains"></ol></section>
+      </div>
+      <h3>Yêu cầu của con trong khoảng báo cáo</h3><ul id="report-requests"></ul>
+      <p class="hint">Sự kiện đã đồng bộ từ các máy của con. Máy ngoại tuyến sẽ bổ sung dữ liệu khi kết nối lại. Báo cáo tuần CSV dùng tuần hiện tại từ thứ Hai đến Chủ nhật.</p>
+    </section>
+    </div>
     <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab">
     <div class="grid">
       <section class="card">

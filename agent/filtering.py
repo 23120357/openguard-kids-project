@@ -52,6 +52,7 @@ class AppController:
         self.thread = None
         self.hashes = {}
         self.seen = {}
+        self.context_key = None
 
     def start(self):
         self.thread = threading.Thread(target=self.run, name="ogk-app-control", daemon=True)
@@ -80,11 +81,15 @@ class AppController:
         import win32process
         from win32ts import ProcessIdToSessionId
 
-        context = self.core.filter_context()
+        context = self.core.activity_context()
         if not context:
             self.seen.clear()
             return
         child_id, rules, tray_pid = context
+        context_key = (child_id, tray_pid, rules.get("_activity_epoch", 0))
+        if context_key != self.context_key:
+            self.seen.clear()
+            self.context_key = context_key
         session_id = ProcessIdToSessionId(tray_pid)
         if session_id == 0:
             return
@@ -120,7 +125,7 @@ class AppController:
                     continue
                 filename = process.exe()
                 identity = (child_id, pid, process.create_time())
-                sha256 = self.file_hash(filename)
+                sha256 = self.file_hash(filename) if rules.get("enabled") else ""
                 reason = app_decision(name, sha256, rules)
                 if reason:
                     # Re-read identity/executable before killing to avoid a PID reuse race.
@@ -131,7 +136,21 @@ class AppController:
                 else:
                     live[identity] = (name, time.monotonic(), rules)
                     if identity in self.seen:
-                        live[identity] = self.seen[identity]
+                        old_name, started, old_rules = self.seen[identity]
+                        elapsed = max(0, int(time.monotonic() - started))
+                        if elapsed:
+                            if elapsed <= 5:
+                                self.core.record_activity(
+                                    child_id,
+                                    "app_stop",
+                                    old_name,
+                                    "",
+                                    old_rules,
+                                    duration_sec=elapsed,
+                                )
+                            live[identity] = (name, started + elapsed, rules)
+                        else:
+                            live[identity] = self.seen[identity]
                     else:
                         self.core.record_activity(child_id, "app_start", name, "", rules)
             except (psutil.Error, OSError, ValueError):
@@ -144,7 +163,7 @@ class AppController:
                     name,
                     "",
                     old_rules,
-                    duration_sec=max(0, int(time.monotonic() - started)),
+                    duration_sec=min(5, max(0, int(time.monotonic() - started))),
                 )
         self.seen = live
 
@@ -170,23 +189,34 @@ class DNSProxy:
         self.upstream, self.upstream_port = upstream, upstream_port
         self.servers = []
         self.recent_blocks = {}
+        self.recent_queries = {}
         self.lock = threading.Lock()
 
     def resolve(self, request, handler):
         from dnslib import RCODE, DNSRecord
 
-        context = self.core.filter_context()
+        context = self.core.activity_context()
         try:
             host = domain_name(str(request.q.qname))
         except ValueError:
             host = None
         if context and host:
             child_id, rules, _ = context
+            with self.lock:
+                now = time.monotonic()
+                query_key = (child_id, event_domain(host), rules.get("_activity_epoch", 0))
+                if now - self.recent_queries.get(query_key, -10) >= 5:
+                    self.core.record_activity(child_id, "domain_query", query_key[1], "", rules)
+                    self.recent_queries[query_key] = now
+                if len(self.recent_queries) > 1000:
+                    self.recent_queries = {
+                        key: ts for key, ts in self.recent_queries.items() if now - ts < 5
+                    }
             reason = domain_decision(host, rules)
             if reason:
-                # Browsers issue A/AAAA/retry queries together; show one popup
-                # per registrable domain/reason per 5-second window.
-                key = (child_id, event_domain(host), reason)
+                # Browsers issue A/AAAA/retry queries together. Coalesce nearby
+                # blocked events; the Tray separately limits popups per session.
+                key = (child_id, event_domain(host), reason, rules.get("_activity_epoch", 0))
                 with self.lock:
                     now = time.monotonic()
                     if now - self.recent_blocks.get(key, -10) >= 5:

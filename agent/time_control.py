@@ -221,6 +221,12 @@ class MemoryTimeStore:
     def save_state(self, state: F1State) -> None:
         self.state = F1State.from_dict(asdict(state))
 
+    def erase_events(self):
+        self.events.clear()
+
+    def expire_events(self, now):
+        self.events = [item for item in self.events if item["ts"] >= now - EVENT_RETENTION_SECONDS]
+
     def add_event(
         self, event_type: str, ts: float, message: str, details: dict[str, Any]
     ) -> dict[str, Any]:
@@ -279,7 +285,16 @@ class SQLiteTimeStore:
     def _connect(self):
         db = sqlite3.connect(self.path, timeout=5)
         db.execute("PRAGMA journal_mode=WAL")
+        db.execute("PRAGMA secure_delete=ON")
         return db
+
+    def erase_events(self):
+        with self._lock, self._connect() as db:
+            db.execute("DELETE FROM f1_events")
+
+    def expire_events(self, now):
+        with self._lock, self._connect() as db:
+            db.execute("DELETE FROM f1_events WHERE ts < ?", (now - EVENT_RETENTION_SECONDS,))
 
     def load_state(self) -> F1State:
         with self._lock, self._connect() as db:
@@ -379,6 +394,7 @@ class F1Controller:
         self._wall_clock = wall_clock
         self._to_local_datetime = to_local_datetime
         self._last_monotonic = monotonic_clock()
+        self.event_sink = None
         self._state = store.load_state()
         self._policy_error = policy_error
         self._reset_on_policy_version_change = reset_on_policy_version_change
@@ -398,6 +414,12 @@ class F1Controller:
     @property
     def enabled(self) -> bool:
         return self.policy.enabled
+
+    def _emit_event(self, event_type, ts, message, details=None):
+        event = self.store.add_event(event_type, ts, message, details)
+        if self.event_sink is not None:
+            self.event_sink(event)
+        return event
 
     def reset_tick_baseline(self) -> None:
         """Do not charge the elapsed time while another profile was active."""
@@ -507,7 +529,7 @@ class F1Controller:
             self._state.grace_deadline_wall = None
             self._forget_completed_lock("quota_exhausted")
             self._forget_completed_lock("outside_schedule")
-            self.store.add_event(
+            self._emit_event(
                 "remote_time_added",
                 logical_wall,
                 f"Phụ huynh đã cộng {minutes} phút từ xa.",
@@ -542,7 +564,7 @@ class F1Controller:
             self._state.extra_seconds = max(0.0, extra_before - (consumed - from_quota))
             self._state.total_used_seconds = float(self._state.total_used_seconds or 0) + consumed
             if consumed:
-                self.store.add_event(
+                self._emit_event(
                     "demo_time_reduced",
                     logical_wall,
                     f"Chế độ demo đã giảm {int(consumed)} giây còn lại.",
@@ -627,7 +649,7 @@ class F1Controller:
                 and lock_reason is not None
             )
             if lock_required and self._state.last_mode != mode:
-                self.store.add_event(
+                self._emit_event(
                     "locked",
                     logical_wall,
                     "OpenGuard Kids yêu cầu khóa máy theo chính sách thời gian.",
@@ -673,7 +695,7 @@ class F1Controller:
             logical = expected if rollback else max(previous, wall_now)
 
         if rollback and not self._state.clock_tamper_active:
-            self.store.add_event(
+            self._emit_event(
                 "clock_tamper",
                 logical,
                 "Đồng hồ hệ thống đã bị lùi; thời gian sử dụng không được cộng thêm.",
@@ -733,7 +755,7 @@ class F1Controller:
                     crossed.append(minutes)
         if crossed:
             minutes = min(crossed)
-            self.store.add_event(
+            self._emit_event(
                 "quota_warning",
                 ts,
                 f"Em còn {minutes} phút sử dụng máy hôm nay.",

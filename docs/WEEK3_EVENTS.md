@@ -19,9 +19,9 @@
   cầu cả server/agent, có trạng thái xác nhận của từng thiết bị và chống gửi lại
   dữ liệu cũ. Nút xóa không xóa tài khoản, PIN, luật kiểm soát hoặc token ghép đôi.
 
-Đây chưa phải toàn bộ F2/F3 của đề: SafeSearch, phân loại 200 mục, chống DoH,
-biểu đồ/top 10, báo cáo PDF/CSV và báo cáo toàn bộ hoạt động cho trẻ chưa nằm
-trong đợt triển khai này. Chính sách DNS hệ điều hành được bật thủ công trên máy
+F3 đã bổ sung báo cáo ngày/tuần, top 10, CSV và màn hình hoạt động cho trẻ;
+xem [F3_REPORTS.md](F3_REPORTS.md). F2 vẫn còn SafeSearch, phân loại 200 mục, chống DoH.
+Chính sách DNS hệ điều hành được bật thủ công trên máy
 lab; không tự đổi DNS của máy đang phát triển khi chạy kiểm thử.
 
 ## Thiết kế sự kiện
@@ -53,8 +53,8 @@ dùng hai nhãn cuối. URL, query string, tiêu đề cửa sổ, đường d�
 PID và hash thực thi không xuất hiện trong sự kiện gửi về server. Hash chỉ được
 dùng để đối chiếu chính sách; đường dẫn/PID chỉ dùng trong bộ nhớ agent.
 
-Các sự kiện được tạo hiện tại: `app_start`, `app_stop`, `blocked_app`,
-`blocked_domain`. API chấp nhận đủ chín type theo F3 để tích hợp module tiếp theo.
+Agent tạo đủ chín type F3: `app_start`, `app_stop`, `domain_query`, `blocked_app`,
+`blocked_domain`, `quota_warning`, `locked`, `unlock_request`, `override_granted`.
 Truy vấn A/AAAA/retry bị chặn được gộp thành một sự kiện cho cùng trẻ, tên miền
 và lý do trong cửa sổ 5 giây, tránh popup lặp do một lần mở trang.
 
@@ -130,7 +130,8 @@ python -m agent.filtering C:\Lab\sample.exe
 Luật nhận diện dùng SHA-256 làm căn cứ khi tên bị đổi. Tên trong rule giúp phụ
 huynh nhận biết ứng dụng; cùng tên nhưng hash khác không được mạo danh ứng dụng
 được phép. Blocklist ưu tiên allowlist; safety domain ưu tiên tất cả luật chặn.
-Không thu thập/thực thi F2 khi Tray vắng mặt hoặc chưa có hồ sơ đăng nhập; DNS
+Không thu thập khi Tray vắng mặt hoặc chưa có hồ sơ đăng nhập. F3 ghi hoạt động
+khi đã đăng nhập cả lúc luật chặn tắt; F2 chỉ thực thi khi luật bật. DNS
 proxy khi đó chỉ chuyển tiếp. DNS qua DoH/DoT, VPN, cache hoặc IP trực tiếp có
 thể vượt bộ lọc này; các hạng mục chống bypass được xử lý ở giai đoạn tiếp theo.
 

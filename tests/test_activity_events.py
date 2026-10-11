@@ -247,7 +247,7 @@ def test_app_hash_recognizes_rename_and_rejects_impersonation():
 
 def test_dns_block_records_one_popup_for_a_aaaa_queries():
     core = Mock()
-    core.filter_context.return_value = (
+    core.activity_context.return_value = (
         "child",
         {
             "enabled": True,
@@ -264,13 +264,16 @@ def test_dns_block_records_one_popup_for_a_aaaa_queries():
             DNSRecord.question("www.example.org", qtype), SimpleNamespace(protocol="udp")
         )
         assert reply.header.rcode == RCODE.NXDOMAIN
-    assert core.record_activity.call_count == 1
+    assert [call.args[1] for call in core.record_activity.call_args_list] == [
+        "domain_query",
+        "blocked_domain",
+    ]
     assert core.record_activity.call_args.args[2] == "example.org"
 
 
 def test_dns_proxy_udp_and_tcp_real_requests_without_upstream():
     core = Mock()
-    core.filter_context.return_value = (
+    core.activity_context.return_value = (
         "child",
         {
             "enabled": True,
@@ -477,11 +480,33 @@ def test_popup_shows_reason_once_and_acknowledges_on_dismiss(monkeypatch):
     assert tray_ui.tk.Toplevel.call_count == 1
     assert "Trang web không nằm trong danh sách cho phép." in text.insert.call_args.args[1]
     assert ui._send_async.call_count == 0
+    repeated_while_open = {**item, "id": "event-2"}
+    ui._update_activity_events({
+        "activity_events": [item, repeated_while_open],
+        "blocking_notifications": [item, repeated_while_open],
+    })
+    assert tray_ui.tk.Toplevel.call_count == 1
+    ui._send_async.assert_called_once_with(
+        "ack_blocking", "ack_blocking_events", {"event_ids": ["event-2"]}
+    )
+    ui._send_async.reset_mock()
     button.call_args.kwargs["command"]()
     ui._send_async.assert_called_once_with(
         "ack_blocking", "ack_blocking_events", {"event_ids": ["event-1"]}
     )
     assert ui.block_popup is None
+    repeated = {**item, "id": "event-3"}
+    ui._update_activity_events({"activity_events": [repeated], "blocking_notifications": [repeated]})
+    assert tray_ui.tk.Toplevel.call_count == 1
+    ui._send_async.assert_called_with(
+        "ack_blocking", "ack_blocking_events", {"event_ids": ["event-3"]}
+    )
+    different = {
+        **item, "id": "event-4",
+        "event": {**item["event"], "subject": "other.test"},
+    }
+    ui._update_activity_events({"activity_events": [different], "blocking_notifications": [different]})
+    assert tray_ui.tk.Toplevel.call_count == 2
 
 
 def test_popup_closes_after_profile_switch_or_erasure(monkeypatch):
@@ -516,7 +541,7 @@ def test_app_controller_never_kills_other_windows_sessions(tmp_path, monkeypatch
         "app_mode": "blocklist",
         "app_block": [{"name": "game.exe", "sha256": sha}],
     }
-    core.filter_context.return_value = ("c", rules, 10)
+    core.activity_context.return_value = ("c", rules, 10)
     monkeypatch.setattr(win32process, "EnumProcesses", lambda: [20, 30])
     monkeypatch.setattr(win32ts, "ProcessIdToSessionId", lambda pid: 1 if pid in [10, 20] else 2)
     processes = {pid: Mock() for pid in [20, 30]}

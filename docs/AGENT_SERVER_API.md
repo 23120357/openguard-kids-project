@@ -526,3 +526,9 @@ trong hợp đồng đích cũ cho đợt này. Snapshot schema thực tế: `op
 Payload F3 bảy trường nằm trong envelope UUID/generation/explanation. Xác nhận
 xóa cục bộ xảy ra trước upload; server có unique key và transaction chống race
 với xóa. Chi tiết retry, retention và nghiệm thu nằm trong tài liệu Tuần 3.
+
+F3 bổ sung `GET /api/children/{child_id}/activity-report`,
+`GET /api/children/{child_id}/activity-report.csv` và
+`GET /api/device/activity-report?child_id=...`. Chi tiết tham số, cách tính và
+quyền truy cập tại [F3_REPORTS.md](F3_REPORTS.md); OpenAPI của server là hợp đồng
+chạy thực tế. Báo cáo không thêm trường vào payload sự kiện F3.

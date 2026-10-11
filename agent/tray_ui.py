@@ -65,6 +65,35 @@ def has_remaining_time(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
 
 
+def session_error_message(result: dict[str, Any] | Exception) -> str:
+    """Explain a failed profile switch without hiding a stale profile or broken pipe."""
+    if isinstance(result, PipeUnavailableError):
+        return "Không kết nối được với agent service. Hãy kiểm tra hoặc khởi động lại service."
+    if isinstance(result, Exception):
+        return "Không thể liên lạc với agent service. Hãy thử lại sau."
+    error = result.get("error", {})
+    message = error.get("message")
+    known = {
+        "Incorrect child PIN": "PIN không đúng.",
+        "Too many incorrect PIN attempts; try again in 15 minutes": (
+            "Đã nhập sai PIN quá nhiều lần. Thử lại sau 15 phút."
+        ),
+        "Unknown child username": (
+            "Không tìm thấy tên hồ sơ trên agent. Kiểm tra cách viết hoặc đợi đồng bộ từ server."
+        ),
+        "Choose an available child profile": "Hồ sơ chưa được đồng bộ tới agent.",
+        "Pair this device before signing in": "Thiết bị chưa được ghép với tài khoản phụ huynh.",
+    }
+    if message in known:
+        return known[message]
+    if error.get("code") == "invalid_pin":
+        return "PIN phải gồm đúng 6 chữ số."
+    if error.get("code") == "internal_error":
+        return "Agent service gặp lỗi khi xác thực hồ sơ. Hãy kiểm tra nhật ký service."
+    code = error.get("code")
+    return f"Không thể xác thực hồ sơ (mã lỗi: {code})." if code else "Không thể xác thực hồ sơ."
+
+
 def configure_tray_logging() -> None:
     app_data = os.environ.get("LOCALAPPDATA")
     if not app_data:
@@ -245,6 +274,7 @@ def create_icon_image(size: int = 128) -> Image.Image:
 
 class TrayApplication:
     REFRESH_MS = 1000
+    VISUAL_REPORT_REFRESH_SECONDS = 60
 
     def __init__(self, *, instance_guard: TrayInstanceGuard, start_open: bool = False):
         self.instance_guard = instance_guard
@@ -263,6 +293,7 @@ class TrayApplication:
         self.status_requested_at = 0.0
         self.request_in_flight = False
         self.session_in_flight = False
+        self.switching_profile = False
         self.current_user: str | None = None
         self.active_child_id: str | None = None
         self.profile_options: dict[str, str] = {}
@@ -272,6 +303,9 @@ class TrayApplication:
         self.remote_requests_available = False
         self.demo_in_flight = False
         self.notified_event_ids: set[str] = set()
+        self.block_notice_keys: set[tuple[str | None, str, str, str]] = set()
+        self.block_notice_scope = None
+        self.block_ack_attempts: dict[str, float] = {}
         self.completed_lock_attempts: set[str] = set()
         self._configure_styles()
         self._build_window()
@@ -471,6 +505,41 @@ class TrayApplication:
         self.today_datetime_label = ttk.Label(today_content, text="", style="TodayDate.TLabel")
         self.today_datetime_label.pack(anchor="w", pady=(0, 12))
 
+        activity_card = ttk.Frame(today_content, style="Card.TFrame", padding=20)
+        activity_card.pack(fill="x", pady=(0, 12))
+        ttk.Label(activity_card, text="Hôm nay em đã dùng gì?", style="CardTitle.TLabel").pack(
+            anchor="w"
+        )
+        illustration = tk.Canvas(
+            activity_card, height=48, width=180, background="white", highlightthickness=0
+        )
+        illustration.pack(anchor="w", pady=8)
+        illustration.create_rectangle(8, 4, 64, 35, outline="#226B54", width=3)
+        illustration.create_line(0, 42, 72, 42, fill="#226B54", width=4)
+        illustration.create_oval(96, 3, 138, 45, outline="#327E68", width=2)
+        illustration.create_oval(108, 3, 126, 45, outline="#327E68")
+        illustration.create_line(96, 24, 138, 24, fill="#327E68")
+        self.activity_summary = ttk.Label(
+            activity_card,
+            text="Đăng nhập để xem hoạt động của em.",
+            wraplength=500,
+            style="Body.TLabel",
+        )
+        self.activity_summary.pack(fill="x", pady=6)
+        self.activity_chart = tk.Canvas(
+            activity_card, height=50, background="white", highlightthickness=0
+        )
+        self.activity_chart.pack(fill="x", pady=8)
+        self._today_activity_report = None
+        self.activity_chart.bind("<Configure>", lambda _event: self._draw_activity_report())
+        self.eye_hint = ttk.Label(
+            activity_card,
+            text="Nhớ nghỉ mắt: cứ 20 phút, nhìn xa khoảng 6 mét trong 20 giây.",
+            wraplength=500,
+            style="Body.TLabel",
+        )
+        self.eye_hint.pack(fill="x", pady=6)
+
         time_card = ttk.Frame(today_content, style="Card.TFrame", padding=20)
         time_card.pack(fill="x", pady=(0, 12))
         ttk.Label(time_card, text="Thời gian còn lại", style="CardTitle.TLabel").pack(anchor="w")
@@ -572,19 +641,36 @@ class TrayApplication:
         self.request_minutes.pack(side="left")
         self.request_result = ttk.Label(request_card, text="", style="Muted.TLabel", wraplength=570)
         self.request_result.pack(anchor="w", pady=(10, 0))
+        time_card.pack_forget()
+        time_card.pack(before=activity_card, fill="x", pady=(0, 12))
+        request_card.pack_forget()
+        request_card.pack(after=time_card, fill="x", pady=(0, 12))
 
-        activity_card = ttk.Frame(today_content, style="Card.TFrame", padding=20)
-        activity_card.pack(fill="x")
-        ttk.Label(activity_card, text="Hôm nay em đã dùng gì", style="CardTitle.TLabel").pack(
-            anchor="w"
+        apps_card = ttk.Frame(today_content, style="Card.TFrame", padding=20)
+        apps_card.pack(fill="x", pady=(12, 0))
+        ttk.Label(apps_card, text="Top 10 ứng dụng", style="CardTitle.TLabel").pack(anchor="w")
+        self.top_apps_period = tk.StringVar(value="1 ngày")
+        period_select = ttk.Combobox(
+            apps_card,
+            textvariable=self.top_apps_period,
+            values=("1 ngày", "1 tuần", "Toàn thời gian"),
+            state="readonly",
+            width=20,
         )
-        ttk.Label(
-            activity_card,
-            text="Chưa có dữ liệu hoạt động. OpenGuard Kids hiện không theo dõi ứng dụng hay trang web.",
+        period_select.pack(anchor="w", pady=(8, 6))
+        period_select.bind("<<ComboboxSelected>>", lambda _event: self._draw_top_apps())
+        self.top_apps_source = ttk.Label(
+            apps_card,
+            text="Ứng dụng có thể chạy nền hoặc cùng lúc.",
             style="Body.TLabel",
-            wraplength=570,
-            justify="left",
-        ).pack(anchor="w", pady=(8, 0))
+            wraplength=500,
+        )
+        self.top_apps_source.pack(anchor="w", pady=(0, 8))
+        self.top_apps_chart = tk.Canvas(
+            apps_card, background="#FFFFFF", highlightthickness=0, height=1
+        )
+        self.top_apps_chart.pack(fill="x")
+        self.top_apps_chart.bind("<Configure>", lambda _event: self._draw_top_apps())
 
         policy_canvas = tk.Canvas(policy, background="#F4F8FB", highlightthickness=0)
         policy_scrollbar = ttk.Scrollbar(policy, orient="vertical", command=policy_canvas.yview)
@@ -962,8 +1048,15 @@ class TrayApplication:
                 elif action in {"session_start", "session_end"}:
                     self.session_in_flight = False
                     if isinstance(result, Exception) or not result.get("ok"):
+                        message = session_error_message(result)
+                        error = result.get("error", {}) if isinstance(result, dict) else {}
+                        LOGGER.warning(
+                            "Profile session request failed: code=%s detail=%s exception=%s",
+                            error.get("code"), error.get("message"),
+                            type(result).__name__ if isinstance(result, Exception) else None,
+                        )
                         self.session_result.configure(
-                            text="PIN không đúng hoặc dịch vụ chưa sẵn sàng.", foreground=WARNING
+                            text=message, foreground=WARNING
                         )
                         self.login_button.state(["!disabled"])
                         self.logout_button.state(["disabled"])
@@ -1009,6 +1102,11 @@ class TrayApplication:
             data = result["data"]
             control = data.get("time_control", {})
             remote = data.get("remote", {})
+            notice_scope = (data.get("active_child_id"), data.get("current_user_since"))
+            if notice_scope != getattr(self, "block_notice_scope", None):
+                self.block_notice_keys = set()
+                self.block_ack_attempts = {}
+                self.block_notice_scope = notice_scope
             self.current_user = data.get("current_user")
             self.active_child_id = data.get("active_child_id")
             enrollment = data.get("enrollment", {})
@@ -1027,6 +1125,7 @@ class TrayApplication:
             self._update_session_ui()
             self._update_request_status(data.get("time_requests", []))
             self._update_activity_events(data)
+            self._update_activity_report(data.get("activity_report"))
             self.connected = True
             mode = control.get("mode", "disabled")
             self.status_label.configure(text=self._status_text(mode, control))
@@ -1145,11 +1244,43 @@ class TrayApplication:
             self.block_popup.destroy()
             self.block_popup = None
             self.block_popup_ids.clear()
-        if not notifications or self.block_popup is not None:
+        seen_keys = getattr(self, "block_notice_keys", set())
+        self.block_notice_keys = seen_keys
+        attempts = getattr(self, "block_ack_attempts", {})
+        self.block_ack_attempts = attempts
+        notification_ids = {item["id"] for item in notifications}
+        for event_id in list(attempts):
+            if event_id not in notification_ids:
+                del attempts[event_id]
+        now = time.monotonic()
+        fresh_items = []
+        fresh_ids = []
+        fresh_keys = set()
+        duplicate_ids = []
+        for item in notifications:
+            event = item["event"]
+            key = (
+                getattr(self, "active_child_id", None), event.get("type", ""),
+                event["subject"], item["explanation"]["reason"],
+            )
+            event_id = item["id"]
+            if key in seen_keys:
+                if event_id not in self.block_popup_ids and now - attempts.get(event_id, -10) >= 5:
+                    duplicate_ids.append(event_id)
+                    attempts[event_id] = now
+            else:
+                fresh_ids.append(event_id)
+                if key not in fresh_keys:
+                    fresh_items.append(item)
+                    fresh_keys.add(key)
+        if duplicate_ids:
+            self._send_async("ack_blocking", "ack_blocking_events", {"event_ids": duplicate_ids})
+        if not fresh_items or self.block_popup is not None:
             return
         popup = tk.Toplevel(self.root)
         self.block_popup = popup
-        ids = [item["id"] for item in notifications]
+        seen_keys.update(fresh_keys)
+        ids = fresh_ids
         self.block_popup_ids = set(ids)
         popup.title("OpenGuard Kids · Lý do chặn")
         popup.geometry("520x360")
@@ -1164,7 +1295,7 @@ class TrayApplication:
         ).pack(anchor="w")
         text = tk.Text(frame, wrap="word", height=10, borderwidth=0, font=("Segoe UI", 10))
         text.pack(fill="both", expand=True, pady=12)
-        for item in notifications:
+        for item in fresh_items:
             explanation = item["explanation"]
             text.insert(
                 "end",
@@ -1176,10 +1307,178 @@ class TrayApplication:
             self.block_popup = None
             self.block_popup_ids.clear()
             popup.destroy()
+            for event_id in ids:
+                attempts[event_id] = time.monotonic()
             self._send_async("ack_blocking", "ack_blocking_events", {"event_ids": ids})
 
         popup.protocol("WM_DELETE_WINDOW", dismiss)
         ttk.Button(frame, text="Em đã hiểu", command=dismiss).pack(anchor="e")
+
+    def _update_activity_report(self, report):
+        if not hasattr(self, "activity_summary"):
+            return
+        if report is None:
+            self.activity_summary.configure(text="Đăng nhập để xem hoạt động của em.")
+        else:
+            self.activity_summary.configure(
+                text=f"Ngày {report['end_date']} (giờ Việt Nam)\nThời gian sử dụng: {format_used_duration(report['total_duration_sec'])}. "
+                + (
+                    "Đây là dữ liệu đã đồng bộ từ các máy của em, giống báo cáo của bố mẹ."
+                    if report.get("source") == "synced"
+                    else "Đây là hoạt động lưu trên máy này; bố mẹ sẽ thấy sau khi đồng bộ."
+                )
+            )
+            self._check_eye_reminder(report)
+        scope = (getattr(self, "active_child_id", None), report.get("end_date") if report else None)
+        now = time.monotonic()
+        if (
+            scope != getattr(self, "_visual_report_scope", None)
+            or now - getattr(self, "_visual_report_checked_at", float("-inf"))
+            >= self.VISUAL_REPORT_REFRESH_SECONDS
+        ):
+            self._visual_report_scope = scope
+            self._visual_report_checked_at = now
+            signature = (
+                report.get("source"),
+                tuple((item["subject"], item["queries"]) for item in report["top_domains"]),
+                tuple(
+                    (item["subject"], item["duration_sec"])
+                    for item in report.get("top_apps", [])
+                ),
+                tuple(
+                    (period, tuple((item["subject"], item["duration_sec"]) for item in apps))
+                    for period, apps in sorted(report.get("app_periods", {}).items())
+                ),
+            ) if report else None
+            if scope != getattr(self, "_visual_report_drawn_scope", None) or signature != getattr(
+                self, "_visual_report_signature", None
+            ):
+                self._today_activity_report = report
+                self._visual_report_drawn_scope = scope
+                self._visual_report_signature = signature
+                self._draw_activity_report()
+                self._draw_top_apps()
+
+    def _draw_top_apps(self):
+        canvas = self.top_apps_chart
+        canvas.delete("all")
+        report = self._today_activity_report
+        if not report:
+            canvas.create_text(0, 8, anchor="nw", text="Đăng nhập để xem ứng dụng.", fill="#4D6864")
+            canvas.configure(height=34)
+            return
+        period = {"1 ngày": "1", "1 tuần": "7", "Toàn thời gian": "90"}[
+            self.top_apps_period.get()
+        ]
+        apps = report.get("app_periods", {}).get(period)
+        if apps is None:
+            apps = report.get("top_apps", []) if period == "1" else []
+        source = (
+            "Số liệu đã đồng bộ từ các máy của em."
+            if period == "1" and report.get("source") == "synced"
+            else "Số liệu ghi nhận trên máy này."
+        )
+        self.top_apps_source.configure(text=source + " Ứng dụng có thể chạy nền hoặc cùng lúc.")
+        width = max(250, canvas.winfo_width())
+        if not apps:
+            canvas.create_text(0, 8, anchor="nw", text="Chưa có hoạt động ứng dụng trong khoảng này.", fill="#4D6864")
+            canvas.configure(height=34)
+            return
+        maximum = max(item["duration_sec"] for item in apps) or 1
+        y = 8
+        for item in apps[:10]:
+            label = canvas.create_text(
+                0, y, anchor="nw", width=width - 8,
+                text=f"{item['subject']} · {format_used_duration(item['duration_sec'])}",
+                font=("Segoe UI", 10), fill="#173B38",
+            )
+            y = canvas.bbox(label)[3] + 5
+            canvas.create_rectangle(0, y, width - 8, y + 7, fill="#E6F0E9", outline="")
+            canvas.create_rectangle(
+                0, y, (width - 8) * item["duration_sec"] / maximum, y + 7,
+                fill="#327E68", outline="",
+            )
+            y += 20
+        canvas.configure(height=y + 8)
+
+    def _check_eye_reminder(self, report):
+        if not getattr(self, "current_user", None):
+            return
+        key = (self.active_child_id, report["end_date"])
+        period = int(report.get("local_duration_sec", 0)) // (20 * 60)
+        if getattr(self, "_eye_reminder_key", None) != key:
+            self._eye_reminder_key = key
+            self._eye_reminder_period = 0
+        if period <= self._eye_reminder_period:
+            return
+        self._eye_reminder_period = period
+        self._show_eye_reminder()
+
+    def _show_eye_reminder(self):
+        try:
+            self.icon.notify(
+                "Hãy nghỉ mắt! Nhìn ra xa khoảng 6 mét trong 20 giây.",
+                "OpenGuard Kids",
+            )
+        except Exception:
+            LOGGER.debug("Windows eye-rest notification could not be displayed", exc_info=True)
+
+    def _draw_activity_report(self):
+        canvas = self.activity_chart
+        canvas.delete("all")
+        report = self._today_activity_report
+        if not report:
+            canvas.configure(height=1)
+            return
+        width = max(250, canvas.winfo_width())
+        y = 8
+        for title, items, value_key in [
+            ("Trang web máy đã hỏi địa chỉ (số lần)", report["top_domains"], "queries"),
+        ]:
+            canvas.create_text(
+                0, y, anchor="nw", text=title, font=("Segoe UI", 10, "bold"), fill="#173B38"
+            )
+            y += 28
+            if not items:
+                canvas.create_text(
+                    0,
+                    y,
+                    anchor="nw",
+                    text="Chưa có hoạt động này hôm nay.",
+                    font=("Segoe UI", 10),
+                    fill="#4D6864",
+                )
+                y += 30
+            maximum = max([item[value_key] for item in items] + [1])
+            for item in items:
+                value = f"{item[value_key]} lượt hỏi"
+                label = canvas.create_text(
+                    0,
+                    y,
+                    anchor="nw",
+                    width=width - 8,
+                    text=f"{item['subject']} · {value}",
+                    font=("Segoe UI", 10),
+                    fill="#173B38",
+                )
+                bounds = canvas.bbox(label)
+                y = bounds[3] + 5
+                canvas.create_rectangle(0, y, width - 8, y + 7, fill="#E6F0E9", outline="")
+                canvas.create_rectangle(
+                    0, y, (width - 8) * item[value_key] / maximum, y + 7, fill="#327E68", outline=""
+                )
+                y += 20
+            y += 10
+        canvas.create_text(
+            0,
+            y,
+            anchor="nw",
+            width=width - 8,
+            text="Lượt hỏi địa chỉ web không đồng nghĩa với lượt mở trang. Chương trình không đọc bài viết hay tin nhắn của em.",
+            font=("Segoe UI", 10),
+            fill="#4D6864",
+        )
+        canvas.configure(height=canvas.bbox("all")[3] + 8)
 
     def _update_policy_ui(self, policy: dict[str, Any] | None) -> None:
         if not self.current_user:

@@ -869,6 +869,191 @@
         }
       }
     },
+    "/api/children/{child_id}/activity-report": {
+      "get": {
+        "summary": "Parent Report",
+        "operationId": "parent_report_api_children__child_id__activity_report_get",
+        "parameters": [
+          {
+            "name": "child_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Child Id"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 90,
+              "minimum": 1,
+              "default": 28,
+              "title": "Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/children/{child_id}/activity-report/chart.png": {
+      "get": {
+        "summary": "Parent Report Chart",
+        "operationId": "parent_report_chart_api_children__child_id__activity_report_chart_png_get",
+        "parameters": [
+          {
+            "name": "child_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "title": "Child Id"}
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {"type": "string", "pattern": "^(daily|weekly|apps)$", "title": "Kind"}
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {"type": "integer", "minimum": 1, "maximum": 90, "default": 28, "title": "Days"}
+          }
+        ],
+        "responses": {
+          "200": {"description": "PNG chart", "content": {"image/png": {"schema": {"type": "string", "format": "binary"}}}},
+          "422": {"description": "Validation Error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}}
+        }
+      }
+    },
+    "/api/device/activity-report": {
+      "get": {
+        "summary": "Child Report",
+        "operationId": "child_report_api_device_activity_report_get",
+        "parameters": [
+          {
+            "name": "child_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Child Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/children/{child_id}/activity-report.csv": {
+      "get": {
+        "summary": "Weekly Csv",
+        "operationId": "weekly_csv_api_children__child_id__activity_report_csv_get",
+        "parameters": [
+          {
+            "name": "child_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Child Id"
+            }
+          },
+          {
+            "name": "week_start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Week Start"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/children/{child_id}/activity-data/deletion": {
       "get": {
         "summary": "Erasure Status",
