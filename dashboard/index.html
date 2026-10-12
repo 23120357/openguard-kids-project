@@ -168,67 +168,68 @@
       <section class="card">
         <h2>Quản lí web &amp; ứng dụng</h2><p class="hint">Mỗi dòng là một tên miền. Có thể nhập URL; hệ thống chỉ lưu tên miền. Bấm Lưu quy tắc kiểm soát để áp dụng các thay đổi.</p>
         <form id="filtering-form">
-          <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát ứng dụng và trang web</label>
-          <label class="dns-proxy-toggle">
-            <span class="switch"><input name="dns_proxy_enabled" type="checkbox" checked><span aria-hidden="true"></span></span>
-            <span><strong>Bảo vệ web qua DNS proxy</strong><small>Tắt để khôi phục DNS gốc của máy; kiểm soát ứng dụng vẫn tiếp tục hoạt động.</small></span>
-          </label>
-          <fieldset><legend>Nhóm trang web dành cho trẻ 6–11 tuổi</legend>
+          <section class="filtering-zone filtering-reference-zone" aria-labelledby="reference-zone-title">
+            <header class="filtering-zone-heading">
+              <div><span class="zone-kicker">Chỉ để tham khảo</span><h3 id="reference-zone-title">Nhóm trang web dành cho trẻ 6–11 tuổi</h3></div>
+              <span class="zone-badge zone-badge-reference">Không phải quy tắc chặn</span>
+            </header>
+            <p class="hint category-suggestion-intro">Các danh sách bên dưới chỉ là gợi ý theo từng nhóm để tiện sao chép và kiểm thử. Nút Kiểm tra không dùng các danh sách tham khảo này.</p>
             <p id="category-catalog-status" class="hint" role="status">Danh sách website sẽ được tải khi chọn hồ sơ.</p>
-            <p class="hint">Phân loại riêng chỉ áp dụng cho hồ sơ đang chọn. Xóa phân loại riêng sẽ trở về nhóm mặc định (nếu có), hoặc nhóm của miền cha, nếu không thì Chưa phân loại. Bấm Lưu quy tắc kiểm soát để áp dụng.</p>
             <label for="category-search">Tìm trong danh sách nhóm<input id="category-search" type="search" placeholder="Nhập tên miền để tìm"></label>
-            <fieldset id="category-editor"><legend>Thêm / sửa phân loại riêng</legend>
-              <label for="category-domain">Tên miền hoặc URL<input id="category-domain" type="text" maxlength="2048" placeholder="Ví dụ: youtube.com"></label>
-              <label for="category-target">Nhóm<select id="category-target">
-                <option value="education">Giáo dục</option><option value="entertainment">Giải trí</option><option value="social">Mạng xã hội</option><option value="games">Trò chơi</option><option value="age_inappropriate">Không phù hợp lứa tuổi</option><option value="unclassified">Chưa phân loại</option>
-              </select></label>
-              <button id="category-apply" type="button" class="secondary">Thêm phân loại</button>
-              <button id="category-cancel" type="button" class="secondary" hidden>Hủy chỉnh sửa</button>
-              <p id="category-editor-status" role="status" aria-live="polite"></p>
-            </fieldset>
-            <p class="hint">Danh sách phân loại cục bộ không bao phủ mọi website. Tên miền được phép riêng sẽ ưu tiên hơn nhóm; danh sách bị chặn vẫn ưu tiên hơn danh sách được phép.</p>
-            <label>Giáo dục<select name="category_education"><option value="allow">Cho phép</option><option value="block">Chặn</option></select></label>
-            <label>Giải trí<select name="category_entertainment"><option value="allow">Cho phép</option><option value="block">Chặn</option></select></label>
-            <label>Mạng xã hội<select name="category_social"><option value="block">Chặn</option><option value="allow">Cho phép</option></select></label>
-            <label>Trò chơi<select name="category_games"><option value="block">Chặn</option><option value="allow">Cho phép</option></select></label>
-            <label>Không phù hợp lứa tuổi<select name="category_age_inappropriate"><option value="block">Chặn</option><option value="allow">Cho phép</option></select></label>
-            <label>Chưa phân loại<select name="category_unclassified"><option value="allow">Cho phép</option><option value="block">Chặn</option></select></label>
-          </fieldset>
-          <label class="check"><input name="safe_search" type="checkbox" checked> Cưỡng chế tìm kiếm an toàn trên Google và Bing khi bật kiểm soát</label>
+            <div id="category-groups" class="category-groups"></div>
+          </section>
+          <section class="filtering-zone filtering-active-zone" aria-labelledby="active-zone-title">
+            <header class="filtering-zone-heading">
+              <div><span class="zone-kicker">Cấu hình thực tế</span><h3 id="active-zone-title">Quy tắc kiểm soát được áp dụng trên máy trẻ</h3></div>
+              <span class="zone-badge zone-badge-active">Có hiệu lực sau khi lưu</span>
+            </header>
+            <p class="active-zone-intro">Nút Kiểm tra sẽ mô phỏng theo chế độ và ba danh sách website trong khung này. Các thay đổi có hiệu lực trên máy trẻ sau khi lưu và agent nhận cấu hình.</p>
+            <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát ứng dụng và trang web</label>
+            <label class="dns-proxy-toggle">
+              <span class="switch"><input name="dns_proxy_enabled" type="checkbox" checked><span aria-hidden="true"></span></span>
+              <span><strong>Bảo vệ web qua DNS proxy</strong><small>Tắt để khôi phục DNS gốc của máy; kiểm soát ứng dụng vẫn tiếp tục hoạt động.</small></span>
+            </label>
+            <label class="check"><input name="safe_search" type="checkbox" checked> Cưỡng chế tìm kiếm an toàn trên Google và Bing khi bật kiểm soát</label>
           <fieldset class="domain-inspector"><legend>Kiểm tra tên miền</legend>
-            <p class="hint">Xem kết quả theo quy tắc đang chỉnh ở biểu mẫu này. Kết quả không xác nhận máy của con đã nhận quy tắc; cần lưu để áp dụng.</p>
+            <p class="hint">Kiểm tra theo chế độ và ba danh sách quy tắc thực tế bên dưới. Nhóm website tham khảo phía trên không ảnh hưởng đến kết quả.</p>
             <label for="inspect-domain">Tên miền hoặc URL</label>
             <div class="domain-add"><input id="inspect-domain" type="text" maxlength="2048" placeholder="Ví dụ: facebook.com" autocomplete="off"><button id="inspect-domain-button" type="button" class="secondary">Kiểm tra</button></div>
             <p id="inspect-result" role="status" aria-live="polite"></p>
           </fieldset>
           <p class="hint">Áp dụng khi trình duyệt dùng DNS của máy qua bộ lọc. DNS bảo mật riêng (DoH) hoặc VPN có thể bỏ qua bộ lọc; SafeSearch không phân loại toàn bộ nội dung Internet.</p>
           <label>Quy tắc trang web<select name="domain_mode"><option value="blocklist">Cho phép, trừ danh sách bị chặn</option><option value="allowlist">Chỉ cho phép danh sách đã chọn</option></select></label>
-          <fieldset class="domain-editor" data-domain-list="domain_block">
+          <fieldset class="domain-editor domain-bulk-editor" data-domain-list="domain_block">
             <legend>Trang web bị chặn</legend>
-            <ul id="domain_block-list" class="domain-list" aria-label="Trang web bị chặn"></ul>
-            <div class="domain-add">
-              <label for="domain_block-new" class="sr-only">Tên miền hoặc URL mới: Trang web bị chặn</label>
-              <input id="domain_block-new" type="text" maxlength="2048" placeholder="example.org hoặc https://example.org" autocomplete="off">
-              <button type="button" data-add-domain="domain_block" class="secondary">+ Thêm trang bị chặn</button>
+            <p class="hint">Mỗi dòng là một website. Có thể dán cả danh sách rồi lưu một lần.</p>
+            <div class="domain-bulk-search">
+              <label for="domain_block-search">Tìm trong danh sách<input id="domain_block-search" type="search" placeholder="Nhập tên miền cần tìm" autocomplete="off"></label>
+              <button type="button" data-find-domain="domain_block" class="secondary">Tìm tiếp</button>
             </div>
+            <label for="domain_block-editor" class="sr-only">Danh sách trang web bị chặn, mỗi dòng một website</label>
+            <textarea id="domain_block-editor" class="domain-bulk-list" rows="8" spellcheck="false" placeholder="example.org&#10;example.com&#10;https://example.net/path"></textarea>
+            <p id="domain_block-status" class="domain-bulk-status hint" role="status" aria-live="polite"></p>
           </fieldset>
-          <fieldset class="domain-editor" data-domain-list="domain_allow">
+          <fieldset class="domain-editor domain-bulk-editor" data-domain-list="domain_allow">
             <legend>Trang web được phép</legend>
-            <ul id="domain_allow-list" class="domain-list" aria-label="Trang web được phép"></ul>
-            <div class="domain-add">
-              <label for="domain_allow-new" class="sr-only">Tên miền hoặc URL mới: Trang web được phép</label>
-              <input id="domain_allow-new" type="text" maxlength="2048" placeholder="example.org hoặc https://example.org" autocomplete="off">
-              <button type="button" data-add-domain="domain_allow" class="secondary">+ Thêm trang được phép</button>
+            <p class="hint">Mỗi dòng là một website. Có thể dán cả danh sách rồi lưu một lần.</p>
+            <div class="domain-bulk-search">
+              <label for="domain_allow-search">Tìm trong danh sách<input id="domain_allow-search" type="search" placeholder="Nhập tên miền cần tìm" autocomplete="off"></label>
+              <button type="button" data-find-domain="domain_allow" class="secondary">Tìm tiếp</button>
             </div>
+            <label for="domain_allow-editor" class="sr-only">Danh sách trang web được phép, mỗi dòng một website</label>
+            <textarea id="domain_allow-editor" class="domain-bulk-list" rows="8" spellcheck="false" placeholder="school.edu.vn&#10;wikipedia.org&#10;https://example.org/learning"></textarea>
+            <p id="domain_allow-status" class="domain-bulk-status hint" role="status" aria-live="polite"></p>
           </fieldset>
-          <fieldset class="domain-editor" data-domain-list="safety_domains">
+          <fieldset class="domain-editor domain-bulk-editor" data-domain-list="safety_domains">
             <legend>Trường học và hỗ trợ khẩn cấp luôn được phép</legend>
-            <ul id="safety_domains-list" class="domain-list" aria-label="Trường học và hỗ trợ khẩn cấp luôn được phép"></ul>
-            <div class="domain-add">
-              <label for="safety_domains-new" class="sr-only">Tên miền hoặc URL mới: Trường học và hỗ trợ khẩn cấp luôn được phép</label>
-              <input id="safety_domains-new" type="text" maxlength="2048" placeholder="example.org hoặc https://example.org" autocomplete="off">
-              <button type="button" data-add-domain="safety_domains" class="secondary">+ Thêm trang miễn chặn</button>
+            <p class="hint">Mỗi dòng là một website luôn được phép. Tổng đài 111 được hệ thống tự giữ lại.</p>
+            <div class="domain-bulk-search">
+              <label for="safety_domains-search">Tìm trong danh sách<input id="safety_domains-search" type="search" placeholder="Nhập tên miền cần tìm" autocomplete="off"></label>
+              <button type="button" data-find-domain="safety_domains" class="secondary">Tìm tiếp</button>
             </div>
+            <label for="safety_domains-editor" class="sr-only">Danh sách trường học và hỗ trợ khẩn cấp luôn được phép, mỗi dòng một website</label>
+            <textarea id="safety_domains-editor" class="domain-bulk-list" rows="8" spellcheck="false" placeholder="tongdai111.vn&#10;school.edu.vn"></textarea>
+            <p id="safety_domains-status" class="domain-bulk-status hint" role="status" aria-live="polite"></p>
           </fieldset>
           <p class="hint">Tổng đài 111 luôn được phép. Thêm cổng thông tin trường của con trước khi bật lọc. Quy tắc tên miền áp dụng cả tên miền con.</p>
           <fieldset class="app-editor"><legend>Kiểm soát ứng dụng</legend>
@@ -257,6 +258,7 @@
           </fieldset>
           <p id="filtering-draft-status" class="hint" role="status" aria-live="polite"></p>
           <div class="filtering-actions"><button type="submit">Lưu quy tắc kiểm soát</button><button id="reload-filtering" type="button" class="secondary">Tải lại dữ liệu</button></div>
+          </section>
         </form>
       </section>
     </div>

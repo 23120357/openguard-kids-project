@@ -1,0 +1,26 @@
+flowchart LR
+    Parent[Dashboard phụ huynh]
+    API[FastAPI API]
+    DB[(SQLite server)]
+    Parent <-->|Cookie + CSRF| API
+    API <--> DB
+    API -->|SSE cập nhật| Parent
+
+    subgraph PC[Máy Windows của trẻ]
+        Session[Phiên Windows]
+        Tray[Tray UI]
+        Pipe[Named pipe]
+        Service[Windows Service]
+        App[App Controller]
+        DNS[DNS Proxy 127.0.0.1:53]
+        Outbox[(SQLite event outbox)]
+        Tray <--> Pipe
+        Pipe <--> Service
+        Session --> Tray
+        Service --> App
+        Service --> DNS
+        Service <--> Outbox
+    end
+
+    Service <-->|HTTP + WebSocket\nBearer token| API
+    DNS -->|UDP/TCP DNS| Upstream[DNS upstream]

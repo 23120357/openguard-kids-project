@@ -33,15 +33,15 @@ def test_observed_app_queue_hides_paths_and_acknowledges():
     assert core._observed_apps == {}
 
 
-def test_catalog_and_category_precedence():
+def test_catalog_is_reference_only_and_explicit_lists_control_access():
     catalog = category_catalog()
     assert len([host for host in catalog if not host.endswith('.test')]) >= 200
     assert set(catalog.values()) == set(DEFAULT_ACTIONS)
     rules = FilterRules(enabled=True).model_dump()
     assert classify_domain('portal.hcmus.edu.vn') == 'education'
     assert classify_domain('notfacebook.com') == 'unclassified'
-    assert domain_decision('www.facebook.com', rules)
-    assert domain_decision('age-restricted.example.test', rules)
+    assert domain_decision('www.facebook.com', rules) is None
+    assert domain_decision('age-restricted.example.test', rules) is None
     assert domain_decision('hcmus.edu.vn', rules) is None
     assert domain_decision('unknown.example.test', rules) is None
     rules['domain_allow'] = ['facebook.com']
@@ -190,7 +190,9 @@ def test_domain_preview_uses_agent_rules_without_saving(parent, child):
     catalog = parent.get('/api/filtering/catalog').json()
     assert len(catalog['groups']) == 6
     assert 'facebook.com' in next(g['domains'] for g in catalog['groups'] if g['key'] == 'social')
-    for changes, expected in [({}, 'block'), ({'domain_allow':['facebook.com']}, 'allow'),
+    for changes, expected in [({}, 'allow'),
+                              ({'domain_mode':'allowlist'}, 'block'),
+                              ({'domain_allow':['facebook.com']}, 'allow'),
                               ({'domain_allow':['facebook.com'], 'domain_block':['facebook.com']}, 'block'),
                               ({'safety_domains':['facebook.com'], 'domain_block':['facebook.com']}, 'allow'),
                               ({'enabled':False}, 'allow')]:
@@ -199,6 +201,7 @@ def test_domain_preview_uses_agent_rules_without_saving(parent, child):
         assert response.json()['action'] == expected
         assert response.json()['category'] == 'social'
         assert response.json()['reason']
+        assert response.json()['enforcement_active'] is changes.get('enabled', True)
     assert parent.get(f"/api/children/{child['id']}/filtering").json() == before
     assert parent.post(url, json={'domain':'https://facebook.com/private', 'rules':rules}).status_code == 422
     assert parent.post('/api/children/not-owned/filtering/preview', json={'domain':'facebook.com', 'rules':rules}).status_code == 404
@@ -206,12 +209,12 @@ def test_domain_preview_uses_agent_rules_without_saving(parent, child):
     assert parent.get('/api/filtering/catalog').status_code == 401
 
 
-def test_custom_categories_are_scoped_normalized_and_used_by_agent(parent, child):
+def test_custom_categories_are_scoped_normalized_and_ignored_by_agent(parent, child):
     from pydantic import ValidationError
 
     rules = FilterRules(enabled=True, category_overrides={'FACEBOOK.COM.':'education', 'custom.test':'games'}).model_dump()
     assert domain_decision('www.facebook.com', rules) is None
-    assert domain_decision('custom.test', rules)
+    assert domain_decision('custom.test', rules) is None
     assert classify_domain('www.facebook.com', rules['category_overrides']) == 'education'
     assert classify_domain('www.facebook.com') == 'social'
     assert classify_domain('sub.custom.test', {'custom.test':'games', 'sub.custom.test':'education'}) == 'education'
@@ -231,4 +234,4 @@ def test_custom_categories_are_scoped_normalized_and_used_by_agent(parent, child
     assert next(p for p in synced['policies'] if p['child_id'] == child['id'])['category_overrides'] == rules['category_overrides']
     rules['category_overrides'] = {}
     assert parent.put(url, json={**rules,'expected_version':1}).status_code == 200
-    assert domain_decision('facebook.com', parent.get(url).json())
+    assert domain_decision('facebook.com', parent.get(url).json()) is None

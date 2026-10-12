@@ -8,7 +8,6 @@ import time
 from pathlib import Path
 
 from common.domains import domain_name, event_domain, normalize_safety_domains
-from common.filter_categories import CATEGORY_LABELS, DEFAULT_ACTIONS, classify_domain
 
 LOGGER = logging.getLogger(__name__)
 
@@ -31,9 +30,6 @@ def domain_decision(host, rules):
         return "Trang web không nằm trong danh sách cho phép."
     if matches_domain(host, rules.get("domain_allow", [])):
         return None
-    category = classify_domain(host, rules.get("category_overrides"))
-    if rules.get("category_actions", DEFAULT_ACTIONS).get(category) == "block":
-        return f"Trang web thuộc nhóm {CATEGORY_LABELS[category]} đang bị chặn."
     return None
 
 

@@ -12,7 +12,7 @@ from sqlalchemy import delete, select, text
 from sqlalchemy.dialects.sqlite import insert
 
 from agent.event_queue import RETENTION_SECONDS
-from agent.filtering import domain_decision, matches_domain
+from agent.filtering import matches_domain
 from common.activity_reports import REPORT_ZONE, activity_report, report_bounds
 from common.domains import normalize_safety_domains
 from common.filter_categories import CATEGORY_LABELS, category_catalog, classify_domain
@@ -56,20 +56,31 @@ def preview_domain(child_id: str, body: DomainPreview, auth: ParentAuth, db: DB)
     owned_child(db, child_id, auth.parent_id)
     rules = body.rules.model_dump()
     category = classify_domain(body.domain, rules["category_overrides"])
-    reason = domain_decision(body.domain, rules)
-    blocked = reason is not None
-    if not blocked:
-        if not rules["enabled"]:
-            reason = "Kiểm soát ứng dụng và trang web đang tắt."
-        elif matches_domain(body.domain, normalize_safety_domains(rules["safety_domains"])):
-            reason = "Trang web thuộc danh sách luôn được phép (trường học/hỗ trợ)."
-        elif matches_domain(body.domain, rules["domain_allow"]):
-            reason = "Trang web thuộc danh sách được phép riêng, ưu tiên hơn quy tắc nhóm."
-        else:
-            reason = f"Nhóm {CATEGORY_LABELS[category]} đang được cho phép."
+    if matches_domain(body.domain, normalize_safety_domains(rules["safety_domains"])):
+        blocked = False
+        reason = "Trang web thuộc danh sách luôn được phép (trường học/hỗ trợ)."
+    elif matches_domain(body.domain, rules["domain_block"]):
+        blocked = True
+        reason = "Trang web nằm trong danh sách bị chặn."
+    elif rules["domain_mode"] == "allowlist" and not matches_domain(body.domain, rules["domain_allow"]):
+        blocked = True
+        reason = "Trang web không nằm trong danh sách được phép."
+    elif matches_domain(body.domain, rules["domain_allow"]):
+        blocked = False
+        reason = "Trang web thuộc danh sách được phép."
+    else:
+        blocked = False
+        reason = "Trang web không nằm trong danh sách bị chặn; chế độ hiện tại cho phép truy cập."
+    active = rules["enabled"] and rules["dns_proxy_enabled"]
+    inactive_reason = None
+    if not rules["enabled"]:
+        inactive_reason = "Kiểm soát ứng dụng và trang web đang tắt."
+    elif not rules["dns_proxy_enabled"]:
+        inactive_reason = "Bảo vệ web qua DNS proxy đang tắt."
     return {"domain": body.domain, "category": category,
             "category_label": CATEGORY_LABELS[category],
-            "action": "block" if blocked else "allow", "reason": reason}
+            "action": "block" if blocked else "allow", "reason": reason,
+            "enforcement_active": active, "inactive_reason": inactive_reason}
 
 
 def generation_for(db, child_id):
