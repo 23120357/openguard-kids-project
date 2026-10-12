@@ -33,7 +33,12 @@ const assert = require('node:assert/strict');
       else if (api === '/parent/events') return route.fulfill({contentType:'text/event-stream',body:'event: ready\ndata: {}\n\n'});
       else if (api === '/filtering/catalog') body={groups:[{key:'social',label:'Mạng xã hội',domains:['facebook.com']},{key:'age_inappropriate',label:'Không phù hợp lứa tuổi',domains:['age-restricted.example.test']},{key:'education',label:'Giáo dục',domains:[]},{key:'entertainment',label:'Giải trí',domains:[]},{key:'games',label:'Trò chơi',domains:[]},{key:'unclassified',label:'Chưa phân loại',domains:[]}]};
       else if (api.endsWith('/filtering/preview')) { assert.equal(input.domain,'facebook.com'); body={domain:input.domain,category:'social',category_label:'Mạng xã hội',action:input.rules.category_actions.social,reason:'Quy tắc nhóm Mạng xã hội.'}; }
-      else if (api.endsWith('/observed-apps')) { const id=api.split('/')[2]; body={items:[{name:id+'-paint.exe',sha256:(id==='an'?'a':'b').repeat(64),last_seen:1700000000,device_id:'lab',device_name:'Lab PC'}]}; }
+      else if (api.endsWith('/observed-apps')) { const id=api.split('/')[2]; body={items:[
+        {name:id+'-paint.exe',sha256:(id==='an'?'a':'b').repeat(64),last_seen:1700000000,device_id:'lab',device_name:'Lab PC'},
+        {name:'chrome.exe',sha256:'c'.repeat(64),last_seen:1700000010,device_id:'lab',device_name:'Lab PC'},
+        {name:'cmd.exe',sha256:'d'.repeat(64),last_seen:1700000005,device_id:'lab',device_name:'Lab PC'},
+        {name:'WidgetService.exe',sha256:'e'.repeat(64),last_seen:1700000002,device_id:'lab',device_name:'Lab PC'},
+      ]}; }
       else if (api === '/children' && method === 'GET') body=children;
       else if (api === '/children' && method === 'POST') { body={id:'new',display_name:input.display_name,has_pin:true}; children.push(body); policies.set('new',{...policies.get('an'),child_id:'new'}); rules.set('new',{...rules.get('an'),child_id:'new'}); }
       else if (api.endsWith('/policy')) { const id=api.split('/')[2]; if(method==='PUT') policies.set(id,{...input,child_id:id,version:policies.get(id).version+1}); body=policies.get(id); }
@@ -63,8 +68,10 @@ const assert = require('node:assert/strict');
     assert.deepEqual(await page.getByRole('tab').allTextContents(),['Dashboard','Báo cáo','Chính sách thời gian','Quản lí web & ứng dụng','Sự kiện']);
     await page.waitForFunction(() => document.querySelector('#report-apps').textContent.includes('an-paint.exe'));
     assert.match(await page.locator('#report-apps').innerText(),/7 phút/);
-    assert.equal(await page.locator('#report-daily img').count(),1);
-    await page.waitForFunction(() => document.querySelector('#report-daily img').naturalWidth === 800 && document.querySelector('#report-apps img').naturalWidth === 440);
+    assert.equal(await page.locator('#report-daily .report-bar-column').count(),7);
+    assert.equal(await page.locator('#report-weekly .report-bar-column').count(),8);
+    assert.match(await page.locator('#report-daily .report-bar-label').last().innerText(),/CN\s+11\/10/);
+    assert.equal(await page.locator('#report-apps .report-app-bars li').count(),1);
     assert.deepEqual(await page.locator('.report-axis').allTextContents(),['7 ngày trướcNgay bây giờ','8 tuần trướcNgay bây giờ']);
     assert.match(await page.locator('#report-daily-total').innerText(),/0 giờ 02 phút/);
     assert.match(await page.locator('#report-weekly-total').innerText(),/0 giờ 02 phút/);
@@ -75,13 +82,11 @@ const assert = require('node:assert/strict');
     await page.evaluate(() => refreshStatus());
     assert.match(await page.locator('#report-domains').innerText(),/3 lượt truy vấn/);
     await page.evaluate(() => { reportCache.loadedAt -= REPORT_REFRESH_MS; return refreshReport(); });
-    await Promise.all(['#report-daily img','#report-weekly img','#report-apps img'].map(selector => page.locator(selector).evaluate(image => image.decode())));
     assert.match(await page.locator('#report-domains').innerText(),/4 lượt truy vấn/);
     assert.equal(chartRequests,initialChartRequests);
     chartSeconds = 100;
     await page.evaluate(() => { reportCache.loadedAt -= REPORT_REFRESH_MS; return refreshReport(); });
-    await Promise.all(['#report-daily img','#report-weekly img'].map(selector => page.locator(selector).evaluate(image => image.decode())));
-    assert.equal(chartRequests,initialChartRequests + 2);
+    assert.equal(chartRequests,initialChartRequests);
     assert.equal(await page.locator('#report-daily .report-column-hit').count(),7);
     assert.equal(await page.locator('#report-weekly .report-column-hit').count(),8);
     assert.match(await page.locator('#report-daily .report-column-hit').last().getAttribute('title'),/2026-10-11/);
@@ -104,12 +109,17 @@ const assert = require('node:assert/strict');
     await page.locator('#export-week').click();
     assert.equal((await downloadPromise).suggestedFilename(),'bao-cao-tuan.pdf');
     if (process.env.REPORT_SCREENSHOT_PATH) await page.screenshot({path:process.env.REPORT_SCREENSHOT_PATH,fullPage:true});
+    await page.evaluate(() => window.scrollTo(0, 700));
+    assert.equal(await page.locator('.sidebar').evaluate(sidebar => Math.round(sidebar.getBoundingClientRect().top)),0);
+    assert.equal(await page.locator('.sidebar').evaluate(sidebar => Math.round(sidebar.getBoundingClientRect().height) >= window.innerHeight),true);
+    await page.evaluate(() => window.scrollTo(0, 0));
     for (const id of ['overview','report','time-policy','filtering','activity']) {
       await page.locator('#'+id+'-tab').click();
       assert.equal(await page.locator('#'+id+'-panel').isVisible(),true);
       assert.equal(await page.locator('[role=tab][aria-selected=true]').count(),1);
     }
     await page.locator('#time-policy-tab').click();
+    if (process.env.POLICY_SCREENSHOT_PATH) await page.screenshot({path:process.env.POLICY_SCREENSHOT_PATH,fullPage:true});
     await page.locator('#policy-form input[name=weekday_minutes]').fill('75');
     await page.locator('#policy-form button').filter({hasText:'Lưu chính sách'}).click();
     await page.waitForFunction(() => document.querySelector('#policy-version').textContent.includes('2'));
@@ -117,6 +127,18 @@ const assert = require('node:assert/strict');
     await page.locator('#filtering-tab').click();
     await page.waitForFunction(() => document.querySelector('#app-catalog')?.textContent.includes('an-paint'));
     assert.equal(await page.locator('#app-catalog').innerText().then(text => text.includes('SHA-256')), false);
+    assert.match(await page.locator('#app-catalog').innerText(),/Google Chrome/);
+    assert.equal(await page.locator('#app-catalog .app-icon-chrome').count(),1);
+    assert.equal(await page.locator('#system-apps-section').getAttribute('open'),null);
+    assert.equal(await page.locator('#system-app-count').innerText(),'2');
+    assert.match(await page.locator('#system-app-catalog').textContent(),/cmd/);
+    await page.locator('#app-search').fill('cmd');
+    assert.equal(await page.locator('#system-apps-section').getAttribute('open'),'');
+    assert.equal(await page.getByLabel('Quyền sử dụng cmd.exe').count(),1);
+    await page.locator('#app-search').fill('');
+    await page.locator('[data-app-view=configured]').click();
+    assert.match(await page.locator('#app-catalog-status').innerText(),/Chưa có ứng dụng/);
+    await page.locator('[data-app-view=featured]').click();
     await page.locator('.category-domains[data-group=social] summary').click();
     assert.equal(await page.locator('.category-domains[data-group=social]').innerText().then(text=>text.includes('facebook.com')),true);
     await page.locator('#inspect-domain').fill('https://facebook.com/private?q=not-sent');
@@ -150,6 +172,7 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('[name=category_education]').inputValue(),'allow');
     await page.locator('[name=category_unclassified]').selectOption('block');
     await page.locator('[name=safe_search]').uncheck();
+    await page.locator('[name=dns_proxy_enabled]').uncheck();
     await page.getByLabel('Quyền sử dụng an-paint.exe').selectOption('block');
     await page.locator('#filtering-form [name=enabled]').uncheck();
     assert.equal(await page.locator('#app-control-warning').isVisible(),true);
@@ -177,10 +200,12 @@ const assert = require('node:assert/strict');
     assert.deepEqual(rules.get('an').category_overrides,{'facebook.com':'education'});
     assert.equal(rules.get('an').category_actions.unclassified,'block');
     assert.equal(rules.get('an').safe_search,false);
+    assert.equal(rules.get('an').dns_proxy_enabled,false);
     assert.deepEqual(rules.get('an').app_block,[{name:'an-paint.exe',sha256:'a'.repeat(64)}]);
     await page.locator('#reload-filtering').click();
     assert.equal(await page.locator('[name=category_unclassified]').inputValue(),'block');
     assert.equal(await page.locator('[name=safe_search]').isChecked(),false);
+    assert.equal(await page.locator('[name=dns_proxy_enabled]').isChecked(),false);
     await page.locator('#category-search').fill('facebook');
     await page.getByRole('button',{name:'Xóa phân loại riêng facebook.com',exact:true}).click();
     assert.equal(await page.locator('[data-group=social] [data-domain="facebook.com"]').count(),1);
@@ -217,6 +242,7 @@ const assert = require('node:assert/strict');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),true);
     assert.equal(await page.locator('.workspace-tabs').evaluate(tabs => getComputedStyle(tabs).overflowY),'visible');
     assert.equal(await page.locator('.workspace-tabs').evaluate(tabs => tabs.scrollWidth <= tabs.clientWidth),true);
+    if (process.env.MOBILE_SCREENSHOT_PATH) await page.screenshot({path:process.env.MOBILE_SCREENSHOT_PATH,fullPage:true});
     await page.locator('#logout').click();
     await page.waitForSelector('#login-panel', {state:'visible'});
     assert.equal(await page.locator('#login-panel').isVisible(),true);

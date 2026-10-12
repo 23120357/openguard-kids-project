@@ -52,6 +52,9 @@ def test_catalog_and_category_precedence():
     assert domain_decision('www.facebook.com', rules) is None
     rules['enabled'] = False
     assert domain_decision('age-restricted.example.test', rules) is None
+    rules['enabled'] = True
+    rules['dns_proxy_enabled'] = False
+    assert domain_decision('age-restricted.example.test', rules) is None
 
 
 def test_public_50_block_and_20_education_matrix():
@@ -155,13 +158,17 @@ def test_category_api_roundtrip_validation_and_signed_sync(parent, child):
     url = f"/api/children/{child['id']}/filtering"
     document = parent.get(url).json()
     assert document['category_actions'] == DEFAULT_ACTIONS
+    assert document['dns_proxy_enabled'] is True
     body = FilterRules(enabled=True).model_dump()
     body['category_actions']['unclassified'] = 'block'
+    body['dns_proxy_enabled'] = False
     response = parent.put(url, json={**body, 'expected_version': document['version']})
     assert response.status_code == 200
     assert response.json()['category_actions']['unclassified'] == 'block'
+    assert response.json()['dns_proxy_enabled'] is False
     synced = parent.get('/api/device/filtering', headers={'Authorization':'Bearer '+tokens['access_token']}).json()
     assert synced['policies'][0]['category_actions'] == body['category_actions']
+    assert synced['policies'][0]['dns_proxy_enabled'] is False
     assert synced['integrity']['signature']
     body['category_actions']['unsupported'] = 'allow'
     assert parent.put(url, json={**body, 'expected_version':1}).status_code == 422

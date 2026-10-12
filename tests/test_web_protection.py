@@ -41,7 +41,7 @@ class Network:
 
 
 def fixture(tmp_path):
-    core = SimpleNamespace(filter_context=lambda: ("child", {"version": 1}, 42))
+    core = SimpleNamespace(dns_filter_context=lambda: ("child", {"version": 1}, 42))
     network = Network()
     return WebProtection(core, tmp_path / "backup.json", network), core, network
 
@@ -55,7 +55,7 @@ def test_enable_repeat_and_restore_static_dhcp_browser(tmp_path):
     assert network.flushes == 1
     assert network.browser == "off"
     assert network.adapters[1]["servers"] == ["::1"]
-    core.filter_context = lambda: None
+    core.dns_filter_context = lambda: None
     manager.tick()
     assert network.snapshot() == original
     assert network.browser == "automatic"
@@ -130,7 +130,7 @@ def test_proxy_failure_restores_configuration(tmp_path):
 def test_policy_change_flushes_dns_cache(tmp_path):
     manager, core, network = fixture(tmp_path)
     manager.tick()
-    core.filter_context = lambda: ("child", {"version": 2}, 42)
+    core.dns_filter_context = lambda: ("child", {"version": 2}, 42)
     manager.tick()
     assert network.flushes == 2
 

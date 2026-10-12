@@ -6,6 +6,7 @@ let filteringDirty = false;
 let filteringSequence = 0;
 let observedApps = [];
 let appDrafts = {app_allow: [], app_block: []};
+let appCatalogView = 'featured';
 let reportSequence = 0;
 let appReportSequence = 0;
 const REPORT_REFRESH_MS = 60 * 1000;
@@ -210,6 +211,7 @@ async function api(path, method = "GET", body) {
   return data;
 }
 function showLogin() {
+  document.body.classList.remove("workspace-active");
   if (liveEvents) { liveEvents.close(); liveEvents = null; }
   if (liveRefreshTimer) { clearTimeout(liveRefreshTimer); liveRefreshTimer = null; }
   pendingLiveKinds.clear();
@@ -276,7 +278,7 @@ function auditSchedule(row) {
 }
 function formatAuditEntry(a) {
   const old = a.old_value || {}, next = a.new_value || {}, changes = [];
-  const labels = {enabled:'Kiểm soát', weekday_minutes:'Ngày thường', weekend_minutes:'Cuối tuần', domain_mode:'Quy tắc web', app_mode:'Quy tắc ứng dụng'};
+  const labels = {enabled:'Kiểm soát', dns_proxy_enabled:'DNS proxy', weekday_minutes:'Ngày thường', weekend_minutes:'Cuối tuần', domain_mode:'Quy tắc web', app_mode:'Quy tắc ứng dụng'};
   const value = (key, item) => key === 'enabled' ? (item ? 'bật' : 'tắt') : key.endsWith('_minutes') ? item + ' phút' : key.endsWith('_mode') ? ({blocklist:'chặn theo danh sách',allowlist:'chỉ cho phép danh sách'}[item] || item) : String(item);
   for (const key of Object.keys(labels)) {
     if (key in next && old[key] !== next[key]) changes.push(labels[key] + ': ' + (key in old ? value(key, old[key]) + ' → ' : '') + value(key, next[key]));
@@ -443,6 +445,7 @@ async function decideTimeRequest(requestId, approved, button) {
 }
 async function enterWorkspace(user) {
   csrf = user.csrf_token; el("identity").textContent = user.email;
+  document.body.classList.add("workspace-active");
   el("login-panel").hidden = true; el("workspace").hidden = false;
   await loadChildren(); await refreshStatus();
   connectLiveUpdates();
@@ -452,9 +455,15 @@ function form(id, handler) {
     event.preventDefault(); tell("");
     const button = event.submitter || event.target.querySelector('button[type="submit"]') || event.target.querySelector("button");
     button.disabled = true;
+    button.classList.add("is-loading");
+    button.setAttribute("aria-busy", "true");
     try { await handler(new FormData(event.target)); }
     catch (error) { tell(error.message); }
-    finally { button.disabled = false; }
+    finally {
+      button.disabled = false;
+      button.classList.remove("is-loading");
+      button.removeAttribute("aria-busy");
+    }
   });
 }
 form("login-form", async data => {
@@ -535,6 +544,7 @@ async function loadFiltering(childId, force = false) {
   filteringDirty = false;
   const fields = el('filtering-form').elements;
   fields.enabled.checked = policy.enabled;
+  fields.dns_proxy_enabled.checked = policy.dns_proxy_enabled !== false;
   updateAppControlWarning();
   fields.safe_search.checked = policy.safe_search !== false;
   for (const [key, fallback] of Object.entries({education:'allow', entertainment:'allow', social:'block', games:'block', age_inappropriate:'block', unclassified:'allow'})) {
@@ -546,6 +556,11 @@ async function loadFiltering(childId, force = false) {
   observedApps = catalog.items || [];
   appDrafts = {app_allow: policy.app_allow.map(rule => ({...rule})), app_block: policy.app_block.map(rule => ({...rule}))};
   el('app-search').value = '';
+  appCatalogView = 'featured';
+  document.querySelectorAll('[data-app-view]').forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.appView === appCatalogView));
+  });
+  el('system-apps-section').open = false;
   renderAppCatalog();
   loadCategoryCatalog().catch(error => { el('category-catalog-status').textContent = 'Không tải được danh sách: ' + error.message; });
 }
@@ -564,6 +579,7 @@ function setAppRule(app, action) {
   if (action === 'block') appDrafts.app_block.push({name: app.name, sha256: app.sha256});
   markFilteringDirty();
   updateAppControlWarning();
+  renderAppCatalog();
 }
 
 function updateAppControlWarning() {
@@ -578,6 +594,83 @@ el('enable-filtering-from-apps').addEventListener('click', () => {
   updateAppControlWarning();
   enabled.focus();
 });
+
+const knownAppCatalog = {
+  'chrome.exe': {label:'Google Chrome', icon:'', tone:'chrome'},
+  'msedge.exe': {label:'Microsoft Edge', icon:'e', tone:'edge'},
+  'firefox.exe': {label:'Mozilla Firefox', icon:'F', tone:'firefox'},
+  'zalo.exe': {label:'Zalo', icon:'Z', tone:'zalo'},
+  'discord.exe': {label:'Discord', icon:'D', tone:'discord'},
+  'steam.exe': {label:'Steam', icon:'S', tone:'steam'},
+  'robloxplayerbeta.exe': {label:'Roblox', icon:'◇', tone:'roblox'},
+  'spotify.exe': {label:'Spotify', icon:'≋', tone:'spotify'},
+  'chatgpt.exe': {label:'ChatGPT', icon:'✦', tone:'chatgpt'},
+  'code.exe': {label:'Visual Studio Code', icon:'⌁', tone:'vscode'},
+  'teams.exe': {label:'Microsoft Teams', icon:'T', tone:'teams'},
+  'zoom.exe': {label:'Zoom', icon:'Z', tone:'zoom'},
+};
+
+const systemAppNames = new Set([
+  'cmd.exe', 'powershell.exe', 'pwsh.exe', 'conhost.exe', 'node.exe', 'node_repl.exe',
+  'unsecapp.exe', 'widgetservice.exe', 'crossdeviceresume.exe', 'runtimebroker.exe',
+  'svchost.exe', 'taskhostw.exe', 'dllhost.exe', 'searchhost.exe', 'shellhost.exe',
+  'startmenuexperiencehost.exe', 'applicationframehost.exe', 'systemsettings.exe',
+]);
+
+function normalizedAppName(name) {
+  return String(name || '').split(/[\\/]/).pop().toLocaleLowerCase('vi');
+}
+
+function appPresentation(app) {
+  const filename = normalizedAppName(app.name);
+  const known = knownAppCatalog[filename];
+  const fallback = (app.name.replace(/\.exe$/i, '').match(/[\p{L}\p{N}]/u) || ['?'])[0].toLocaleUpperCase('vi');
+  return known || {label: app.name.replace(/\.exe$/i, '') || app.name, icon:fallback, tone:'default'};
+}
+
+function isSystemApp(app) {
+  const filename = normalizedAppName(app.name);
+  if (knownAppCatalog[filename]) return false;
+  return systemAppNames.has(filename) || /(?:service|host|broker|helper|updater?|installer|unsecapp|resume)(?:\.exe)?$/i.test(filename);
+}
+
+function createAppRow(app) {
+  const presentation = appPresentation(app);
+  const item = document.createElement('li'); item.className = 'app-row';
+  item.dataset.appKind = isSystemApp(app) ? 'system' : 'user';
+  const primary = document.createElement('div'); primary.className = 'app-primary';
+  const icon = document.createElement('span');
+  icon.className = 'app-icon app-icon-' + presentation.tone;
+  icon.textContent = presentation.icon; icon.setAttribute('aria-hidden', 'true');
+  const identity = document.createElement('div'); identity.className = 'app-identity';
+  const nameLine = document.createElement('div'); nameLine.className = 'app-name-line';
+  const name = document.createElement('strong'); name.textContent = presentation.label;
+  nameLine.append(name);
+  if (presentation.label.toLocaleLowerCase('vi') !== app.name.replace(/\.exe$/i, '').toLocaleLowerCase('vi')) {
+    const filename = document.createElement('span'); filename.className = 'app-file-name'; filename.textContent = app.name;
+    nameLine.append(filename);
+  }
+  const context = document.createElement('span'); context.className = 'hint';
+  context.textContent = app.last_seen
+    ? 'Đã thấy ' + new Date(app.last_seen * 1000).toLocaleString('vi-VN', {hour12:false}) +
+      (app.devices.size ? ' · ' + [...app.devices].join(', ') : '')
+    : 'Quy tắc đã lưu trước đây';
+  const details = document.createElement('details'); details.className = 'app-technical';
+  const summary = document.createElement('summary'); summary.textContent = 'Chi tiết kỹ thuật';
+  const technical = document.createElement('code');
+  technical.textContent = 'Tệp: ' + app.name + '\nMã nhận diện: ' + app.sha256;
+  details.append(summary, technical); identity.append(nameLine, context, details);
+  primary.append(icon, identity);
+  const label = document.createElement('label'); label.className = 'app-action';
+  const labelText = document.createElement('span'); labelText.textContent = 'Quyền sử dụng';
+  const select = document.createElement('select');
+  select.setAttribute('aria-label', 'Quyền sử dụng ' + app.name);
+  select.append(new Option('Theo quy tắc chung', 'default'), new Option('Cho phép', 'allow'), new Option('Chặn', 'block'));
+  select.value = appRuleState(app.sha256);
+  select.addEventListener('change', () => setAppRule(app, select.value));
+  label.append(labelText, select); item.append(primary, label);
+  return item;
+}
 
 function renderAppCatalog() {
   const byHash = new Map();
@@ -596,39 +689,44 @@ function renderAppCatalog() {
   }
   const search = el('app-search').value.trim().toLocaleLowerCase('vi');
   const apps = [...byHash.values()]
-    .filter(app => app.name.toLocaleLowerCase('vi').includes(search))
+    .filter(app => {
+      const presentation = appPresentation(app);
+      return !search || (app.name + ' ' + presentation.label).toLocaleLowerCase('vi').includes(search);
+    })
     .sort((a, b) => b.last_seen - a.last_seen || a.name.localeCompare(b.name, 'vi'));
-  const rows = apps.map(app => {
-    const item = document.createElement('li'); item.className = 'app-row';
-    const identity = document.createElement('div'); identity.className = 'app-identity';
-    const name = document.createElement('strong');
-    name.textContent = app.name.replace(/\.exe$/i, '') || app.name;
-    const context = document.createElement('span'); context.className = 'hint';
-    context.textContent = app.last_seen
-      ? 'Đã thấy ' + new Date(app.last_seen * 1000).toLocaleString('vi-VN', {hour12:false}) +
-        (app.devices.size ? ' · ' + [...app.devices].join(', ') : '')
-      : 'Quy tắc đã lưu trước đây';
-    const details = document.createElement('details'); details.className = 'app-technical';
-    const summary = document.createElement('summary'); summary.textContent = 'Chi tiết kỹ thuật';
-    const technical = document.createElement('code');
-    technical.textContent = 'Tệp: ' + app.name + '\nMã nhận diện: ' + app.sha256;
-    details.append(summary, technical); identity.append(name, context, details);
-    const label = document.createElement('label'); label.className = 'app-action';
-    const labelText = document.createElement('span'); labelText.textContent = 'Quyền sử dụng';
-    const select = document.createElement('select');
-    select.setAttribute('aria-label', 'Quyền sử dụng ' + app.name);
-    select.append(new Option('Theo quy tắc chung', 'default'), new Option('Cho phép', 'allow'), new Option('Chặn', 'block'));
-    select.value = appRuleState(app.sha256);
-    select.addEventListener('change', () => setAppRule(app, select.value));
-    label.append(labelText, select); item.append(identity, label); return item;
-  });
-  el('app-catalog').replaceChildren(...rows);
+  let primaryApps;
+  let systemApps = [];
+  if (appCatalogView === 'configured') {
+    primaryApps = apps.filter(app => appRuleState(app.sha256) !== 'default');
+  } else if (appCatalogView === 'all') {
+    primaryApps = apps;
+  } else {
+    primaryApps = apps.filter(app => appRuleState(app.sha256) !== 'default' || !isSystemApp(app));
+    systemApps = apps.filter(app => appRuleState(app.sha256) === 'default' && isSystemApp(app));
+  }
+  el('app-catalog').replaceChildren(...primaryApps.map(createAppRow));
+  el('system-app-catalog').replaceChildren(...systemApps.map(createAppRow));
+  el('system-app-count').textContent = String(systemApps.length);
+  el('system-apps-section').hidden = appCatalogView !== 'featured' || !systemApps.length;
+  if (search && systemApps.length) el('system-apps-section').open = true;
   if (!byHash.size) el('app-catalog-status').textContent = 'Chưa phát hiện ứng dụng. Hãy để con đăng nhập và mở ứng dụng trên thiết bị đã kết nối.';
   else if (!apps.length) el('app-catalog-status').textContent = 'Không tìm thấy ứng dụng phù hợp.';
-  else el('app-catalog-status').textContent = apps.length + ' ứng dụng' + (search ? ' phù hợp' : ' đã phát hiện') + '.';
+  else if (appCatalogView === 'configured' && !primaryApps.length) el('app-catalog-status').textContent = 'Chưa có ứng dụng nào được đặt quyền riêng.';
+  else {
+    const hiddenCount = systemApps.length;
+    el('app-catalog-status').textContent = apps.length + ' ứng dụng' + (search ? ' phù hợp' : ' đã phát hiện') +
+      (hiddenCount ? ' · ' + hiddenCount + ' tiến trình nền được thu gọn.' : '.');
+  }
 }
 
 el('app-search').addEventListener('input', renderAppCatalog);
+document.querySelectorAll('[data-app-view]').forEach(button => button.addEventListener('click', () => {
+  appCatalogView = button.dataset.appView;
+  document.querySelectorAll('[data-app-view]').forEach(option => {
+    option.setAttribute('aria-pressed', String(option === button));
+  });
+  renderAppCatalog();
+}));
 el('filtering-form').elements.enabled.addEventListener('change', updateAppControlWarning);
 
 let domainInspectionSequence = 0;
@@ -735,7 +833,7 @@ async function inspectDomain() {
     if (document.querySelector('.domain-row-edit') || domainLists.some(key => el(key + '-new').value.trim())) throw new Error('Hãy thêm hoặc lưu dòng tên miền đang nhập trước khi kiểm tra.');
     const domain = normalizeDomain(el('inspect-domain').value);
     const data = new FormData(el('filtering-form'));
-    const rules = {enabled:data.get('enabled') === 'on', domain_mode:data.get('domain_mode'),
+    const rules = {enabled:data.get('enabled') === 'on', dns_proxy_enabled:data.get('dns_proxy_enabled') === 'on', domain_mode:data.get('domain_mode'),
       category_actions:Object.fromEntries(['education','entertainment','social','games','age_inappropriate','unclassified'].map(key => [key, data.get('category_' + key)]))};
     domainLists.forEach(key => { rules[key] = [...domainDrafts[key]]; });
     rules.category_overrides = {...categoryOverrides};
@@ -764,6 +862,7 @@ form('filtering-form', async data => {
   if (domainLists.some(key => el(key + '-new').value.trim())) throw new Error('Hãy bấm Thêm để đưa tên miền vừa nhập vào danh sách trước khi lưu.');
   const childId = currentFiltering.child_id;
   const body = {expected_version: currentFiltering.version, enabled: data.get('enabled') === 'on',
+    dns_proxy_enabled: data.get('dns_proxy_enabled') === 'on',
     domain_mode: data.get('domain_mode'), app_mode: data.get('app_mode')};
   body.safe_search = data.get('safe_search') === 'on';
   body.category_overrides = {...categoryOverrides};
@@ -914,7 +1013,7 @@ domainLists.forEach(key => {
   el(key + '-new').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); addDomain(key); } });
 });
 el('filtering-form').addEventListener('input', event => {
-  if (!['inspect-domain','category-search'].includes(event.target.id) && event.target.matches('input, select, textarea')) markFilteringDirty();
+  if (!['inspect-domain','category-search','app-search'].includes(event.target.id) && event.target.matches('input, select, textarea')) markFilteringDirty();
 });
 el('reload-filtering').addEventListener('click', () => {
   if (filteringDirty && !window.confirm('Tải lại sẽ bỏ các thay đổi quy tắc chưa lưu. Tiếp tục?')) return;
@@ -942,39 +1041,66 @@ function rollingWeeksFromDaily(daily) {
   }
   return weeks;
 }
+function chartDateLabel(value, includeWeekday = false) {
+  const date = new Date(value + 'T00:00:00Z');
+  const dayMonth = String(date.getUTCDate()).padStart(2, '0') + '/' + String(date.getUTCMonth() + 1).padStart(2, '0');
+  if (!includeWeekday) return dayMonth;
+  return ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][date.getUTCDay()] + '\n' + dayMonth;
+}
+function chartScaleLabel(seconds) {
+  if (seconds < 60) return seconds + ' giây';
+  if (seconds < 3600) return Math.ceil(seconds / 60) + ' phút';
+  const hours = seconds / 3600;
+  return (hours >= 10 ? Math.round(hours) : Math.round(hours * 10) / 10) + ' giờ';
+}
 function renderReportColumns(id, childId, kind, items) {
-  const days = kind === 'daily' ? 7 : 56;
   const signature = childId + ':' + kind + ':' + JSON.stringify(items);
   if (el(id).firstElementChild?.dataset.signature === signature) return;
-  const wrap = document.createElement('div'); wrap.className = 'report-chart-image';
+  const wrap = document.createElement('div'); wrap.className = 'report-bars-chart';
   wrap.dataset.signature = signature;
-  const image = document.createElement('img');
-  image.alt = 'Biểu đồ thời lượng theo ' + (kind === 'daily' ? 'ngày' : 'tuần');
-  image.src = '/api/children/' + encodeURIComponent(childId) + '/activity-report/chart.png?kind=' + kind + '&days=' + days + '&t=' + Date.now();
-  wrap.append(image);
+  const maximum = Math.max(1, ...items.map(item => item.duration_sec));
+  const scale = document.createElement('div'); scale.className = 'report-chart-scale';
+  [maximum, maximum / 2, 0].forEach(value => {
+    const tick = document.createElement('span'); tick.textContent = chartScaleLabel(Math.round(value)); scale.append(tick);
+  });
+  const plot = document.createElement('div'); plot.className = 'report-chart-plot';
+  plot.style.gridTemplateColumns = 'repeat(' + items.length + ', minmax(0, 1fr))';
   items.forEach((item, index) => {
+    const column = document.createElement('div'); column.className = 'report-bar-column';
     const hit = document.createElement('button'); hit.type = 'button'; hit.className = 'report-column-hit';
     const label = (kind === 'daily' ? 'Ngày ' + item.date : 'Tuần ' + item.week_start + ' – ' + item.week_end) + ': ' + formatDuration(item.duration_sec);
     hit.title = label; hit.setAttribute('aria-label', label);
-    hit.style.left = (9 + index * 88.5 / items.length) + '%';
-    hit.style.width = (88.5 / items.length) + '%';
-    wrap.append(hit);
+    hit.style.setProperty('--bar-height', (item.duration_sec ? Math.max(4, item.duration_sec / maximum * 100) : 2) + '%');
+    const value = document.createElement('span'); value.className = 'report-bar-value';
+    value.textContent = item.duration_sec ? chartScaleLabel(item.duration_sec) : '';
+    const date = document.createElement('span'); date.className = 'report-bar-label';
+    date.textContent = kind === 'daily' ? chartDateLabel(item.date, true) : chartDateLabel(item.week_start);
+    column.append(value, hit, date); plot.append(column);
   });
+  wrap.append(scale, plot);
   el(id).replaceChildren(wrap);
 }
 function renderAppChart(childId, days, items) {
   const signature = childId + ':' + days + ':' + JSON.stringify(items);
   if (el('report-apps').firstElementChild?.dataset.signature === signature) return;
-  const image = document.createElement('img'); image.alt = 'Biểu đồ top 10 ứng dụng';
-  image.dataset.signature = signature;
-  image.src = '/api/children/' + encodeURIComponent(childId) + '/activity-report/chart.png?kind=apps&days=' + days + '&t=' + Date.now();
-  const list = document.createElement('ol'); list.className = 'sr-only';
+  const list = document.createElement('ol'); list.className = 'report-app-bars';
+  list.dataset.signature = signature;
+  const maximum = Math.max(1, ...items.map(item => item.duration_sec));
   items.forEach(item => {
     const line = document.createElement('li');
-    line.textContent = item.subject + ': ' + formatDuration(item.duration_sec);
+    const heading = document.createElement('div'); heading.className = 'report-app-heading';
+    const name = document.createElement('strong'); name.textContent = item.subject;
+    const duration = document.createElement('span'); duration.textContent = formatDuration(item.duration_sec);
+    const track = document.createElement('div'); track.className = 'report-app-track';
+    const bar = document.createElement('span'); bar.style.width = (item.duration_sec / maximum * 100) + '%';
+    track.append(bar); heading.append(name, duration); line.append(heading, track);
     list.append(line);
   });
-  el('report-apps').replaceChildren(image, list);
+  if (!items.length) {
+    const empty = document.createElement('li'); empty.className = 'report-app-empty';
+    empty.textContent = 'Chưa có dữ liệu ứng dụng trong khoảng này.'; list.append(empty);
+  }
+  el('report-apps').replaceChildren(list);
 }
 function renderReportList(id, lines, empty) {
   const signature = JSON.stringify(lines);

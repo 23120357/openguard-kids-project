@@ -225,6 +225,10 @@ class AgentCore:
         context = self.activity_context()
         return context if context and context[1].get("enabled") else None
 
+    def dns_filter_context(self):
+        context = self.filter_context()
+        return context if context and context[1].get("dns_proxy_enabled", True) else None
+
     def record_activity(self, child_id, event_type, subject, reason, rules, duration_sec=0):
         with self._lock:
             # A profile switch cannot attribute an old callback to the new child.
@@ -635,6 +639,7 @@ class AgentCore:
                 "blocking_notifications": blocking_notifications,
                 "filtering": {
                     "enabled": bool(self.filter_context()),
+                    "dns_proxy_enabled": bool(self.dns_filter_context()),
                     "error": self._filtering_error,
                     "web_protection": self._web_protection,
                     "web_protection_error": self._web_protection_error,

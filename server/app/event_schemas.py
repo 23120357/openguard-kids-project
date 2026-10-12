@@ -74,6 +74,7 @@ class ObservedAppBatch(Input):
 
 class FilterRules(Input):
     enabled: bool = False
+    dns_proxy_enabled: bool = True
     safe_search: bool = True
     category_overrides: dict[str, str] = Field(default_factory=dict, max_length=200)
     category_actions: dict[str, Literal["allow", "block"]] = Field(

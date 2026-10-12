@@ -2,51 +2,111 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css?v=20261012-app-warning">
-  <script src="/static/app.js?v=20261012-app-warning" defer></script>
+  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css?v=20261012-app-catalog-v2">
+  <script src="/static/app.js?v=20261012-app-catalog-v2" defer></script>
 </head>
 <body>
-<header><span class="brand">OpenGuard Kids</span><span>Bố mẹ và con cùng đồng hành</span></header>
+<header class="topbar"><span class="brand"><span class="brand-mark" aria-hidden="true">O</span><span>OpenGuard <strong>Kids</strong></span></span><span class="topbar-tagline">Bố mẹ và con cùng đồng hành</span></header>
 <main>
-  <p class="badge">BẢN PHÁT TRIỂN · TUẦN 3</p>
-  <h1>Một khởi đầu an toàn.</h1>
-  <p class="intro">Kết nối thiết bị và cùng con thiết lập thời gian sử dụng máy tính.</p>
-  <p class="notice">Đồng bộ thời gian, luật kiểm soát và sự kiện chặn giữa máy của con và phụ huynh. Chỉ dùng trên máy lab.</p>
-  <p id="message" role="status" aria-live="polite"></p>
-  <section id="login-panel" class="card">
-    <h2>Đăng nhập phụ huynh</h2>
-    <form id="login-form">
-      <label>Email<input name="email" type="email" autocomplete="username" required></label>
-      <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required></label>
-      <button>Đăng nhập</button>
-    </form>
-  </section>
-  <div id="workspace" hidden>
-    <div class="toolbar"><p id="identity"></p><button id="logout" class="secondary">Đăng xuất</button></div>
-    <div class="workspace-context"><label>Hồ sơ đang quản lý<select id="child-select"></select></label></div>
-    <nav class="workspace-tabs" role="tablist" aria-label="Bảng điều khiển phụ huynh">
-      <button type="button" id="overview-tab" role="tab" aria-selected="true" aria-controls="overview-panel" tabindex="0">Dashboard</button>
-      <button type="button" id="report-tab" role="tab" aria-selected="false" aria-controls="report-panel" tabindex="-1">Báo cáo</button>
-      <button type="button" id="time-policy-tab" role="tab" aria-selected="false" aria-controls="time-policy-panel" tabindex="-1">Chính sách thời gian</button>
-      <button type="button" id="filtering-tab" role="tab" aria-selected="false" aria-controls="filtering-panel" tabindex="-1">Quản lí web &amp; ứng dụng</button>
-      <button type="button" id="activity-tab" role="tab" aria-selected="false" aria-controls="activity-panel" tabindex="-1">Sự kiện</button>
-    </nav>
-    <div id="report-panel" role="tabpanel" aria-labelledby="report-tab" hidden>
-    <section class="card" aria-labelledby="report-title">
-      <h2 id="report-title">Hoạt động của con</h2>
-      <div class="report-controls"><label>Khoảng báo cáo<select id="report-days"><option value="7">7 ngày</option><option value="28" selected>28 ngày</option><option value="90">90 ngày</option></select></label><button id="export-week" type="button" class="secondary">Xuất báo cáo tuần (PDF)</button></div>
-      <p id="report-status" role="status" aria-live="polite"></p>
-      <p class="hint">Giờ Việt Nam (UTC+7). Hai biểu đồ luôn hiển thị 7 ngày và 8 tuần; “Khoảng báo cáo” áp dụng cho tổng quan, tên miền và yêu cầu bên dưới. Thời gian dùng máy bỏ qua lúc khóa máy, nghỉ quá 5 phút hoặc Tray vắng mặt. Các ứng dụng có thể chạy cùng lúc; lượt DNS không đồng nghĩa với lượt mở trang.</p>
-      <div class="report-totals"><p id="report-duration"></p><p id="report-blocked"></p></div>
-      <div class="grid report-grid">
-        <section><h3>Thời lượng theo ngày</h3><p class="report-chart-summary"><strong id="report-daily-total">—</strong><span>Tổng thời gian đã sử dụng trong 7 ngày qua</span></p><div id="report-daily" class="report-chart"></div><div class="report-axis"><span>7 ngày trước</span><span>Ngay bây giờ</span></div></section>
-        <section><h3>Thời lượng theo tuần</h3><p class="report-chart-summary"><strong id="report-weekly-total">—</strong><span>Tổng thời gian đã sử dụng trong 8 tuần qua</span></p><div id="report-weekly" class="report-chart"></div><div class="report-axis"><span>8 tuần trước</span><span>Ngay bây giờ</span></div></section>
-        <section><h3>Top 10 ứng dụng</h3><label>Khoảng thời gian<select id="report-app-period"><option value="1">1 ngày</option><option value="7" selected>1 tuần</option><option value="90">Toàn thời gian (90 ngày lưu trữ)</option></select></label><p class="hint">Thời gian chạy, có thể gồm ứng dụng chạy nền.</p><div id="report-apps" class="report-chart"></div></section>
-        <section><h3>Top 10 tên miền</h3><ol id="report-domains"></ol></section>
-      </div>
-      <h3>Yêu cầu của con trong khoảng báo cáo</h3><ul id="report-requests"></ul>
-      <p class="hint">Sự kiện đã đồng bộ từ các máy của con. Máy ngoại tuyến sẽ bổ sung dữ liệu khi kết nối lại. Báo cáo tuần PDF dùng tuần hiện tại từ thứ Hai đến Chủ nhật.</p>
+  <section class="login-experience">
+    <div class="login-hero-copy">
+      <p class="badge">BẢN PHÁT TRIỂN · TUẦN 3</p>
+      <h1>Đồng hành cùng con trong thế giới số.</h1>
+      <p class="intro">Một không gian an toàn để quản lý thời gian, ứng dụng và trải nghiệm trực tuyến của con.</p>
+      <div class="login-benefits" aria-label="Tính năng nổi bật"><span>✓ Quản lý thời gian linh hoạt</span><span>✓ Bảo vệ web và ứng dụng</span><span>✓ Minh bạch với cả gia đình</span></div>
+      <p class="notice">Môi trường phát triển dành cho máy lab. Dữ liệu và quy tắc được đồng bộ bảo mật giữa thiết bị của con và phụ huynh.</p>
+    </div>
+    <section id="login-panel" class="card login-card">
+      <span class="eyebrow">CỔNG PHỤ HUYNH</span>
+      <h2>Chào mừng trở lại</h2>
+      <p class="login-subtitle">Đăng nhập để tiếp tục quản lý không gian số của gia đình.</p>
+      <form id="login-form">
+        <label>Email<input name="email" type="email" autocomplete="username" placeholder="parent@example.com" required></label>
+        <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" required></label>
+        <button>Đăng nhập an toàn</button>
+      </form>
     </section>
+  </section>
+  <p id="message" role="status" aria-live="polite"></p>
+  <div id="workspace" hidden>
+    <div class="workspace-shell">
+      <aside class="sidebar">
+        <div class="sidebar-heading"><span class="sidebar-kicker">KHÔNG GIAN GIA ĐÌNH</span><strong>Trung tâm quản lý</strong></div>
+        <div class="workspace-context"><label>Hồ sơ đang quản lý<select id="child-select"></select></label></div>
+        <nav class="workspace-tabs" role="tablist" aria-label="Bảng điều khiển phụ huynh">
+          <button type="button" data-icon="⌂" id="overview-tab" role="tab" aria-selected="true" aria-controls="overview-panel" tabindex="0">Dashboard</button>
+          <button type="button" data-icon="◫" id="report-tab" role="tab" aria-selected="false" aria-controls="report-panel" tabindex="-1">Báo cáo</button>
+          <button type="button" data-icon="◷" id="time-policy-tab" role="tab" aria-selected="false" aria-controls="time-policy-panel" tabindex="-1">Chính sách thời gian</button>
+          <button type="button" data-icon="◈" id="filtering-tab" role="tab" aria-selected="false" aria-controls="filtering-panel" tabindex="-1">Quản lí web &amp; ứng dụng</button>
+          <button type="button" data-icon="◎" id="activity-tab" role="tab" aria-selected="false" aria-controls="activity-panel" tabindex="-1">Sự kiện</button>
+        </nav>
+        <div class="sidebar-security"><span aria-hidden="true">✓</span><div><strong>Agent được bảo vệ</strong><small>Đồng bộ theo thời gian thực</small></div></div>
+      </aside>
+      <section class="workspace-main">
+        <div class="toolbar account-bar"><div><span class="eyebrow">TÀI KHOẢN PHỤ HUYNH</span><p id="identity"></p></div><button id="logout" class="secondary">Đăng xuất</button></div>
+        <div class="page-frame">
+    <div id="report-panel" role="tabpanel" aria-labelledby="report-tab" hidden>
+      <section class="report-page" aria-labelledby="report-title">
+        <header class="report-page-header">
+          <div class="report-heading">
+            <span class="eyebrow">PHÂN TÍCH HOẠT ĐỘNG</span>
+            <h2 id="report-title">Báo cáo sử dụng</h2>
+            <p>Theo dõi thời gian, nội dung truy cập và các yêu cầu của con.</p>
+            <p id="report-status" class="report-period" role="status" aria-live="polite"></p>
+          </div>
+          <div class="report-controls">
+            <label>Khoảng báo cáo<select id="report-days"><option value="7">7 ngày</option><option value="28" selected>28 ngày</option><option value="90">90 ngày</option></select></label>
+            <button id="export-week" type="button" class="secondary report-export"><span aria-hidden="true">↓</span> Xuất PDF tuần</button>
+          </div>
+        </header>
+
+        <details class="report-info">
+          <summary><span aria-hidden="true">i</span> Cách đọc báo cáo</summary>
+          <p>Giờ Việt Nam (UTC+7). Biểu đồ hiển thị 7 ngày và 8 tuần gần nhất; bộ lọc áp dụng cho tổng quan, tên miền và yêu cầu. Thời gian dùng máy không tính lúc khóa máy, nghỉ quá 5 phút hoặc Tray vắng mặt. Ứng dụng có thể chạy đồng thời; lượt DNS không đồng nghĩa với lượt mở trang.</p>
+        </details>
+
+        <div class="report-totals" aria-label="Chỉ số tổng quan">
+          <article class="report-kpi">
+            <span class="report-kpi-icon report-kpi-icon--time" aria-hidden="true">◷</span>
+            <div><span class="report-kpi-label">Thời gian sử dụng</span><p id="report-duration">—</p><small>Trong khoảng đã chọn</small></div>
+          </article>
+          <article class="report-kpi">
+            <span class="report-kpi-icon report-kpi-icon--blocked" aria-hidden="true">⊘</span>
+            <div><span class="report-kpi-label">Lượt bảo vệ</span><p id="report-blocked">—</p><small>Trang hoặc ứng dụng bị chặn</small></div>
+          </article>
+        </div>
+
+        <div class="report-chart-grid">
+          <section class="report-card report-chart-card">
+            <div class="report-card-heading"><div><span class="report-card-kicker">7 NGÀY GẦN NHẤT</span><h3>Thời lượng theo ngày</h3></div><strong id="report-daily-total">—</strong></div>
+            <div id="report-daily" class="report-chart"></div>
+            <div class="report-axis"><span>7 ngày trước</span><span>Ngay bây giờ</span></div>
+          </section>
+          <section class="report-card report-chart-card">
+            <div class="report-card-heading"><div><span class="report-card-kicker">8 TUẦN GẦN NHẤT</span><h3>Xu hướng theo tuần</h3></div><strong id="report-weekly-total">—</strong></div>
+            <div id="report-weekly" class="report-chart"></div>
+            <div class="report-axis"><span>8 tuần trước</span><span>Ngay bây giờ</span></div>
+          </section>
+        </div>
+
+        <div class="report-insights-grid">
+          <section class="report-card">
+            <div class="report-card-heading report-card-heading--filter"><div><span class="report-card-kicker">MỨC ĐỘ SỬ DỤNG</span><h3>Ứng dụng nổi bật</h3></div><label>Khoảng thời gian<select id="report-app-period"><option value="1">1 ngày</option><option value="7" selected>1 tuần</option><option value="90">90 ngày</option></select></label></div>
+            <div id="report-apps" class="report-chart report-chart--apps"></div>
+            <p class="report-note"><span aria-hidden="true">i</span> Có thể bao gồm ứng dụng chạy nền.</p>
+          </section>
+          <section class="report-card">
+            <div class="report-card-heading"><div><span class="report-card-kicker">TRUY CẬP INTERNET</span><h3>Tên miền nổi bật</h3></div></div>
+            <ol id="report-domains" class="report-ranked-list"></ol>
+          </section>
+        </div>
+
+        <section class="report-card report-requests-card">
+          <div class="report-card-heading"><div><span class="report-card-kicker">TƯƠNG TÁC GIA ĐÌNH</span><h3>Yêu cầu của con</h3></div></div>
+          <ul id="report-requests"></ul>
+          <p class="report-note"><span aria-hidden="true">i</span> Máy ngoại tuyến sẽ bổ sung dữ liệu khi kết nối lại. Báo cáo PDF sử dụng tuần hiện tại, từ thứ Hai đến Chủ nhật.</p>
+        </section>
+      </section>
     </div>
     <div id="overview-panel" role="tabpanel" aria-labelledby="overview-tab">
     <div class="grid">
@@ -92,12 +152,15 @@
     <div id="time-policy-panel" role="tabpanel" aria-labelledby="time-policy-tab" hidden>
       <section class="card">
         <h2>Chính sách thời gian</h2>
+        <p class="policy-intro">Thiết lập giới hạn tổng thời gian và những khung giờ con được phép sử dụng thiết bị.</p>
         <form id="policy-form">
-          <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát thời gian</label>
-          <label>Ngày thường (phút)<input name="weekday_minutes" type="number" min="1" max="1440" required></label>
-          <label>Cuối tuần (phút)<input name="weekend_minutes" type="number" min="1" max="1440" required></label>
-          <fieldset><legend>Lịch dùng máy theo ngày</legend><p class="hint">Giờ theo định dạng 24h; phút chỉ chọn 00 hoặc 30. Mỗi ngày có thể thêm nhiều khoảng giờ; các khoảng chồng nhau được gộp. Giờ kết thúc 00:00 nghĩa là hết ngày (nửa đêm hôm sau).</p><p id="schedule-error" class="validation-error" role="alert" aria-live="assertive"></p><div id="schedule-grid"></div></fieldset>
-          <p id="policy-version"></p><button>Lưu chính sách</button>
+          <div class="policy-overview">
+            <label class="check policy-toggle"><input name="enabled" type="checkbox"><span><strong>Bật kiểm soát thời gian</strong><small>Áp dụng giới hạn và lịch sử dụng bên dưới</small></span></label>
+            <label>Ngày thường <span class="label-unit">phút/ngày</span><input name="weekday_minutes" type="number" min="1" max="1440" required></label>
+            <label>Cuối tuần <span class="label-unit">phút/ngày</span><input name="weekend_minutes" type="number" min="1" max="1440" required></label>
+          </div>
+          <fieldset class="schedule-card"><legend>Lịch dùng máy theo ngày</legend><p class="hint schedule-help">Chọn ngày hoạt động và các khoảng giờ được phép. Có thể thêm nhiều khoảng; hệ thống tự gộp thời gian chồng nhau.</p><p id="schedule-error" class="validation-error" role="alert" aria-live="assertive"></p><div id="schedule-grid"></div></fieldset>
+          <div class="policy-footer"><p id="policy-version"></p><button>Lưu chính sách</button></div>
         </form>
       </section>
     </div>
@@ -106,6 +169,10 @@
         <h2>Quản lí web &amp; ứng dụng</h2><p class="hint">Mỗi dòng là một tên miền. Có thể nhập URL; hệ thống chỉ lưu tên miền. Bấm Lưu quy tắc kiểm soát để áp dụng các thay đổi.</p>
         <form id="filtering-form">
           <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát ứng dụng và trang web</label>
+          <label class="dns-proxy-toggle">
+            <span class="switch"><input name="dns_proxy_enabled" type="checkbox" checked><span aria-hidden="true"></span></span>
+            <span><strong>Bảo vệ web qua DNS proxy</strong><small>Tắt để khôi phục DNS gốc của máy; kiểm soát ứng dụng vẫn tiếp tục hoạt động.</small></span>
+          </label>
           <fieldset><legend>Nhóm trang web dành cho trẻ 6–11 tuổi</legend>
             <p id="category-catalog-status" class="hint" role="status">Danh sách website sẽ được tải khi chọn hồ sơ.</p>
             <p class="hint">Phân loại riêng chỉ áp dụng cho hồ sơ đang chọn. Xóa phân loại riêng sẽ trở về nhóm mặc định (nếu có), hoặc nhóm của miền cha, nếu không thì Chưa phân loại. Bấm Lưu quy tắc kiểm soát để áp dụng.</p>
@@ -171,9 +238,21 @@
               <button id="enable-filtering-from-apps" type="button">Bật kiểm soát ngay</button>
             </div>
             <label>Quy tắc chung<select name="app_mode"><option value="blocklist">Cho phép tất cả, trừ ứng dụng bị chặn</option><option value="allowlist">Chỉ cho phép ứng dụng đã chọn</option></select></label>
-            <label for="app-search">Tìm ứng dụng<input id="app-search" type="search" placeholder="Ví dụ: Chrome, Roblox"></label>
+            <div class="app-catalog-toolbar">
+              <label for="app-search">Tìm ứng dụng<input id="app-search" type="search" placeholder="Ví dụ: Chrome, Roblox"></label>
+              <div class="app-view-filters" role="group" aria-label="Lọc danh sách ứng dụng">
+                <button type="button" class="app-view-filter" data-app-view="featured" aria-pressed="true">Nổi bật</button>
+                <button type="button" class="app-view-filter" data-app-view="configured" aria-pressed="false">Đã thiết lập</button>
+                <button type="button" class="app-view-filter" data-app-view="all" aria-pressed="false">Tất cả</button>
+              </div>
+            </div>
             <p id="app-catalog-status" class="hint" role="status" aria-live="polite"></p>
             <ul id="app-catalog" class="app-list" aria-label="Ứng dụng trên máy của con"></ul>
+            <details id="system-apps-section" class="system-apps-section">
+              <summary><span>Ứng dụng hệ thống và tiến trình nền</span><span id="system-app-count" class="app-count-badge">0</span></summary>
+              <p class="hint">Nhóm kỹ thuật ít khi phụ huynh cần thay đổi. Ứng dụng đã đặt quyền vẫn luôn được đưa lên danh sách chính.</p>
+              <ul id="system-app-catalog" class="app-list" aria-label="Ứng dụng hệ thống và tiến trình nền"></ul>
+            </details>
             <p class="hint">Ứng dụng mới xuất hiện sau khi con đăng nhập trên thiết bị và thiết bị kết nối mạng. Nếu ứng dụng được cập nhật thành tệp mới, ứng dụng có thể xuất hiện lại để bố mẹ xem xét.</p>
           </fieldset>
           <p id="filtering-draft-status" class="hint" role="status" aria-live="polite"></p>
@@ -190,6 +269,9 @@
       <button id="erase-activity" class="danger">Xóa toàn bộ dữ liệu hoạt động của con tôi</button>
       <p id="deletion-status" role="status" aria-live="polite"></p>
     </section>
+        </div>
+      </section>
+    </div>
   </div>
   <section class="privacy">
     <h2>Ứng dụng này biết gì về em?</h2>

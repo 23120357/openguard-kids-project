@@ -178,7 +178,7 @@ class WebProtection:
             if item["servers"] != expected:
                 self.network.set_dns(item)
                 changed = True
-        context = self.core.filter_context()
+        context = self.core.dns_filter_context()
         key = (context[0], context[1].get("version")) if context else None
         if changed or key != self.policy_key:
             self.network.flush()
@@ -186,7 +186,7 @@ class WebProtection:
 
     def tick(self):
         try:
-            if self.core.filter_context():
+            if self.core.dns_filter_context():
                 self.enable()
                 self.core._web_protection = "active"
             else:

@@ -19,7 +19,7 @@ def matches_domain(host, domains):
 
 def domain_decision(host, rules):
     host = domain_name(host)
-    if not rules or not rules.get("enabled"):
+    if not rules or not rules.get("enabled") or rules.get("dns_proxy_enabled", True) is False:
         return None
     if matches_domain(host, set(rules.get("safety_domains", [])) | {"111.vn"}):
         return None
@@ -247,7 +247,7 @@ class DNSProxy:
             host = domain_name(str(request.q.qname))
         except ValueError:
             host = None
-        if context and host:
+        if context and host and context[1].get("dns_proxy_enabled", True):
             child_id, rules, _ = context
             with self.lock:
                 now = time.monotonic()
