@@ -1,9 +1,12 @@
+import json
 from pathlib import Path
 
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+
+from common.domains import normalize_safety_domains
 
 
 def build_database(url: str):
@@ -73,6 +76,30 @@ def migrate_development_schema(engine) -> None:
         with engine.begin() as connection:
             for statement in statements:
                 connection.execute(text(statement))
+
+    if "filtering_policies" in inspect(engine).get_table_names():
+        with engine.begin() as connection:
+            rows = connection.execute(
+                text("SELECT child_id, version, rules FROM filtering_policies")
+            ).mappings()
+            for row in rows:
+                rules = json.loads(row["rules"]) if isinstance(row["rules"], str) else row["rules"]
+                current = rules.get("safety_domains", [])
+                normalized = normalize_safety_domains(current)
+                if current == normalized:
+                    continue
+                rules["safety_domains"] = normalized
+                connection.execute(
+                    text(
+                        "UPDATE filtering_policies "
+                        "SET version = :version, rules = :rules WHERE child_id = :child_id"
+                    ),
+                    {
+                        "child_id": row["child_id"],
+                        "version": row["version"] + 1,
+                        "rules": json.dumps(rules, ensure_ascii=False),
+                    },
+                )
 
 
 def get_db(request):

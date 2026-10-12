@@ -245,12 +245,12 @@ def test_domain_rules_subdomains_safety_and_privacy():
         "enabled": True,
         "domain_mode": "allowlist",
         "domain_allow": ["example.org"],
-        "domain_block": ["111.vn"],
+        "domain_block": ["tongdai111.vn"],
         "safety_domains": ["school.edu.vn"],
     }
     assert domain_decision("news.example.org", rules) is None
     assert domain_decision("notexample.org", rules)
-    assert domain_decision("111.vn", rules) is None
+    assert domain_decision("tongdai111.vn", rules) is None
     assert domain_decision("portal.school.edu.vn", rules) is None
     assert event_domain("portal.school.edu.vn") == "school.edu.vn"
 
@@ -355,7 +355,8 @@ def test_filtering_validation_versions_and_signed_document(parent, child):
     integrity = doc.pop("integrity")
     assert verify_policy(doc, integrity["signature"], tokens["policy_signing_key"])
     assert doc["policies"][0]["version"] == 1
-    assert "111.vn" in doc["policies"][0]["safety_domains"]
+    assert "tongdai111.vn" in doc["policies"][0]["safety_domains"]
+    assert "111.vn" not in doc["policies"][0]["safety_domains"]
 
 
 def test_end_to_end_offline_queue_sync_and_delete(parent, child, tmp_path):

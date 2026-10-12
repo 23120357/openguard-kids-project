@@ -12,7 +12,7 @@
   SYSTEM, chính Tray hoặc các tiến trình giao diện Windows được bảo vệ.
 - DNS proxy UDP/TCP trên `127.0.0.1:53`, lọc tên miền và tên miền con;
   trả NXDOMAIN khi chặn và gửi giải thích tới Tray. Luật miễn chặn có ưu tiên cao
-  nhất; `111.vn` luôn được phép. Phụ huynh phải thêm miền trường/cứu hộ phù hợp.
+  nhất; `tongdai111.vn` luôn được phép. Phụ huynh phải thêm miền trường/cứu hộ phù hợp.
 - Lưu SQLite tại agent cả lịch sử và outbox; gửi theo lô tối đa 100 mục;
   server chống trùng bằng `(device_id, UUID sự kiện)` với ràng buộc DB.
 - Retention đầy đủ cho **dữ liệu sự kiện F3**: quá 90 ngày tự xóa, xóa theo yêu

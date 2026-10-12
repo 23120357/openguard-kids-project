@@ -13,6 +13,7 @@ const REPORT_REFRESH_MS = 60 * 1000;
 let reportCache = {key: '', loadedAt: 0};
 let appReportCache = {key: '', loadedAt: 0};
 const domainLists = ['domain_block', 'domain_allow', 'safety_domains'];
+const mandatorySafetyDomain = 'tongdai111.vn';
 let domainDrafts = {domain_block: [], domain_allow: [], safety_domains: []};
 const dashboardTabs = ['overview', 'report', 'time-policy', 'filtering', 'activity'];
 let activityOffset = 0;
@@ -534,6 +535,9 @@ async function loadFiltering(childId, force = false) {
     api('/children/' + encodeURIComponent(childId) + '/filtering'),
     api('/children/' + encodeURIComponent(childId) + '/observed-apps'),
   ]);
+  policy.safety_domains = [...new Set(
+    (policy.safety_domains || []).filter(domain => domain !== '111.vn').concat(mandatorySafetyDomain)
+  )].sort();
   if (!csrf || sequence !== filteringSequence || el('child-select').value !== childId) return;
   if (!force && filteringDirty && currentFiltering?.child_id === childId) return;
   if (force || JSON.stringify(currentFiltering) !== JSON.stringify(policy)) clearDomainInspection();
@@ -971,7 +975,7 @@ function renderDomainLists() {
       const name = document.createElement('span'); name.className = 'domain-name'; name.textContent = domain;
       row.append(name);
       const actions = document.createElement('div'); actions.className = 'domain-row-actions'; row.append(actions);
-      if (key === 'safety_domains' && domain === '111.vn') {
+      if (key === 'safety_domains' && domain === mandatorySafetyDomain) {
         const note = document.createElement('span'); note.className = 'hint'; note.textContent = 'Luôn được phép'; actions.append(note); return row;
       }
       const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'secondary'; edit.textContent = 'Chỉnh sửa'; edit.setAttribute('aria-label', 'Chỉnh sửa ' + domain);

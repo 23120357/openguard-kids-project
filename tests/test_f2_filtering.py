@@ -57,6 +57,15 @@ def test_catalog_and_category_precedence():
     assert domain_decision('age-restricted.example.test', rules) is None
 
 
+def test_legacy_hotline_domain_is_replaced_by_current_domain():
+    rules = FilterRules(
+        enabled=True, domain_mode='allowlist', safety_domains=['111.vn']
+    ).model_dump()
+    assert rules['safety_domains'] == ['tongdai111.vn']
+    assert domain_decision('tongdai111.vn', rules) is None
+    assert domain_decision('111.vn', rules) is not None
+
+
 def test_public_50_block_and_20_education_matrix():
     with Path('tests/assets/f2_dns_cases.csv').open(encoding='utf-8') as stream:
         cases = list(csv.DictReader(stream))

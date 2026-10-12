@@ -14,6 +14,7 @@ const assert = require('node:assert/strict');
     let signedIn = false;
     const children = [{id:'an',display_name:'An',has_pin:true},{id:'binh',display_name:'Bình',has_pin:true}];
     const policies = new Map(children.map(child => [child.id,{child_id:child.id,version:1,enabled:true,weekday_minutes:90,weekend_minutes:120,schedule:Array(7).fill('1'.repeat(48))}]));
+    // Simulate a policy created before the hotline domain was corrected.
     const rules = new Map(children.map(child => [child.id,{child_id:child.id,version:1,enabled:true,domain_mode:'blocklist',app_mode:'blocklist',domain_allow:['example.org'],domain_block:[child.id+'.example.test'],safety_domains:['111.vn'],app_allow:[],app_block:[]}]));
     const recorded = [];
     let chartRequests = 0;
@@ -195,7 +196,7 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(() => document.querySelector('#filtering-draft-status').textContent === '');
     assert.deepEqual(rules.get('an').domain_block,['edited.example.org']);
     assert.deepEqual(rules.get('an').domain_allow,['example.org']);
-    assert.deepEqual(rules.get('an').safety_domains,['111.vn']);
+    assert.deepEqual(rules.get('an').safety_domains,['tongdai111.vn']);
     assert.equal(recorded.length,1);
     assert.deepEqual(rules.get('an').category_overrides,{'facebook.com':'education'});
     assert.equal(rules.get('an').category_actions.unclassified,'block');

@@ -3,7 +3,12 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
-from common.domains import domain_name, event_domain
+from common.domains import (
+    MANDATORY_SAFETY_DOMAIN,
+    domain_name,
+    event_domain,
+    normalize_safety_domains,
+)
 from common.filter_categories import CATEGORY_LABELS, DEFAULT_ACTIONS
 
 from .schemas import Input
@@ -86,7 +91,9 @@ class FilterRules(Input):
     domain_mode: Literal["blocklist", "allowlist"] = "blocklist"
     domain_allow: list[str] = Field(default_factory=list, max_length=500)
     domain_block: list[str] = Field(default_factory=list, max_length=500)
-    safety_domains: list[str] = Field(default_factory=lambda: ["111.vn"], max_length=100)
+    safety_domains: list[str] = Field(
+        default_factory=lambda: [MANDATORY_SAFETY_DOMAIN], max_length=100
+    )
 
     @field_validator("category_actions")
     @classmethod
@@ -108,7 +115,9 @@ class FilterRules(Input):
 
     @field_validator("domain_allow", "domain_block", "safety_domains")
     @classmethod
-    def domains(cls, value):
+    def domains(cls, value, info):
+        if info.field_name == "safety_domains":
+            return normalize_safety_domains(value)
         return sorted({domain_name(item) for item in value})
 
 

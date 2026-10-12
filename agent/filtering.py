@@ -7,7 +7,7 @@ import threading
 import time
 from pathlib import Path
 
-from common.domains import domain_name, event_domain
+from common.domains import domain_name, event_domain, normalize_safety_domains
 from common.filter_categories import CATEGORY_LABELS, DEFAULT_ACTIONS, classify_domain
 
 LOGGER = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def domain_decision(host, rules):
     host = domain_name(host)
     if not rules or not rules.get("enabled") or rules.get("dns_proxy_enabled", True) is False:
         return None
-    if matches_domain(host, set(rules.get("safety_domains", [])) | {"111.vn"}):
+    if matches_domain(host, normalize_safety_domains(rules.get("safety_domains", []))):
         return None
     if matches_domain(host, rules.get("domain_block", [])):
         return "Trang web nằm trong danh sách bị chặn."

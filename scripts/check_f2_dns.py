@@ -33,7 +33,7 @@ class SafeUpstream(BaseResolver):
 def lab_policy(cases):
     return {
         "enabled": True, "version": 1, "app_mode": "blocklist", "app_allow": [], "app_block": [],
-        "domain_mode": "blocklist", "domain_allow": [], "safety_domains": ["111.vn"],
+        "domain_mode": "blocklist", "domain_allow": [], "safety_domains": ["tongdai111.vn"],
         "domain_block": [item["domain"] for item in cases if item["expected"] == "block"],
         "safe_search": True, "category_actions": dict(DEFAULT_ACTIONS),
     }

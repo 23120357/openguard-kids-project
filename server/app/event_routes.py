@@ -14,6 +14,7 @@ from sqlalchemy.dialects.sqlite import insert
 from agent.event_queue import RETENTION_SECONDS
 from agent.filtering import domain_decision, matches_domain
 from common.activity_reports import REPORT_ZONE, activity_report, report_bounds
+from common.domains import normalize_safety_domains
 from common.filter_categories import CATEGORY_LABELS, category_catalog, classify_domain
 from common.report_charts import render_report_chart, rolling_week_columns
 from common.report_pdf import render_weekly_pdf
@@ -60,7 +61,7 @@ def preview_domain(child_id: str, body: DomainPreview, auth: ParentAuth, db: DB)
     if not blocked:
         if not rules["enabled"]:
             reason = "Kiểm soát ứng dụng và trang web đang tắt."
-        elif matches_domain(body.domain, set(rules["safety_domains"]) | {"111.vn"}):
+        elif matches_domain(body.domain, normalize_safety_domains(rules["safety_domains"])):
             reason = "Trang web thuộc danh sách luôn được phép (trường học/hỗ trợ)."
         elif matches_domain(body.domain, rules["domain_allow"]):
             reason = "Trang web thuộc danh sách được phép riêng, ưu tiên hơn quy tắc nhóm."
@@ -473,7 +474,7 @@ def set_filtering(child_id: str, body: FilterInput, request: Request, auth: Pare
     if old["version"] != body.expected_version:
         raise HTTPException(409, "Filtering policy changed; reload before saving")
     rules = body.model_dump(exclude={"expected_version"})
-    rules["safety_domains"] = sorted(set(rules["safety_domains"]) | {"111.vn"})
+    rules["safety_domains"] = normalize_safety_domains(rules["safety_domains"])
     db.execute(
         insert(FilteringPolicy)
         .values(child_id=child_id, version=old["version"] + 1, rules=rules)

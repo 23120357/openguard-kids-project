@@ -1,5 +1,6 @@
 """Multi-child profile selection on one enrolled development device."""
 
+import json
 import time
 from copy import deepcopy
 from datetime import UTC, datetime
@@ -7,7 +8,7 @@ from datetime import UTC, datetime
 import pytest
 from argon2 import PasswordHasher
 from fastapi.testclient import TestClient
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
 from agent.core import AgentCore
 from agent.ipc_protocol import new_request
@@ -201,3 +202,32 @@ def test_existing_development_database_gets_pin_and_active_profile_columns(tmp_p
     assert "policy_signing_key" in {
         column["name"] for column in inspect(engine).get_columns("devices")
     }
+
+
+def test_development_migration_replaces_legacy_hotline_domain(tmp_path):
+    engine, _ = build_database("sqlite:///" + (tmp_path / "old-filtering.db").as_posix())
+    with engine.begin() as connection:
+        connection.exec_driver_sql("CREATE TABLE policies (child_id VARCHAR PRIMARY KEY)")
+        connection.exec_driver_sql("CREATE TABLE children (id VARCHAR PRIMARY KEY)")
+        connection.exec_driver_sql("CREATE TABLE devices (id VARCHAR PRIMARY KEY)")
+        connection.exec_driver_sql(
+            "CREATE TABLE filtering_policies "
+            "(child_id VARCHAR PRIMARY KEY, version INTEGER NOT NULL, rules JSON NOT NULL)"
+        )
+        connection.execute(
+            text(
+                "INSERT INTO filtering_policies (child_id, version, rules) "
+                "VALUES ('child-a', 4, :rules)"
+            ),
+            {"rules": '{"safety_domains":["111.vn","school.example"]}'},
+        )
+    migrate_development_schema(engine)
+    with engine.connect() as connection:
+        row = connection.execute(
+            text("SELECT version, rules FROM filtering_policies WHERE child_id = 'child-a'")
+        ).mappings().one()
+    assert row["version"] == 5
+    assert json.loads(row["rules"])["safety_domains"] == [
+        "school.example",
+        "tongdai111.vn",
+    ]
