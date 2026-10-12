@@ -70,6 +70,7 @@ class AgentCore:
         self._password_hasher = PasswordHasher()
         self._session_changed: Callable[[], None] | None = None
         self._time_request_queued: Callable[[], None] | None = None
+        self._activity_queued: Callable[[], None] | None = None
         self._pairing_required = pairing_required
         self._enrolled = not pairing_required
         self._enroll_callback: Callable[[str], None] | None = None
@@ -115,6 +116,8 @@ class AgentCore:
                 event_id=event["id"],
                 timestamp=event["ts"],
             )
+            if self._activity_queued:
+                self._activity_queued()
 
     def clear_activity(self, child_ids):
         for child_id in child_ids:
@@ -246,7 +249,10 @@ class AgentCore:
             )
             if event_type == "app_stop":
                 self._app_period_cache = None
-            return event
+            callback = self._activity_queued
+        if callback:
+            callback()
+        return event
 
     def record_observed_app(self, child_id: str, name: str, sha256: str) -> None:
         """Queue a privacy-minimal app identity for the parent picker."""
@@ -266,6 +272,9 @@ class AgentCore:
             if len(self._observed_apps) > 500:
                 oldest = min(self._observed_apps, key=lambda item: self._observed_apps[item]["observed_at"])
                 del self._observed_apps[oldest]
+            callback = self._activity_queued
+        if callback:
+            callback()
 
     def pending_observed_apps(self) -> list[dict[str, str]]:
         with self._lock:
@@ -317,6 +326,10 @@ class AgentCore:
     def set_time_request_callback(self, callback: Callable[[], None]) -> None:
         with self._lock:
             self._time_request_queued = callback
+
+    def set_activity_callback(self, callback: Callable[[], None]) -> None:
+        with self._lock:
+            self._activity_queued = callback
 
     def configure_child_login(self, *, child_name: str, child_pin_hash: str) -> None:
         with self._lock:

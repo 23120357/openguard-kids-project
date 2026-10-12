@@ -7,16 +7,34 @@ value is persisted before its first mutation, including across service crashes.
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
 import threading
 from pathlib import Path
 
 
 class WindowsNetwork:
+    @staticmethod
+    def powershell_executable():
+        """Return a stable PowerShell path for Windows service processes.
+
+        Windows services do not necessarily inherit the interactive user's PATH,
+        so resolving only ``powershell.exe`` can fail even though Windows
+        PowerShell is installed in its standard system directory.
+        """
+        system_root = Path(os.environ.get("SystemRoot", r"C:\Windows"))
+        system_powershell = (
+            system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+        )
+        if system_powershell.is_file():
+            return str(system_powershell)
+        return shutil.which("powershell.exe") or str(system_powershell)
+
     def run(self, script):
         result = subprocess.run(
             [
-                "powershell.exe",
+                self.powershell_executable(),
                 "-NoProfile",
                 "-NonInteractive",
                 "-Command",

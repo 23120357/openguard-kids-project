@@ -359,6 +359,22 @@ def test_filtering_validation_versions_and_signed_document(parent, child):
     assert "111.vn" not in doc["policies"][0]["safety_domains"]
 
 
+def test_filtering_change_wakes_connected_agent(parent, child):
+    tokens, _ = pair(parent, child)
+    with parent.websocket_connect(
+        "/api/device/ws?access_token=" + tokens["access_token"]
+    ) as websocket:
+        updated = parent.put(
+            f"/api/children/{child['id']}/filtering",
+            json={"expected_version": 0, "enabled": True},
+        )
+        assert updated.status_code == 200
+        assert websocket.receive_json() == {
+            "kind": "policy_changed",
+            "child_id": child["id"],
+        }
+
+
 def test_end_to_end_offline_queue_sync_and_delete(parent, child, tmp_path):
     from agent.core import AgentCore
 
@@ -473,7 +489,7 @@ def test_core_dns_event_scope_notification_ack_and_ipc_size(tmp_path):
     assert core.status()["activity_events"] == core.status()["blocking_notifications"] == []
 
 
-def test_popup_shows_reason_once_and_acknowledges_on_dismiss(monkeypatch):
+def test_popup_shows_each_separate_block_attempt_and_acknowledges_on_dismiss(monkeypatch):
     from agent import tray_ui
 
     ui = tray_ui.TrayApplication.__new__(tray_ui.TrayApplication)
@@ -482,6 +498,7 @@ def test_popup_shows_reason_once_and_acknowledges_on_dismiss(monkeypatch):
     ui.root = Mock()
     ui.block_popup = None
     ui.block_popup_ids = set()
+    ui.block_popup_keys = set()
     ui._send_async = Mock()
     popup = Mock()
     monkeypatch.setattr(tray_ui.tk, "Toplevel", Mock(return_value=popup))
@@ -522,7 +539,9 @@ def test_popup_shows_reason_once_and_acknowledges_on_dismiss(monkeypatch):
     assert ui.block_popup is None
     repeated = {**item, "id": "event-3"}
     ui._update_activity_events({"activity_events": [repeated], "blocking_notifications": [repeated]})
-    assert tray_ui.tk.Toplevel.call_count == 1
+    assert tray_ui.tk.Toplevel.call_count == 2
+    assert ui._send_async.call_count == 1
+    button.call_args.kwargs["command"]()
     ui._send_async.assert_called_with(
         "ack_blocking", "ack_blocking_events", {"event_ids": ["event-3"]}
     )
@@ -531,7 +550,7 @@ def test_popup_shows_reason_once_and_acknowledges_on_dismiss(monkeypatch):
         "event": {**item["event"], "subject": "other.test"},
     }
     ui._update_activity_events({"activity_events": [different], "blocking_notifications": [different]})
-    assert tray_ui.tk.Toplevel.call_count == 2
+    assert tray_ui.tk.Toplevel.call_count == 3
 
 
 def test_popup_closes_after_profile_switch_or_erasure(monkeypatch):
@@ -567,9 +586,11 @@ def test_app_controller_never_kills_other_windows_sessions(tmp_path, monkeypatch
         "app_block": [{"name": "game.exe", "sha256": sha}],
     }
     core.activity_context.return_value = ("c", rules, 10)
-    monkeypatch.setattr(win32process, "EnumProcesses", lambda: [20, 30])
-    monkeypatch.setattr(win32ts, "ProcessIdToSessionId", lambda pid: 1 if pid in [10, 20] else 2)
-    processes = {pid: Mock() for pid in [20, 30]}
+    monkeypatch.setattr(win32process, "EnumProcesses", lambda: [20, 21, 30])
+    monkeypatch.setattr(
+        win32ts, "ProcessIdToSessionId", lambda pid: 1 if pid in [10, 20, 21] else 2
+    )
+    processes = {pid: Mock() for pid in [20, 21, 30]}
     for process in processes.values():
         process.name.return_value = filename.name
         process.exe.return_value = str(filename)
@@ -577,5 +598,13 @@ def test_app_controller_never_kills_other_windows_sessions(tmp_path, monkeypatch
     monkeypatch.setattr(psutil, "Process", lambda pid: processes[pid])
     controller.scan()
     processes[20].kill.assert_called_once()
+    processes[21].kill.assert_called_once()
     processes[30].kill.assert_not_called()
+    assert core.record_activity.call_count == 1
     assert core.record_activity.call_args.args[1:3] == ("blocked_app", filename.name)
+
+    controller.recent_blocks = {
+        key: timestamp - 6 for key, timestamp in controller.recent_blocks.items()
+    }
+    controller.scan()
+    assert core.record_activity.call_count == 2

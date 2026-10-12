@@ -1265,8 +1265,8 @@ class TrayApplication:
             self.block_popup.destroy()
             self.block_popup = None
             self.block_popup_ids.clear()
-        seen_keys = getattr(self, "block_notice_keys", set())
-        self.block_notice_keys = seen_keys
+            if hasattr(self, "block_popup_keys"):
+                self.block_popup_keys.clear()
         attempts = getattr(self, "block_ack_attempts", {})
         self.block_ack_attempts = attempts
         notification_ids = {item["id"] for item in notifications}
@@ -1278,6 +1278,7 @@ class TrayApplication:
         fresh_ids = []
         fresh_keys = set()
         duplicate_ids = []
+        active_keys = getattr(self, "block_popup_keys", set()) if self.block_popup else set()
         for item in notifications:
             event = item["event"]
             key = (
@@ -1285,7 +1286,11 @@ class TrayApplication:
                 event["subject"], item["explanation"]["reason"],
             )
             event_id = item["id"]
-            if key in seen_keys:
+            if event_id in attempts:
+                if now - attempts[event_id] >= 5:
+                    duplicate_ids.append(event_id)
+                    attempts[event_id] = now
+            elif key in active_keys:
                 if event_id not in self.block_popup_ids and now - attempts.get(event_id, -10) >= 5:
                     duplicate_ids.append(event_id)
                     attempts[event_id] = now
@@ -1300,7 +1305,7 @@ class TrayApplication:
             return
         popup = tk.Toplevel(self.root)
         self.block_popup = popup
-        seen_keys.update(fresh_keys)
+        self.block_popup_keys = set(fresh_keys)
         ids = fresh_ids
         self.block_popup_ids = set(ids)
         popup.title("OpenGuard Kids · Lý do chặn")
@@ -1327,6 +1332,7 @@ class TrayApplication:
         def dismiss():
             self.block_popup = None
             self.block_popup_ids.clear()
+            self.block_popup_keys.clear()
             popup.destroy()
             for event_id in ids:
                 attempts[event_id] = time.monotonic()

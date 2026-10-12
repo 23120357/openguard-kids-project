@@ -122,6 +122,7 @@ class RemoteSync:
         self.config = RemoteConfig.load(config_path)
         self.stop_event = threading.Event()
         self._sync_wake = threading.Event()
+        self._activity_wake = threading.Event()
         self._request_wake = threading.Event()
         self._time_status_wake = threading.Event()
         self._threads: list[threading.Thread] = []
@@ -132,6 +133,7 @@ class RemoteSync:
         self._legacy_state_child_id = self.config.legacy_state_child_id or self.config.child_id
         self.core.set_session_change_callback(self._wake_session_sync)
         self.core.set_time_request_callback(self._request_wake.set)
+        self.core.set_activity_callback(self._activity_wake.set)
         self.core.configure_remote_pending()
         self.events = EventQueue(self.policy_path.with_name("activity-events.db"))
         self.core.configure_events(self.events, self.config.device_id)
@@ -218,13 +220,14 @@ class RemoteSync:
     def _activity_loop(self):
         with httpx.Client(base_url=self.config.server_url, timeout=10, trust_env=False) as client:
             while not self.stop_event.is_set():
+                self._activity_wake.clear()
                 try:
                     self.events.expire()
                     self.core.expire_activity()
                     self.sync_activity(client)
                 except (httpx.HTTPError, OSError, ValueError, KeyError, sqlite3.Error) as exc:
                     self.core.set_remote_status(connected=False, error=str(exc))
-                self.stop_event.wait(5)
+                self._activity_wake.wait(5)
 
     def _configure_profiles(self, document: dict[str, Any]) -> None:
         self.primary_child_id = document["primary_child_id"]
@@ -234,6 +237,7 @@ class RemoteSync:
 
     def _wake_session_sync(self) -> None:
         self._sync_wake.set()
+        self._activity_wake.set()
         self._time_status_wake.set()
 
     def start(self) -> None:
@@ -252,6 +256,7 @@ class RemoteSync:
     def stop(self) -> None:
         self.stop_event.set()
         self._sync_wake.set()
+        self._activity_wake.set()
         self._request_wake.set()
         self._time_status_wake.set()
         for thread in self._threads:
@@ -437,6 +442,7 @@ class RemoteSync:
                         self._time_status_wake.set()
                     elif message.get("kind") == "policy_changed":
                         self._sync_wake.set()
+                        self._activity_wake.set()
                     elif (
                         message.get("kind") == "time_request_decision"
                         and message.get("status") == "rejected"

@@ -85,6 +85,7 @@ class AppController:
         self.thread = None
         self.hashes = {}
         self.seen = {}
+        self.recent_blocks = {}
         self.context_key = None
 
     def start(self):
@@ -117,11 +118,13 @@ class AppController:
         context = self.core.activity_context()
         if not context:
             self.seen.clear()
+            self.recent_blocks.clear()
             return
         child_id, rules, tray_pid = context
         context_key = (child_id, tray_pid, rules.get("_activity_epoch", 0))
         if context_key != self.context_key:
             self.seen.clear()
+            self.recent_blocks.clear()
             self.context_key = context_key
         session_id = ProcessIdToSessionId(tray_pid)
         if session_id == 0:
@@ -175,7 +178,27 @@ class AppController:
                     if process.create_time() != identity[2] or process.exe() != filename:
                         continue
                     process.kill()
-                    self.core.record_activity(child_id, "blocked_app", name, reason, rules)
+                    # Desktop apps commonly start several processes at once. Kill
+                    # every matching process, but represent one launch wave as one
+                    # parent/child-facing event instead of one row per process.
+                    now = time.monotonic()
+                    block_key = (
+                        child_id,
+                        sha256.lower(),
+                        reason,
+                        rules.get("version", 0),
+                        rules.get("_activity_epoch", 0),
+                    )
+                    previous = self.recent_blocks.get(block_key)
+                    self.recent_blocks[block_key] = now
+                    if previous is None or now - previous >= 5:
+                        self.core.record_activity(child_id, "blocked_app", name, reason, rules)
+                    if len(self.recent_blocks) > 500:
+                        self.recent_blocks = {
+                            key: timestamp
+                            for key, timestamp in self.recent_blocks.items()
+                            if now - timestamp < 5
+                        }
                 else:
                     live[identity] = (name, time.monotonic(), rules)
                     if identity in self.seen:

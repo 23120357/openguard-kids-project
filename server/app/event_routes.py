@@ -478,7 +478,9 @@ def parent_filtering(child_id: str, auth: ParentAuth, db: DB):
 
 
 @router.put("/children/{child_id}/filtering")
-def set_filtering(child_id: str, body: FilterInput, request: Request, auth: ParentAuth, db: DB):
+async def set_filtering(
+    child_id: str, body: FilterInput, request: Request, auth: ParentAuth, db: DB
+):
     db.execute(text("BEGIN IMMEDIATE"))
     owned_child(db, child_id, auth.parent_id)
     old = filtering_document(db, child_id)
@@ -506,6 +508,15 @@ def set_filtering(child_id: str, body: FilterInput, request: Request, auth: Pare
     )
     db.commit()
     request.app.state.parent_events.notify(auth.parent_id, "policy")
+    device_ids = db.scalars(
+        select(Device.id)
+        .join(Child, Child.id == Device.child_id)
+        .where(Child.parent_id == auth.parent_id)
+    ).all()
+    for device_id in device_ids:
+        await request.app.state.device_connections.send(
+            device_id, {"kind": "policy_changed", "child_id": child_id}
+        )
     return new
 
 

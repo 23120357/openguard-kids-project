@@ -1,9 +1,11 @@
 import copy
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+from agent import web_protection
 from agent.web_protection import WebProtection, WindowsNetwork
 
 
@@ -114,6 +116,23 @@ def test_backend_targets_family_and_restores_automatic_without_shell_injection()
     item["servers"] = ["'; Write-Output unsafe"]
     with pytest.raises(ValueError):
         network.set_dns(item, restore=True)
+
+
+def test_windows_network_uses_absolute_system_powershell(monkeypatch, tmp_path):
+    powershell = tmp_path / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    powershell.parent.mkdir(parents=True)
+    powershell.touch()
+    monkeypatch.setenv("SystemRoot", str(tmp_path))
+    captured = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return SimpleNamespace(returncode=0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(web_protection.subprocess, "run", fake_run)
+    assert WindowsNetwork().run("Write-Output ok") == "ok"
+    assert captured["command"][0] == str(powershell)
+    assert Path(captured["command"][0]).is_absolute()
 
 
 def test_proxy_failure_restores_configuration(tmp_path):
