@@ -38,6 +38,10 @@ Cần tự kiểm chứng văn bản gốc khi viết phần pháp lý trong bá
 | UUID, generation, sent, notified | Chống trùng, trạng thái gửi/thông báo của sự kiện | Cùng thời hạn sự kiện | Service/server; UUID chỉ để đồng bộ |
 | generation/ACK theo trẻ và thiết bị | Ngăn agent offline gửi lại sự kiện đã xóa; báo trạng thái xóa | Giữ trong vòng đời hồ sơ/thiết bị; không chứa hoạt động truy cập | Service/server; phụ huynh xem trạng thái |
 | filtering rules: tên ứng dụng và SHA-256, tên miền và danh sách miễn chặn | Nhận diện executable và áp dụng luật do phụ huynh đặt | Chính sách hiện tại, bản cache có HMAC tại agent | Phụ huynh sở hữu, service/server |
+| observed apps: tên ứng dụng, SHA-256, thiết bị và lần thấy gần nhất | Hiển thị danh sách để phụ huynh chọn cho phép/chặn mà không nhập mã kỹ thuật | Đến khi phụ huynh xóa dữ liệu hoạt động | Không thu thập đường dẫn tệp; agent/service gửi server |
+| filtering category_actions, safe_search | Quyết định cho phép/chặn sáu nhóm và cưỡng chế tìm kiếm an toàn; không chứa nội dung truy cập | Chính sách hiện tại, cache có HMAC; lịch sử thay đổi theo audit cấu hình | Phụ huynh sở hữu, service/server; trẻ xem lý do chặn |
+| filtering category_overrides: tên miền và nhóm do phụ huynh đặt | Phân loại riêng theo từng trẻ; không phải lịch sử duyệt web | Chính sách hiện tại, cache có HMAC và lịch sử audit cấu hình | Phụ huynh sở hữu, service/server; trẻ thấy lý do theo nhóm |
+| domain_categories.csv: domain, category, source, review_status, notes | Bảng phân loại công khai đi kèm ứng dụng; nguồn và trạng thái rà soát giúp kiểm tra cách phân loại | Theo phiên bản ứng dụng; không phải lịch sử sử dụng cá nhân | Người có mã nguồn/bản cài; agent tra cứu offline |
 | Báo cáo ngày/tuần, top 10, số lần chặn | Tổng hợp từ sự kiện và yêu cầu, cùng cách tính trên server/agent | Không tạo bảng lưu riêng; snapshot Tray chỉ RAM, hết mới sau 15 giây; cùng hạn 90 ngày của nguồn | Phụ huynh sở hữu; Tray chỉ báo cáo trẻ đang đăng nhập |
 | CSV tuần tải về | Phụ huynh lưu/in báo cáo tuần theo yêu cầu | Hệ thống không lưu bản CSV; bản đã tải do phụ huynh tự quản lý, nằm ngoài tác vụ xóa | Phụ huynh tải và người được họ chia sẻ |
 

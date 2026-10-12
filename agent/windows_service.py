@@ -20,6 +20,7 @@ from agent.time_control import (
     TimePolicy,
     load_time_policy,
 )
+from agent.web_protection import WebProtection
 
 try:
     import win32event
@@ -91,6 +92,17 @@ class ServiceRuntime:
         self.remote = None
         self.app_controller = AppController(self.core)
         self.dns_proxy = DNSProxy(self.core, upstream=os.getenv("OGK_DNS_UPSTREAM", "1.1.1.1"))
+        self.dns_proxy_v6 = DNSProxy(
+            self.core, host="::1", upstream=os.getenv("OGK_DNS_UPSTREAM", "1.1.1.1")
+        )
+        self.web_protection = WebProtection(
+            self.core,
+            config_path.with_name("network-backup.json"),
+            ready=lambda: all(
+                len(proxy.servers) == 2 and all(server.isAlive() for server in proxy.servers)
+                for proxy in (self.dns_proxy, self.dns_proxy_v6)
+            ),
+        )
         if config_path.exists():
             self.core.mark_enrolled()
             try:
@@ -127,18 +139,30 @@ class ServiceRuntime:
         self.app_controller.start()
         try:
             self.dns_proxy.start()
+            self.dns_proxy_v6.start()
+            self.web_protection.start()
         except OSError as exc:
-            self.core._filtering_error = f"DNS proxy could not bind 127.0.0.1:53: {exc}"
-        if self.remote is not None:
-            self.remote.start()
+            self.core._filtering_error = f"DNS proxy could not bind loopback port 53: {exc}"
+            self.core._web_protection = "error"
+            self.core._web_protection_error = str(exc)
+            try:
+                self.web_protection.restore()
+            except (OSError, ValueError, RuntimeError) as restore_error:
+                self.core._web_protection_error += f"; restore: {restore_error}"
         try:
+            if self.remote is not None:
+                self.remote.start()
             self.pipe.serve_forever()
         finally:
             self._running = False
             self.app_controller.stop()
-            self.dns_proxy.stop()
-            if self.remote is not None:
-                self.remote.stop()
+            try:
+                self.web_protection.stop()
+            finally:
+                self.dns_proxy.stop()
+                self.dns_proxy_v6.stop()
+                if self.remote is not None:
+                    self.remote.stop()
 
     def stop(self) -> None:
         self.pipe.stop()

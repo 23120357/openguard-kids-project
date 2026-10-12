@@ -57,6 +57,15 @@ Agent nhận quota theo policy mặc định hoặc policy phụ huynh đã sử
 `-ServerUrl https://ten-may-chu:8000`; HTTP qua LAN chỉ dành cho lab và cần thêm
 `-AllowInsecureHttp`. Xem [hướng dẫn đầy đủ](docs/WEEK2_F4.md).
 
+Lệnh setup cũng đăng ký Tray trong mục khởi động của tài khoản Windows hiện tại.
+Sau khi khởi động máy, service chạy cùng Windows và Tray xuất hiện khi người dùng
+đăng nhập. Có thể đăng ký lại hoặc tắt tự khởi động bằng:
+
+```powershell
+& .\scripts\Start-OGKTray.ps1 -RegisterStartup -Open
+& .\scripts\Start-OGKTray.ps1 -UnregisterStartup
+```
+
 ## Demo xuyên suốt
 
 1. Đăng nhập dashboard, tạo hồ sơ bằng tên gọi giả và PIN 6 chữ số. Hồ sơ cũ có thể được bổ sung PIN ngay trên dashboard.
@@ -221,9 +230,14 @@ Tham khảo kỹ thuật: [FastAPI testing](https://fastapi.tiangolo.com/tutoria
 Popup lý do chặn, tab Sự kiện trên Tray/dashboard, SQLite outbox, server chống
 trùng và retention/xóa sự kiện 90 ngày được mô tả trong
 [docs/WEEK3_EVENTS.md](docs/WEEK3_EVENTS.md). Cập nhật dependencies theo
-`requirements-lock.txt` trước khi restart server/service. Lọc website cần cấu
-hình DNS adapter máy lab về `127.0.0.1`; ghi lại và khôi phục DNS trước khi gỡ
-service. Không tự đổi DNS máy đang phát triển khi chạy test.
+`requirements-lock.txt` trước khi restart server/service. Lọc website tự cấu hình
+DNS adapter khi trẻ đăng nhập và bật kiểm soát, khôi phục khi tắt/dừng service.
+Đóng rồi mở lại trình duyệt sau khi bật. Xem [bảo vệ web trên Windows](docs/WEB_PROTECTION.md)
+để chạy và phục hồi. Test tự động không đổi DNS máy đang phát triển.
+
+F2 mới: cấu hình sáu nhóm website, SafeSearch Google/Bing và bộ đo DNS 50/20 miền.
+Xem [hướng dẫn triển khai và nghiệm thu F2](docs/F2_TESTING.md), gồm giới hạn
+DoH, bảng phân loại seed cần rà soát và quy trình demo Windows thật.
 
 ## F3: báo cáo hoạt động và màn hình cho trẻ
 

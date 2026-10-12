@@ -38,13 +38,15 @@ def _register_fonts() -> None:
         Path("/usr/share/fonts/truetype/dejavu"),
         Path("/usr/local/share/fonts"),
     )
-    for root in roots:
-        regular, bold = root / "DejaVuSans.ttf", root / "DejaVuSans-Bold.ttf"
+    pairs = [(root / "DejaVuSans.ttf", root / "DejaVuSans-Bold.ttf") for root in roots]
+    # Standard Windows installations provide Arial, but usually not DejaVu.
+    pairs.append((Path("C:/Windows/Fonts/arial.ttf"), Path("C:/Windows/Fonts/arialbd.ttf")))
+    for regular, bold in pairs:
         if regular.is_file() and bold.is_file():
             pdfmetrics.registerFont(TTFont("OGKDejaVu", str(regular)))
             pdfmetrics.registerFont(TTFont("OGKDejaVu-Bold", str(bold)))
             return
-    raise RuntimeError("A DejaVu Sans font is required to export Vietnamese PDF reports")
+    raise RuntimeError("DejaVu Sans or Windows Arial is required to export Vietnamese PDF reports")
 
 
 def _duration(seconds: float) -> str:

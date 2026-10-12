@@ -2,7 +2,9 @@
 [CmdletBinding()]
 param(
     [switch]$Open,
-    [switch]$Restart
+    [switch]$Restart,
+    [switch]$RegisterStartup,
+    [switch]$UnregisterStartup
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,9 +13,32 @@ $RuntimeRoot = Join-Path $RepoRoot ".venv-service"
 $Pythonw = Join-Path $RepoRoot ".venv-service\Scripts\pythonw.exe"
 $Python = Join-Path $RepoRoot ".venv-service\Scripts\python.exe"
 $TrayShowEventName = "Global\OpenGuardKids.Tray.Show.v1"
+$StartupValueName = "OpenGuardKidsTray"
+$StartupRegistryKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+
+if ($RegisterStartup -and $UnregisterStartup) {
+    throw "Choose either RegisterStartup or UnregisterStartup, not both."
+}
+
+if ($UnregisterStartup) {
+    Remove-ItemProperty -LiteralPath $StartupRegistryKey -Name $StartupValueName -ErrorAction SilentlyContinue
+    Write-Host "OpenGuard Kids Tray will no longer start when this user signs in."
+    return
+}
 
 if (-not (Test-Path -LiteralPath $Pythonw -PathType Leaf)) {
     throw "The dedicated runtime is missing. Run Install-OGKTestService.ps1 first."
+}
+
+if ($RegisterStartup) {
+    New-Item -Path $StartupRegistryKey -Force | Out-Null
+    $shell = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+    if (-not (Test-Path -LiteralPath $shell -PathType Leaf)) {
+        throw "Windows PowerShell is unavailable; automatic Tray startup was not registered."
+    }
+    $startupCommand = '"' + $shell + '" -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"'
+    Set-ItemProperty -LiteralPath $StartupRegistryKey -Name $StartupValueName -Value $startupCommand -Type String
+    Write-Host "OpenGuard Kids Tray will start automatically when this user signs in." -ForegroundColor Green
 }
 
 if ($Restart) {

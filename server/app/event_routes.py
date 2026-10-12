@@ -12,18 +12,63 @@ from sqlalchemy import delete, select, text
 from sqlalchemy.dialects.sqlite import insert
 
 from agent.event_queue import RETENTION_SECONDS
+from agent.filtering import domain_decision, matches_domain
 from common.activity_reports import REPORT_ZONE, activity_report, report_bounds
+from common.filter_categories import CATEGORY_LABELS, category_catalog, classify_domain
 from common.report_charts import render_report_chart, rolling_week_columns
 from common.report_pdf import render_weekly_pdf
 
 from .dependencies import DB, DeviceAuth, ParentAuth, owned_child
-from .event_models import ActivityEvent, EventDeletionAck, EventGeneration, FilteringPolicy
-from .event_schemas import EventBatch, FilterInput, FilterRules, GenerationAck
+from .event_models import (
+    ActivityEvent,
+    EventDeletionAck,
+    EventGeneration,
+    FilteringPolicy,
+    ObservedApp,
+)
+from .event_schemas import (
+    DomainPreview,
+    EventBatch,
+    FilterInput,
+    FilterRules,
+    GenerationAck,
+    ObservedAppBatch,
+)
 from .models import Audit, Child, Device, TimeRequest
 from .policy_signing import sign_policy
 from .routes import accessible_child, client_ip, device_parent_id
 
 router = APIRouter(prefix="/api")
+
+
+@router.get("/filtering/catalog")
+def filtering_catalog(auth: ParentAuth):
+    return {"groups": [
+        {"key": key, "label": label, "domains": sorted(
+            host for host, category in category_catalog().items() if category == key
+        )} for key, label in CATEGORY_LABELS.items()
+    ]}
+
+
+@router.post("/children/{child_id}/filtering/preview")
+def preview_domain(child_id: str, body: DomainPreview, auth: ParentAuth, db: DB):
+    owned_child(db, child_id, auth.parent_id)
+    rules = body.rules.model_dump()
+    category = classify_domain(body.domain, rules["category_overrides"])
+    reason = domain_decision(body.domain, rules)
+    blocked = reason is not None
+    if not blocked:
+        if not rules["enabled"]:
+            reason = "Kiểm soát ứng dụng và trang web đang tắt."
+        elif matches_domain(body.domain, set(rules["safety_domains"]) | {"111.vn"}):
+            reason = "Trang web thuộc danh sách luôn được phép (trường học/hỗ trợ)."
+        elif matches_domain(body.domain, rules["domain_allow"]):
+            reason = "Trang web thuộc danh sách được phép riêng, ưu tiên hơn quy tắc nhóm."
+        else:
+            reason = f"Nhóm {CATEGORY_LABELS[category]} đang được cho phép."
+    return {"domain": body.domain, "category": category,
+            "category_label": CATEGORY_LABELS[category],
+            "action": "block" if blocked else "allow", "reason": reason}
 
 
 def generation_for(db, child_id):
@@ -71,6 +116,57 @@ def event_state(device: DeviceAuth, db: DB):
         select(Child).where(Child.parent_id == device_parent_id(db, device))
     ).all()
     return {"generations": {child.id: generation_for(db, child.id) for child in children}}
+
+
+@router.post("/device/observed-apps")
+def ingest_observed_apps(body: ObservedAppBatch, device: DeviceAuth, db: DB):
+    """Upsert app fingerprints discovered in the child's interactive session."""
+    parent_id = device_parent_id(db, device)
+    now = time.time()
+    accepted = []
+    for item in body.apps:
+        child = db.get(Child, item.child_id)
+        if child is None or child.parent_id != parent_id:
+            raise HTTPException(403, "Application belongs to another household")
+        sha256 = item.sha256.lower()
+        db.execute(
+            insert(ObservedApp)
+            .values(
+                device_id=device.id,
+                child_id=item.child_id,
+                sha256=sha256,
+                name=item.name,
+                last_seen=now,
+            )
+            .on_conflict_do_update(
+                index_elements=["device_id", "child_id", "sha256"],
+                set_={"name": item.name, "last_seen": now},
+            )
+        )
+        accepted.append({"child_id": item.child_id, "sha256": sha256})
+    db.commit()
+    return {"accepted": accepted}
+
+
+@router.get("/children/{child_id}/observed-apps")
+def parent_observed_apps(child_id: str, auth: ParentAuth, db: DB):
+    owned_child(db, child_id, auth.parent_id)
+    rows = db.execute(
+        select(ObservedApp, Device.display_name)
+        .join(Device, Device.id == ObservedApp.device_id)
+        .where(ObservedApp.child_id == child_id, Device.revoked.is_(False))
+        .order_by(ObservedApp.last_seen.desc(), ObservedApp.name)
+    ).all()
+    return {"items": [
+        {
+            "name": app.name,
+            "sha256": app.sha256,
+            "last_seen": app.last_seen,
+            "device_id": app.device_id,
+            "device_name": device_name,
+        }
+        for app, device_name in rows
+    ]}
 
 
 @router.post("/device/event-state/ack")
@@ -344,6 +440,7 @@ def erase(child_id: str, request: Request, auth: ParentAuth, db: DB):
         .on_conflict_do_update(index_elements=["child_id"], set_={"generation": generation})
     )
     db.execute(delete(ActivityEvent).where(ActivityEvent.child_id == child_id))
+    db.execute(delete(ObservedApp).where(ObservedApp.child_id == child_id))
     db.execute(delete(TimeRequest).where(TimeRequest.child_id == child_id))
     db.execute(
         delete(Audit).where(Audit.child_id == child_id, Audit.action == "time_request_decided")
@@ -358,7 +455,7 @@ def filtering_document(db, child_id):
     return dict(
         child_id=child_id,
         version=row.version if row else 0,
-        **(row.rules if row else FilterRules().model_dump()),
+        **FilterRules.model_validate(row.rules if row else {}).model_dump(),
     )
 
 

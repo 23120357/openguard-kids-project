@@ -187,6 +187,12 @@ class RemoteSync:
                 client, "POST", "/api/device/activity-events", json={"events": pending}
             ).json()
             self.events.acknowledge(result["acknowledged"] + result["discarded"])
+        observed_apps = self.core.pending_observed_apps()
+        if observed_apps:
+            result = self._request(
+                client, "POST", "/api/device/observed-apps", json={"apps": observed_apps}
+            ).json()
+            self.core.acknowledge_observed_apps(result["accepted"])
         document = self._request(client, "GET", "/api/device/filtering").json()
         self._configure_filtering(document)
         save_signed_policy(self.filtering_path, document)

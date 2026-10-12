@@ -11,6 +11,8 @@ $RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
 $RuntimeRoot = Join-Path $RepoRoot ".venv-service"
 $RuntimePython = Join-Path $RuntimeRoot "Scripts\python.exe"
 $AgentDataRoot = Join-Path $env:ProgramData "OpenGuardKids"
+$StartupRegistryKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+$StartupValueName = "OpenGuardKidsTray"
 
 function Assert-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -50,6 +52,7 @@ function Stop-OpenGuardTray {
 }
 
 Assert-Administrator
+Remove-ItemProperty -LiteralPath $StartupRegistryKey -Name $StartupValueName -ErrorAction SilentlyContinue
 Push-Location $RepoRoot
 try {
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
@@ -60,6 +63,17 @@ try {
             [System.ServiceProcess.ServiceControllerStatus]::Stopped,
             [TimeSpan]::FromSeconds(20)
         )
+    }
+
+    $networkBackup = Join-Path $AgentDataRoot "network-backup.json"
+    if (Test-Path -LiteralPath $networkBackup) {
+        if (-not (Test-Path -LiteralPath $RuntimePython)) {
+            throw "Restore DNS before cleanup: the runtime is missing and $networkBackup contains original settings."
+        }
+        & $RuntimePython -m agent.web_protection --restore --data-dir $AgentDataRoot
+        if ($LASTEXITCODE -ne 0) {
+            throw "DNS restore failed. Backup and runtime retained; reconnect missing adapters and retry cleanup."
+        }
     }
 
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue

@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 from common.domains import domain_name, event_domain
+from common.filter_categories import CATEGORY_LABELS, DEFAULT_ACTIONS, classify_domain
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,7 +29,43 @@ def domain_decision(host, rules):
         host, rules.get("domain_allow", [])
     ):
         return "Trang web không nằm trong danh sách cho phép."
+    if matches_domain(host, rules.get("domain_allow", [])):
+        return None
+    category = classify_domain(host, rules.get("category_overrides"))
+    if rules.get("category_actions", DEFAULT_ACTIONS).get(category) == "block":
+        return f"Trang web thuộc nhóm {CATEGORY_LABELS[category]} đang bị chặn."
     return None
+
+
+def trusted_windows_process(name, filename):
+    """Only exempt protected names from administrator-owned Windows locations.
+
+    Resolving links prevents an executable in a user directory from gaining an
+    exemption by using a familiar filename or a junction into another directory.
+    Windows directory ACLs are a prerequisite (the child must be a standard user).
+    """
+    root = os.environ.get("SystemRoot")
+    if not root:
+        return False
+    executable = Path(filename).resolve()
+    windows = Path(root).resolve()
+    if executable.name.casefold() != name.casefold():
+        return False
+    if name.casefold() == "explorer.exe":
+        return executable == windows / "explorer.exe"
+    return executable.parent in {windows / "System32", windows / "SysWOW64"} or (
+        windows / "SystemApps" in executable.parents
+    )
+
+
+SAFE_SEARCH_HOSTS = {
+    host: "forcesafesearch.google.com"
+    for suffix in ("com", "com.vn", "co.uk", "com.au", "ca", "fr", "de", "co.jp", "co.in")
+    for host in (f"google.{suffix}", f"www.google.{suffix}")
+}
+SAFE_SEARCH_HOSTS.update({
+    host: "strict.bing.com" for host in ("bing.com", "www.bing.com", "edgeservices.bing.com")
+})
 
 
 def app_decision(name, sha256, rules):
@@ -121,11 +158,21 @@ class AppController:
                     continue
                 process = psutil.Process(pid)
                 name = process.name()
-                if name.lower() in protected:
-                    continue
                 filename = process.exe()
+                if name.lower() in protected and trusted_windows_process(name, filename):
+                    continue
                 identity = (child_id, pid, process.create_time())
-                sha256 = self.file_hash(filename) if rules.get("enabled") else ""
+                # The service owns file access and computes this identity for the
+                # parent-facing picker. File paths never leave the device. Failure
+                # to read a file must not suppress ordinary usage reporting while
+                # filtering is disabled.
+                try:
+                    sha256 = self.file_hash(filename)
+                    self.core.record_observed_app(child_id, name, sha256)
+                except (OSError, ValueError):
+                    if rules.get("enabled"):
+                        continue
+                    sha256 = ""
                 reason = app_decision(name, sha256, rules)
                 if reason:
                     # Re-read identity/executable before killing to avoid a PID reuse race.
@@ -229,6 +276,8 @@ class DNSProxy:
                 reply = request.reply()
                 reply.header.rcode = RCODE.NXDOMAIN
                 return reply
+            if rules.get("enabled") and rules.get("safe_search", True) and host in SAFE_SEARCH_HOSTS:
+                return self.safe_search_reply(request, handler, SAFE_SEARCH_HOSTS[host])
         try:
             raw = request.send(
                 self.upstream, self.upstream_port, tcp=handler.protocol == "tcp", timeout=3
@@ -246,6 +295,33 @@ class DNSProxy:
             reply.header.rcode = RCODE.SERVFAIL
             return reply
 
+    def safe_search_reply(self, request, handler, target):
+        from dnslib import CNAME, QTYPE, RCODE, RR, DNSRecord
+
+        reply = request.reply()
+        reply.header.ad = 0  # Locally synthesized data is not DNSSEC authenticated.
+        reply.add_answer(RR(request.q.qname, QTYPE.CNAME, ttl=60, rdata=CNAME(target)))
+        if request.q.qtype == QTYPE.CNAME:
+            return reply
+        if request.q.qtype not in (QTYPE.A, QTYPE.AAAA):
+            # Do not forward HTTPS/SVCB records with alternative endpoint hints.
+            return reply
+        query = DNSRecord.question(target, QTYPE[request.q.qtype])
+        try:
+            raw = query.send(self.upstream, self.upstream_port, tcp=handler.protocol == "tcp", timeout=3)
+            answer = DNSRecord.parse(raw)
+            if answer.header.tc and handler.protocol != "tcp":
+                answer = DNSRecord.parse(query.send(self.upstream, self.upstream_port, tcp=True, timeout=3))
+            if answer.header.id != query.header.id or answer.q != query.q or answer.header.rcode != RCODE.NOERROR:
+                raise ValueError("Invalid SafeSearch upstream answer")
+            for record in answer.rr:
+                if record.rtype in (QTYPE.A, QTYPE.AAAA, QTYPE.CNAME):
+                    reply.add_answer(record)
+            return reply
+        except (OSError, ValueError):
+            failure = request.reply()
+            failure.header.rcode = RCODE.SERVFAIL
+            return failure
     def start(self):
         from dnslib.server import DNSLogger, DNSServer
 

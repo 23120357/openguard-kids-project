@@ -1134,6 +1134,11 @@ class TrayApplication:
             self._update_request_status(data.get("time_requests", []))
             self._update_activity_events(data)
             self._update_activity_report(data.get("activity_report"))
+            web_state = {
+                "active": "đã cấu hình (mở lại trình duyệt để nhận policy)",
+                "inactive": "đang tắt",
+                "error": "lỗi cấu hình",
+            }.get(data.get("filtering", {}).get("web_protection"), "chưa cấu hình")
             self.connected = True
             mode = control.get("mode", "disabled")
             self.status_label.configure(text=self._status_text(mode, control))
@@ -1145,6 +1150,8 @@ class TrayApplication:
                     "Ghi nhận: tổng thời gian, nghỉ quá 5 phút và khóa màn hình\n"
                     "Sự kiện: tên ứng dụng/trang web, thời gian và lý do chặn\n"
                     f"Lọc ứng dụng/DNS: {'đang bật' if data.get('filtering', {}).get('enabled') else 'đang tắt'}\n"
+                    f"DNS trình duyệt: {web_state}\n"
+                    f"{data.get('filtering', {}).get('web_protection_error') or ''}\n"
                     f"{data.get('filtering', {}).get('error') or ''}"
                 )
             )

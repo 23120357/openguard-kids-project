@@ -1,7 +1,8 @@
 # F3: ghi nhận và báo cáo hoạt động
 
 Đối chiếu F3 trang 7-8 của QuanLyMayTinhTreEm.pdf. Phạm vi này hoàn thiện F3,
-không bao gồm các hạng mục F2 còn lại như SafeSearch/phân loại/DoH.
+không bao gồm các hạng mục F2. SafeSearch/phân loại và giới hạn DoH được theo dõi
+riêng trong [F2_TESTING.md](F2_TESTING.md).
 
 | Yêu cầu | Triển khai | Kiểm chứng |
 |---|---|---|

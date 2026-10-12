@@ -52,3 +52,12 @@
 - Retention/xóa mở rộng đến request và lịch sử F1 liên quan, giữ quota và cấu hình.
 - Test kiểm tra dữ liệu/mốc thời gian/quyền/CSV/Tk và regression; không thay thế
   nghiệm thu service, DNS adapter hay hành vi khóa/chặn trên máy lab thật.
+
+## Bổ sung F2 ngày 11/10/2026
+
+- Codex đối chiếu đề, hỏi và dùng mặc định nhóm do người dùng chọn: giáo dục, giải trí, chưa phân loại được phép; mạng xã hội, trò chơi, không phù hợp lứa tuổi bị chặn.
+- Thêm cấu hình API/dashboard, bảng seed 311 miền thật (cần rà soát thủ công) và fixture an toàn cho nhóm không phù hợp lứa tuổi; không đưa miền người lớn vào dữ liệu thử.
+- Thêm DNS SafeSearch Google/Bing theo tài liệu nhà cung cấp; sửa miễn chặn ứng dụng giả tên tiến trình Windows bằng kiểm tra vị trí executable đã resolve.
+- Thêm bộ đo DNS 50/20 miền, hướng dẫn nghiệm thu Windows và ghi rõ giới hạn DoH/DNS thủ công. Không thay đổi DNS adapter hoặc policy thật.
+- Kiểm chứng: 108 test F2/activity/F3/Tray đạt, test dashboard Edge headless đạt; 480 truy vấn DNS isolated đạt 50/50 miền chặn và 20/20 miền giáo dục. Chưa nghiệm thu trình duyệt/agent Windows thật.
+- Khi chạy hồi quy phát hiện PDF F3 phụ thuộc DejaVu không có trên Windows; bổ sung fallback Arial và test PDF hiện có đã qua.

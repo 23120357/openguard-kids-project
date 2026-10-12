@@ -1,0 +1,71 @@
+domain,expected,purpose
+example.com,block,Neutral domain explicitly blocked only by lab policy
+example.org,block,Neutral domain explicitly blocked only by lab policy
+example.net,block,Neutral domain explicitly blocked only by lab policy
+wikipedia.org,block,Neutral domain explicitly blocked only by lab policy
+wiktionary.org,block,Neutral domain explicitly blocked only by lab policy
+wikibooks.org,block,Neutral domain explicitly blocked only by lab policy
+wikiversity.org,block,Neutral domain explicitly blocked only by lab policy
+wikisource.org,block,Neutral domain explicitly blocked only by lab policy
+wikimedia.org,block,Neutral domain explicitly blocked only by lab policy
+mediawiki.org,block,Neutral domain explicitly blocked only by lab policy
+scratch.mit.edu,block,Neutral domain explicitly blocked only by lab policy
+code.org,block,Neutral domain explicitly blocked only by lab policy
+python.org,block,Neutral domain explicitly blocked only by lab policy
+docs.python.org,block,Neutral domain explicitly blocked only by lab policy
+developer.mozilla.org,block,Neutral domain explicitly blocked only by lab policy
+w3schools.com,block,Neutral domain explicitly blocked only by lab policy
+freecodecamp.org,block,Neutral domain explicitly blocked only by lab policy
+ck12.org,block,Neutral domain explicitly blocked only by lab policy
+mathsisfun.com,block,Neutral domain explicitly blocked only by lab policy
+mathigon.org,block,Neutral domain explicitly blocked only by lab policy
+nrich.maths.org,block,Neutral domain explicitly blocked only by lab policy
+brilliant.org,block,Neutral domain explicitly blocked only by lab policy
+coursera.org,block,Neutral domain explicitly blocked only by lab policy
+edx.org,block,Neutral domain explicitly blocked only by lab policy
+futurelearn.com,block,Neutral domain explicitly blocked only by lab policy
+open.edu,block,Neutral domain explicitly blocked only by lab policy
+ocw.mit.edu,block,Neutral domain explicitly blocked only by lab policy
+yale.edu,block,Neutral domain explicitly blocked only by lab policy
+princeton.edu,block,Neutral domain explicitly blocked only by lab policy
+columbia.edu,block,Neutral domain explicitly blocked only by lab policy
+cornell.edu,block,Neutral domain explicitly blocked only by lab policy
+brown.edu,block,Neutral domain explicitly blocked only by lab policy
+dartmouth.edu,block,Neutral domain explicitly blocked only by lab policy
+upenn.edu,block,Neutral domain explicitly blocked only by lab policy
+berkeley.edu,block,Neutral domain explicitly blocked only by lab policy
+ucla.edu,block,Neutral domain explicitly blocked only by lab policy
+ucsd.edu,block,Neutral domain explicitly blocked only by lab policy
+ucdavis.edu,block,Neutral domain explicitly blocked only by lab policy
+uci.edu,block,Neutral domain explicitly blocked only by lab policy
+ucsb.edu,block,Neutral domain explicitly blocked only by lab policy
+ucsc.edu,block,Neutral domain explicitly blocked only by lab policy
+ucr.edu,block,Neutral domain explicitly blocked only by lab policy
+ucmerced.edu,block,Neutral domain explicitly blocked only by lab policy
+caltech.edu,block,Neutral domain explicitly blocked only by lab policy
+cmu.edu,block,Neutral domain explicitly blocked only by lab policy
+gatech.edu,block,Neutral domain explicitly blocked only by lab policy
+umich.edu,block,Neutral domain explicitly blocked only by lab policy
+msu.edu,block,Neutral domain explicitly blocked only by lab policy
+wisc.edu,block,Neutral domain explicitly blocked only by lab policy
+illinois.edu,block,Neutral domain explicitly blocked only by lab policy
+khanacademy.org,allow,Education domain; no safety-list exemption
+mit.edu,allow,Education domain; no safety-list exemption
+harvard.edu,allow,Education domain; no safety-list exemption
+stanford.edu,allow,Education domain; no safety-list exemption
+ox.ac.uk,allow,Education domain; no safety-list exemption
+cam.ac.uk,allow,Education domain; no safety-list exemption
+hcmus.edu.vn,allow,Education domain; no safety-list exemption
+hcmut.edu.vn,allow,Education domain; no safety-list exemption
+uit.edu.vn,allow,Education domain; no safety-list exemption
+hcmue.edu.vn,allow,Education domain; no safety-list exemption
+hust.edu.vn,allow,Education domain; no safety-list exemption
+ctu.edu.vn,allow,Education domain; no safety-list exemption
+vnu.edu.vn,allow,Education domain; no safety-list exemption
+vnuhcm.edu.vn,allow,Education domain; no safety-list exemption
+nasa.gov,allow,Education domain; no safety-list exemption
+pbskids.org,allow,Education domain; no safety-list exemption
+openstax.org,allow,Education domain; no safety-list exemption
+geogebra.org,allow,Education domain; no safety-list exemption
+desmos.com,allow,Education domain; no safety-list exemption
+starfall.com,allow,Education domain; no safety-list exemption

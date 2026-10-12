@@ -1,0 +1,4811 @@
+{
+  "blocked_pass": 50,
+  "blocked_total": 50,
+  "education_pass": 20,
+  "education_total": 20,
+  "passed": true,
+  "results": [
+    {
+      "domain": "example.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.net",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.net",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.net",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.net",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikipedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikipedia.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikipedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikipedia.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wiktionary.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wiktionary.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wiktionary.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wiktionary.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikibooks.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikibooks.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikibooks.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikibooks.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikiversity.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikiversity.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikiversity.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikiversity.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikisource.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikisource.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikisource.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikisource.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikimedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikimedia.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikimedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikimedia.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mediawiki.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mediawiki.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mediawiki.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mediawiki.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "scratch.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "scratch.mit.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "scratch.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.scratch.mit.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "code.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "code.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "code.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.code.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "python.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.python.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "docs.python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "docs.python.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "docs.python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.docs.python.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "developer.mozilla.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "developer.mozilla.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "developer.mozilla.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.developer.mozilla.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "w3schools.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "w3schools.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "w3schools.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.w3schools.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "freecodecamp.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "freecodecamp.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "freecodecamp.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.freecodecamp.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ck12.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ck12.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ck12.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ck12.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathsisfun.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mathsisfun.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathsisfun.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mathsisfun.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathigon.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mathigon.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathigon.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mathigon.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "nrich.maths.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "nrich.maths.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "nrich.maths.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.nrich.maths.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brilliant.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "brilliant.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brilliant.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.brilliant.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "coursera.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "coursera.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "coursera.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.coursera.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "edx.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "edx.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "edx.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.edx.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "futurelearn.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "futurelearn.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "futurelearn.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.futurelearn.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "open.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "open.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "open.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.open.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ocw.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ocw.mit.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ocw.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ocw.mit.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "yale.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "yale.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "yale.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.yale.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "princeton.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "princeton.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "princeton.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.princeton.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "columbia.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "columbia.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "columbia.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.columbia.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cornell.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "cornell.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cornell.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.cornell.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brown.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "brown.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brown.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.brown.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "dartmouth.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "dartmouth.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "dartmouth.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.dartmouth.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "upenn.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "upenn.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "upenn.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.upenn.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "berkeley.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "berkeley.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "berkeley.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.berkeley.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucla.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucla.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucla.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucla.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsd.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsd.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsd.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsd.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucdavis.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucdavis.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucdavis.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucdavis.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "uci.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "uci.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "uci.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.uci.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsb.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsb.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsb.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsb.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsc.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsc.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucr.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucr.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucr.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucr.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucmerced.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucmerced.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucmerced.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucmerced.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "caltech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "caltech.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "caltech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.caltech.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cmu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "cmu.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cmu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.cmu.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "gatech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "gatech.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "gatech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.gatech.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "umich.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "umich.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "umich.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.umich.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "msu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "msu.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "msu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.msu.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wisc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wisc.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wisc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wisc.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "illinois.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "illinois.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "illinois.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.illinois.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "khanacademy.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "khanacademy.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "mit.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "mit.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "harvard.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "harvard.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "stanford.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "stanford.edu",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "ox.ac.uk",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "ox.ac.uk",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "cam.ac.uk",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "cam.ac.uk",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmus.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmus.edu.vn",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmut.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmut.edu.vn",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "uit.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "uit.edu.vn",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmue.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmue.edu.vn",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hust.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hust.edu.vn",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "ctu.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "ctu.edu.vn",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "vnu.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "vnu.edu.vn",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "vnuhcm.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "vnuhcm.edu.vn",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "nasa.gov",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "nasa.gov",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "pbskids.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "pbskids.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "openstax.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "openstax.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "geogebra.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "geogebra.org",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "desmos.com",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "desmos.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "starfall.com",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "starfall.com",
+      "transport": "udp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "example.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.net",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.net",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.net",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.net",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikipedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikipedia.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikipedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikipedia.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wiktionary.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wiktionary.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wiktionary.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wiktionary.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikibooks.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikibooks.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikibooks.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikibooks.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikiversity.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikiversity.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikiversity.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikiversity.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikisource.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikisource.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikisource.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikisource.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikimedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikimedia.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikimedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikimedia.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mediawiki.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mediawiki.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mediawiki.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mediawiki.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "scratch.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "scratch.mit.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "scratch.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.scratch.mit.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "code.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "code.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "code.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.code.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "python.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.python.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "docs.python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "docs.python.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "docs.python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.docs.python.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "developer.mozilla.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "developer.mozilla.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "developer.mozilla.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.developer.mozilla.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "w3schools.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "w3schools.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "w3schools.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.w3schools.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "freecodecamp.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "freecodecamp.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "freecodecamp.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.freecodecamp.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ck12.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ck12.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ck12.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ck12.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathsisfun.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mathsisfun.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathsisfun.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mathsisfun.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathigon.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mathigon.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathigon.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mathigon.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "nrich.maths.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "nrich.maths.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "nrich.maths.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.nrich.maths.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brilliant.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "brilliant.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brilliant.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.brilliant.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "coursera.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "coursera.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "coursera.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.coursera.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "edx.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "edx.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "edx.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.edx.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "futurelearn.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "futurelearn.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "futurelearn.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.futurelearn.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "open.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "open.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "open.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.open.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ocw.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ocw.mit.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ocw.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ocw.mit.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "yale.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "yale.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "yale.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.yale.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "princeton.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "princeton.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "princeton.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.princeton.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "columbia.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "columbia.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "columbia.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.columbia.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cornell.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "cornell.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cornell.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.cornell.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brown.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "brown.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brown.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.brown.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "dartmouth.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "dartmouth.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "dartmouth.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.dartmouth.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "upenn.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "upenn.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "upenn.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.upenn.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "berkeley.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "berkeley.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "berkeley.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.berkeley.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucla.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucla.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucla.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucla.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsd.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsd.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsd.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsd.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucdavis.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucdavis.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucdavis.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucdavis.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "uci.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "uci.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "uci.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.uci.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsb.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsb.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsb.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsb.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsc.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsc.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucr.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucr.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucr.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucr.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucmerced.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucmerced.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucmerced.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucmerced.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "caltech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "caltech.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "caltech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.caltech.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cmu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "cmu.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cmu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.cmu.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "gatech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "gatech.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "gatech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.gatech.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "umich.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "umich.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "umich.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.umich.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "msu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "msu.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "msu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.msu.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wisc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wisc.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wisc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wisc.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "illinois.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "illinois.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "illinois.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.illinois.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "khanacademy.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "khanacademy.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "mit.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "mit.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "harvard.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "harvard.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "stanford.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "stanford.edu",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "ox.ac.uk",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "ox.ac.uk",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "cam.ac.uk",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "cam.ac.uk",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmus.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmus.edu.vn",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmut.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmut.edu.vn",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "uit.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "uit.edu.vn",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmue.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmue.edu.vn",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hust.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hust.edu.vn",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "ctu.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "ctu.edu.vn",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "vnu.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "vnu.edu.vn",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "vnuhcm.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "vnuhcm.edu.vn",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "nasa.gov",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "nasa.gov",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "pbskids.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "pbskids.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "openstax.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "openstax.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "geogebra.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "geogebra.org",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "desmos.com",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "desmos.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "starfall.com",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "starfall.com",
+      "transport": "udp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "example.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.net",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.net",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.net",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.net",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikipedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikipedia.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikipedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikipedia.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wiktionary.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wiktionary.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wiktionary.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wiktionary.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikibooks.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikibooks.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikibooks.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikibooks.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikiversity.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikiversity.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikiversity.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikiversity.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikisource.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikisource.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikisource.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikisource.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikimedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikimedia.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikimedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikimedia.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mediawiki.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mediawiki.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mediawiki.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mediawiki.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "scratch.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "scratch.mit.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "scratch.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.scratch.mit.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "code.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "code.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "code.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.code.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "python.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.python.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "docs.python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "docs.python.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "docs.python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.docs.python.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "developer.mozilla.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "developer.mozilla.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "developer.mozilla.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.developer.mozilla.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "w3schools.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "w3schools.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "w3schools.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.w3schools.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "freecodecamp.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "freecodecamp.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "freecodecamp.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.freecodecamp.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ck12.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ck12.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ck12.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ck12.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathsisfun.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mathsisfun.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathsisfun.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mathsisfun.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathigon.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mathigon.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathigon.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mathigon.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "nrich.maths.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "nrich.maths.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "nrich.maths.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.nrich.maths.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brilliant.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "brilliant.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brilliant.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.brilliant.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "coursera.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "coursera.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "coursera.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.coursera.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "edx.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "edx.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "edx.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.edx.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "futurelearn.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "futurelearn.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "futurelearn.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.futurelearn.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "open.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "open.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "open.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.open.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ocw.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ocw.mit.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ocw.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ocw.mit.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "yale.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "yale.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "yale.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.yale.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "princeton.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "princeton.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "princeton.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.princeton.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "columbia.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "columbia.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "columbia.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.columbia.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cornell.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "cornell.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cornell.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.cornell.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brown.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "brown.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brown.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.brown.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "dartmouth.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "dartmouth.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "dartmouth.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.dartmouth.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "upenn.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "upenn.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "upenn.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.upenn.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "berkeley.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "berkeley.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "berkeley.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.berkeley.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucla.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucla.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucla.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucla.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsd.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsd.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsd.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsd.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucdavis.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucdavis.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucdavis.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucdavis.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "uci.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "uci.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "uci.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.uci.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsb.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsb.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsb.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsb.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsc.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsc.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucr.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucr.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucr.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucr.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucmerced.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucmerced.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucmerced.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucmerced.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "caltech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "caltech.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "caltech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.caltech.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cmu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "cmu.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cmu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.cmu.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "gatech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "gatech.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "gatech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.gatech.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "umich.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "umich.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "umich.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.umich.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "msu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "msu.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "msu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.msu.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wisc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wisc.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wisc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wisc.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "illinois.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "illinois.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "illinois.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.illinois.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "khanacademy.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "khanacademy.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "mit.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "mit.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "harvard.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "harvard.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "stanford.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "stanford.edu",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "ox.ac.uk",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "ox.ac.uk",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "cam.ac.uk",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "cam.ac.uk",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmus.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmus.edu.vn",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmut.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmut.edu.vn",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "uit.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "uit.edu.vn",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmue.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmue.edu.vn",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hust.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hust.edu.vn",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "ctu.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "ctu.edu.vn",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "vnu.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "vnu.edu.vn",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "vnuhcm.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "vnuhcm.edu.vn",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "nasa.gov",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "nasa.gov",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "pbskids.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "pbskids.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "openstax.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "openstax.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "geogebra.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "geogebra.org",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "desmos.com",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "desmos.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "starfall.com",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "starfall.com",
+      "transport": "tcp",
+      "qtype": "A",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "example.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.net",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "example.net",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "example.net",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.example.net",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikipedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikipedia.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikipedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikipedia.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wiktionary.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wiktionary.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wiktionary.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wiktionary.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikibooks.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikibooks.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikibooks.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikibooks.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikiversity.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikiversity.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikiversity.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikiversity.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikisource.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikisource.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikisource.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikisource.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikimedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wikimedia.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wikimedia.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wikimedia.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mediawiki.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mediawiki.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mediawiki.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mediawiki.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "scratch.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "scratch.mit.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "scratch.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.scratch.mit.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "code.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "code.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "code.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.code.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "python.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.python.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "docs.python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "docs.python.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "docs.python.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.docs.python.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "developer.mozilla.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "developer.mozilla.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "developer.mozilla.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.developer.mozilla.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "w3schools.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "w3schools.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "w3schools.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.w3schools.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "freecodecamp.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "freecodecamp.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "freecodecamp.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.freecodecamp.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ck12.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ck12.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ck12.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ck12.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathsisfun.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mathsisfun.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathsisfun.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mathsisfun.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathigon.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "mathigon.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "mathigon.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.mathigon.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "nrich.maths.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "nrich.maths.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "nrich.maths.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.nrich.maths.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brilliant.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "brilliant.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brilliant.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.brilliant.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "coursera.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "coursera.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "coursera.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.coursera.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "edx.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "edx.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "edx.org",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.edx.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "futurelearn.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "futurelearn.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "futurelearn.com",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.futurelearn.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "open.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "open.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "open.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.open.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ocw.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ocw.mit.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ocw.mit.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ocw.mit.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "yale.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "yale.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "yale.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.yale.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "princeton.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "princeton.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "princeton.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.princeton.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "columbia.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "columbia.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "columbia.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.columbia.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cornell.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "cornell.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cornell.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.cornell.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brown.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "brown.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "brown.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.brown.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "dartmouth.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "dartmouth.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "dartmouth.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.dartmouth.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "upenn.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "upenn.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "upenn.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.upenn.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "berkeley.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "berkeley.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "berkeley.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.berkeley.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucla.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucla.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucla.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucla.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsd.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsd.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsd.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsd.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucdavis.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucdavis.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucdavis.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucdavis.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "uci.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "uci.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "uci.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.uci.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsb.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsb.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsb.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsb.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucsc.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucsc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucsc.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucr.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucr.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucr.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucr.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucmerced.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "ucmerced.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "ucmerced.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.ucmerced.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "caltech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "caltech.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "caltech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.caltech.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cmu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "cmu.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "cmu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.cmu.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "gatech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "gatech.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "gatech.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.gatech.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "umich.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "umich.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "umich.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.umich.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "msu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "msu.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "msu.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.msu.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wisc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "wisc.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "wisc.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.wisc.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "illinois.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "illinois.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "illinois.edu",
+      "expected": "block",
+      "purpose": "Neutral domain explicitly blocked only by lab policy",
+      "queried": "www.illinois.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NXDOMAIN",
+      "passed": true
+    },
+    {
+      "domain": "khanacademy.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "khanacademy.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "mit.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "mit.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "harvard.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "harvard.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "stanford.edu",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "stanford.edu",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "ox.ac.uk",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "ox.ac.uk",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "cam.ac.uk",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "cam.ac.uk",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmus.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmus.edu.vn",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmut.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmut.edu.vn",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "uit.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "uit.edu.vn",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hcmue.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hcmue.edu.vn",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "hust.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "hust.edu.vn",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "ctu.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "ctu.edu.vn",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "vnu.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "vnu.edu.vn",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "vnuhcm.edu.vn",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "vnuhcm.edu.vn",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "nasa.gov",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "nasa.gov",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "pbskids.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "pbskids.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "openstax.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "openstax.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "geogebra.org",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "geogebra.org",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "desmos.com",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "desmos.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    },
+    {
+      "domain": "starfall.com",
+      "expected": "allow",
+      "purpose": "Education domain; no safety-list exemption",
+      "queried": "starfall.com",
+      "transport": "tcp",
+      "qtype": "AAAA",
+      "rcode": "NOERROR",
+      "passed": true
+    }
+  ],
+  "mode": "isolated",
+  "measured_at": "2026-10-11T13:51:52.449921+00:00"
+}

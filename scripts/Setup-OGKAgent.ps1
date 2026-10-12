@@ -47,7 +47,7 @@ if (-not $isAdmin) {
         throw "Agent installation failed or UAC was cancelled (exit $($process.ExitCode)). Re-run in an Administrator PowerShell window to see the detailed error."
     }
     Write-Host "Service is ready. Opening the Tray pairing screen." -ForegroundColor Green
-    & (Join-Path $PSScriptRoot "Start-OGKTray.ps1") -Restart -Open
+    & (Join-Path $PSScriptRoot "Start-OGKTray.ps1") -RegisterStartup -Restart -Open
     Start-Sleep -Seconds 3
     if ((Get-Service -Name $ServiceName).Status -ne "Running") {
         throw "The agent service stopped after Tray startup. Check the OpenGuardKidsAgentTest events in Windows Event Viewer."
@@ -102,7 +102,7 @@ finally {
 }
 
 if (-not $ElevatedPhase) {
-    & (Join-Path $PSScriptRoot "Start-OGKTray.ps1") -Restart -Open
+    & (Join-Path $PSScriptRoot "Start-OGKTray.ps1") -RegisterStartup -Restart -Open
     Start-Sleep -Seconds 3
     if ((Get-Service -Name $ServiceName).Status -ne "Running") {
         throw "The agent service stopped after Tray startup. Check the OpenGuardKidsAgentTest events in Windows Event Viewer."

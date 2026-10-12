@@ -20,7 +20,8 @@
   dữ liệu cũ. Nút xóa không xóa tài khoản, PIN, luật kiểm soát hoặc token ghép đôi.
 
 F3 đã bổ sung báo cáo ngày/tuần, top 10, CSV và màn hình hoạt động cho trẻ;
-xem [F3_REPORTS.md](F3_REPORTS.md). F2 vẫn còn SafeSearch, phân loại 200 mục, chống DoH.
+xem [F3_REPORTS.md](F3_REPORTS.md). F2 đã bổ sung SafeSearch và hạ tầng phân loại;
+xem [F2_TESTING.md](F2_TESTING.md) để biết trạng thái dataset và nghiệm thu. Chống DoH còn lại.
 Chính sách DNS hệ điều hành được bật thủ công trên máy
 lab; không tự đổi DNS của máy đang phát triển khi chạy kiểm thử.
 

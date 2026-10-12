@@ -14,7 +14,7 @@ from agent.event_queue import RETENTION_SECONDS, EventQueue
 from agent.filtering import DNSProxy, app_decision, domain_decision
 from agent.remote_sync import RemoteConfig, RemoteSync
 from common.domains import event_domain
-from server.app.event_models import ActivityEvent
+from server.app.event_models import ActivityEvent, ObservedApp
 from server.app.event_routes import expire_events
 
 from .conftest import pair, sign_in
@@ -111,6 +111,30 @@ def test_event_auth_and_csrf_required(client, parent, child):
         f"/api/children/{child['id']}/activity-data", headers={"X-CSRF-Token": ""}
     )
     assert response.status_code == 403
+
+
+def test_agent_reports_observed_apps_for_parent_picker(parent, child, app):
+    tokens, _ = pair(parent, child)
+    headers = {"Authorization": "Bearer " + tokens["access_token"]}
+    sha256 = "a" * 64
+    response = parent.post(
+        "/api/device/observed-apps",
+        json={"apps": [{"child_id": child["id"], "name": "study.exe", "sha256": sha256}]},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["accepted"] == [{"child_id": child["id"], "sha256": sha256}]
+
+    items = parent.get(f"/api/children/{child['id']}/observed-apps").json()["items"]
+    assert len(items) == 1
+    assert items[0]["name"] == "study.exe"
+    assert items[0]["sha256"] == sha256
+    assert items[0]["device_name"] == "Lab PC"
+    assert "path" not in items[0]
+
+    parent.delete(f"/api/children/{child['id']}/activity-data")
+    with app.state.sessions() as db:
+        assert not db.scalars(select(ObservedApp)).all()
 
 
 def test_retention_purges_and_drops_late_events(parent, child, app):

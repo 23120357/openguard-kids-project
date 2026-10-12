@@ -2,8 +2,8 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css?v=20261010-parent-tabs">
-  <script src="/static/app.js?v=20261011-pdf-report" defer></script>
+  <title>OpenGuard Kids</title><link rel="stylesheet" href="/static/style.css?v=20261012-app-warning">
+  <script src="/static/app.js?v=20261012-app-warning" defer></script>
 </head>
 <body>
 <header><span class="brand">OpenGuard Kids</span><span>Bố mẹ và con cùng đồng hành</span></header>
@@ -106,6 +106,35 @@
         <h2>Quản lí web &amp; ứng dụng</h2><p class="hint">Mỗi dòng là một tên miền. Có thể nhập URL; hệ thống chỉ lưu tên miền. Bấm Lưu quy tắc kiểm soát để áp dụng các thay đổi.</p>
         <form id="filtering-form">
           <label class="check"><input name="enabled" type="checkbox"> Bật kiểm soát ứng dụng và trang web</label>
+          <fieldset><legend>Nhóm trang web dành cho trẻ 6–11 tuổi</legend>
+            <p id="category-catalog-status" class="hint" role="status">Danh sách website sẽ được tải khi chọn hồ sơ.</p>
+            <p class="hint">Phân loại riêng chỉ áp dụng cho hồ sơ đang chọn. Xóa phân loại riêng sẽ trở về nhóm mặc định (nếu có), hoặc nhóm của miền cha, nếu không thì Chưa phân loại. Bấm Lưu quy tắc kiểm soát để áp dụng.</p>
+            <label for="category-search">Tìm trong danh sách nhóm<input id="category-search" type="search" placeholder="Nhập tên miền để tìm"></label>
+            <fieldset id="category-editor"><legend>Thêm / sửa phân loại riêng</legend>
+              <label for="category-domain">Tên miền hoặc URL<input id="category-domain" type="text" maxlength="2048" placeholder="Ví dụ: youtube.com"></label>
+              <label for="category-target">Nhóm<select id="category-target">
+                <option value="education">Giáo dục</option><option value="entertainment">Giải trí</option><option value="social">Mạng xã hội</option><option value="games">Trò chơi</option><option value="age_inappropriate">Không phù hợp lứa tuổi</option><option value="unclassified">Chưa phân loại</option>
+              </select></label>
+              <button id="category-apply" type="button" class="secondary">Thêm phân loại</button>
+              <button id="category-cancel" type="button" class="secondary" hidden>Hủy chỉnh sửa</button>
+              <p id="category-editor-status" role="status" aria-live="polite"></p>
+            </fieldset>
+            <p class="hint">Danh sách phân loại cục bộ không bao phủ mọi website. Tên miền được phép riêng sẽ ưu tiên hơn nhóm; danh sách bị chặn vẫn ưu tiên hơn danh sách được phép.</p>
+            <label>Giáo dục<select name="category_education"><option value="allow">Cho phép</option><option value="block">Chặn</option></select></label>
+            <label>Giải trí<select name="category_entertainment"><option value="allow">Cho phép</option><option value="block">Chặn</option></select></label>
+            <label>Mạng xã hội<select name="category_social"><option value="block">Chặn</option><option value="allow">Cho phép</option></select></label>
+            <label>Trò chơi<select name="category_games"><option value="block">Chặn</option><option value="allow">Cho phép</option></select></label>
+            <label>Không phù hợp lứa tuổi<select name="category_age_inappropriate"><option value="block">Chặn</option><option value="allow">Cho phép</option></select></label>
+            <label>Chưa phân loại<select name="category_unclassified"><option value="allow">Cho phép</option><option value="block">Chặn</option></select></label>
+          </fieldset>
+          <label class="check"><input name="safe_search" type="checkbox" checked> Cưỡng chế tìm kiếm an toàn trên Google và Bing khi bật kiểm soát</label>
+          <fieldset class="domain-inspector"><legend>Kiểm tra tên miền</legend>
+            <p class="hint">Xem kết quả theo quy tắc đang chỉnh ở biểu mẫu này. Kết quả không xác nhận máy của con đã nhận quy tắc; cần lưu để áp dụng.</p>
+            <label for="inspect-domain">Tên miền hoặc URL</label>
+            <div class="domain-add"><input id="inspect-domain" type="text" maxlength="2048" placeholder="Ví dụ: facebook.com" autocomplete="off"><button id="inspect-domain-button" type="button" class="secondary">Kiểm tra</button></div>
+            <p id="inspect-result" role="status" aria-live="polite"></p>
+          </fieldset>
+          <p class="hint">Áp dụng khi trình duyệt dùng DNS của máy qua bộ lọc. DNS bảo mật riêng (DoH) hoặc VPN có thể bỏ qua bộ lọc; SafeSearch không phân loại toàn bộ nội dung Internet.</p>
           <label>Quy tắc trang web<select name="domain_mode"><option value="blocklist">Cho phép, trừ danh sách bị chặn</option><option value="allowlist">Chỉ cho phép danh sách đã chọn</option></select></label>
           <fieldset class="domain-editor" data-domain-list="domain_block">
             <legend>Trang web bị chặn</legend>
@@ -135,10 +164,18 @@
             </div>
           </fieldset>
           <p class="hint">Tổng đài 111 luôn được phép. Thêm cổng thông tin trường của con trước khi bật lọc. Quy tắc tên miền áp dụng cả tên miền con.</p>
-          <label>Quy tắc ứng dụng<select name="app_mode"><option value="blocklist">Cho phép, trừ danh sách bị chặn</option><option value="allowlist">Chỉ cho phép danh sách đã chọn</option></select></label>
-          <label>Ứng dụng được phép<textarea name="app_allow" rows="2" placeholder="Mỗi dòng: tên.exe | SHA-256 của tệp"></textarea></label>
-          <label>Ứng dụng bị chặn<textarea name="app_block" rows="2" placeholder="Mỗi dòng: tên.exe | SHA-256 của tệp"></textarea></label>
-          <p class="hint">Mã SHA-256 giúp nhận diện ứng dụng ngay cả khi tệp được đổi tên. Khi cập nhật ứng dụng, cần cập nhật mã này.</p>
+          <fieldset class="app-editor"><legend>Kiểm soát ứng dụng</legend>
+            <p>Chọn cách xử lý ứng dụng đã xuất hiện trên máy của con. Hệ thống tự nhận diện tệp; bố mẹ không cần tìm hoặc nhập mã kỹ thuật.</p>
+            <div id="app-control-warning" class="control-warning" role="status" aria-live="polite" hidden>
+              <div><strong>Quy tắc ứng dụng chưa được áp dụng</strong><span>Công tắc kiểm soát tổng đang tắt. Các lựa chọn Cho phép/Chặn bên dưới chỉ được lưu để dùng sau.</span></div>
+              <button id="enable-filtering-from-apps" type="button">Bật kiểm soát ngay</button>
+            </div>
+            <label>Quy tắc chung<select name="app_mode"><option value="blocklist">Cho phép tất cả, trừ ứng dụng bị chặn</option><option value="allowlist">Chỉ cho phép ứng dụng đã chọn</option></select></label>
+            <label for="app-search">Tìm ứng dụng<input id="app-search" type="search" placeholder="Ví dụ: Chrome, Roblox"></label>
+            <p id="app-catalog-status" class="hint" role="status" aria-live="polite"></p>
+            <ul id="app-catalog" class="app-list" aria-label="Ứng dụng trên máy của con"></ul>
+            <p class="hint">Ứng dụng mới xuất hiện sau khi con đăng nhập trên thiết bị và thiết bị kết nối mạng. Nếu ứng dụng được cập nhật thành tệp mới, ứng dụng có thể xuất hiện lại để bố mẹ xem xét.</p>
+          </fieldset>
           <p id="filtering-draft-status" class="hint" role="status" aria-live="polite"></p>
           <div class="filtering-actions"><button type="submit">Lưu quy tắc kiểm soát</button><button id="reload-filtering" type="button" class="secondary">Tải lại dữ liệu</button></div>
         </form>
@@ -157,7 +194,7 @@
   <section class="privacy">
     <h2>Ứng dụng này biết gì về em?</h2>
     <p>Bản mẫu lưu tên gọi của em, tên thiết bị, lần thiết bị kết nối gần nhất và thời gian bố mẹ cài đặt.
-    Ứng dụng ghi nhận tên ứng dụng, tên miền, thời gian và lý do chặn; không đọc nội dung em gõ, tin nhắn, tài liệu hay chụp màn hình.</p>
+    Ứng dụng ghi nhận tên ứng dụng, mã nhận diện tệp, tên miền, thời gian và lý do chặn; không gửi đường dẫn tệp, không đọc nội dung em gõ, tin nhắn, tài liệu hay chụp màn hình.</p>
     <p>Em có thể xem các lần bị chặn trong tab Sự kiện trên máy của mình. Bố mẹ hãy dùng tên gọi, không cần nhập họ tên đầy đủ.</p>
   </section>
 </main><footer>OpenGuard Kids · Công cụ đồng hành cùng trẻ</footer>

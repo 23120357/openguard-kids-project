@@ -78,11 +78,14 @@ class AgentCore:
         self._filtering_policies = {}
         self._tray_process_id = None
         self._filtering_error = None
+        self._web_protection = "inactive"
+        self._web_protection_error = None
         self._activity_sample = None
         self._activity_fraction = 0.0
         self._activity_epoch = 0
         self._remote_activity_report = None
         self._app_period_cache = None
+        self._observed_apps: dict[tuple[str, str], dict[str, Any]] = {}
 
     def configure_events(self, queue, device_id):
         with self._lock:
@@ -124,6 +127,8 @@ class AgentCore:
             self._request_history = [
                 item for item in self._request_history if item["child_id"] != child_id
             ]
+            for key in [key for key in self._observed_apps if key[0] == child_id]:
+                del self._observed_apps[key]
         if self._active_child_id in child_ids:
             self._activity_sample = None
             self._activity_fraction = 0.0
@@ -238,6 +243,40 @@ class AgentCore:
             if event_type == "app_stop":
                 self._app_period_cache = None
             return event
+
+    def record_observed_app(self, child_id: str, name: str, sha256: str) -> None:
+        """Queue a privacy-minimal app identity for the parent picker."""
+        now = self._wall_clock()
+        key = (child_id, sha256.lower())
+        with self._lock:
+            previous = self._observed_apps.get(key)
+            if previous and previous["name"] == name and now - previous["observed_at"] < 300:
+                return
+            self._observed_apps[key] = {
+                "child_id": child_id,
+                "name": name,
+                "sha256": key[1],
+                "observed_at": now,
+                "pending": True,
+            }
+            if len(self._observed_apps) > 500:
+                oldest = min(self._observed_apps, key=lambda item: self._observed_apps[item]["observed_at"])
+                del self._observed_apps[oldest]
+
+    def pending_observed_apps(self) -> list[dict[str, str]]:
+        with self._lock:
+            return [
+                {key: item[key] for key in ("child_id", "name", "sha256")}
+                for item in self._observed_apps.values()
+                if item["pending"]
+            ]
+
+    def acknowledge_observed_apps(self, accepted: list[dict[str, str]]) -> None:
+        with self._lock:
+            for item in accepted:
+                current = self._observed_apps.get((item["child_id"], item["sha256"].lower()))
+                if current:
+                    current["pending"] = False
 
     def _activity_snapshot(self):
         if not self.event_queue or not self._active_child_id:
@@ -597,6 +636,8 @@ class AgentCore:
                 "filtering": {
                     "enabled": bool(self.filter_context()),
                     "error": self._filtering_error,
+                    "web_protection": self._web_protection,
+                    "web_protection_error": self._web_protection_error,
                 },
                 "current_policy": (
                     {
