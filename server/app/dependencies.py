@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import Child, Device, ParentSession
+from .models import AdminSession, Child, Device, ParentSession
 from .security import digest
 
 
@@ -31,6 +31,23 @@ def current_parent(request: Request, db: DB):
 
 
 ParentAuth = Annotated[ParentSession, Depends(current_parent)]
+
+
+def current_admin(request: Request, db: DB):
+    if not request.app.state.settings.admin_enabled:
+        raise HTTPException(404, "Not found")
+    token = request.cookies.get("ogk_admin_session", "")
+    session = db.get(AdminSession, digest(token))
+    if not session or session.expires_at <= time.time():
+        raise HTTPException(401, "Administrator sign-in required")
+    if request.method not in ("GET", "HEAD", "OPTIONS") and not secrets.compare_digest(
+        request.headers.get("x-csrf-token", ""), session.csrf_token
+    ):
+        raise HTTPException(403, "Invalid CSRF token")
+    return session
+
+
+AdminAuth = Annotated[AdminSession, Depends(current_admin)]
 
 
 def owned_child(db: Session, child_id: str, parent_id: str):

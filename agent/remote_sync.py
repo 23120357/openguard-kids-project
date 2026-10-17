@@ -6,20 +6,24 @@ import argparse
 import json
 import os
 import sqlite3
+import ssl
 import threading
 import time
 import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 import websocket
 from dotenv import load_dotenv
 
 from agent.event_queue import EventQueue
+from agent.secret_storage import load_json as load_secret_json
+from agent.secret_storage import save_json as save_secret_json
 from agent.time_control import F1Controller, SQLiteTimeStore, TimePolicy
+from agent.transport_security import TransportPolicy, tls_context
 from server.app.policy_signing import verify_policy
 
 
@@ -36,19 +40,19 @@ class RemoteConfig:
     child_pin_hash: str = ""
     legacy_state_child_id: str = ""
     heartbeat_seconds: int = 30
+    certificate_sha256: str = ""
+    allow_insecure_http: bool = False
 
     @classmethod
     def load(cls, path: str | Path) -> RemoteConfig:
-        return cls(**json.loads(Path(path).read_text(encoding="utf-8")))
+        values, protected = load_secret_json(path)
+        config = cls(**values)
+        if not protected:
+            config.save(path)
+        return config
 
     def save(self, path: str | Path) -> None:
-        target = Path(path)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        temporary = target.with_suffix(target.suffix + ".tmp")
-        temporary.write_text(
-            json.dumps(asdict(self), ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        os.replace(temporary, target)
+        save_secret_json(path, asdict(self))
 
 
 def verified_time_policy(document: dict[str, Any], key: str) -> TimePolicy:
@@ -120,6 +124,12 @@ class RemoteSync:
         self.config_path = Path(config_path)
         self.policy_path = Path(policy_path)
         self.config = RemoteConfig.load(config_path)
+        self.transport = TransportPolicy(
+            self.config.server_url,
+            self.config.certificate_sha256,
+            self.config.allow_insecure_http,
+        )
+        self.transport.validate()
         self.stop_event = threading.Event()
         self._sync_wake = threading.Event()
         self._activity_wake = threading.Event()
@@ -155,6 +165,16 @@ class RemoteSync:
                 self._configure_profiles(cached)
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 self.core.set_remote_status(connected=False, error=str(exc))
+
+    def _client(self) -> httpx.Client:
+        self.transport.verify_peer()
+        verify = tls_context() if self.config.server_url.startswith("https://") else True
+        return httpx.Client(
+            base_url=self.config.server_url,
+            timeout=10,
+            trust_env=False,
+            verify=verify,
+        )
 
     def _controller_for_profile(self, child_id: str, policy: TimePolicy) -> F1Controller:
         uuid.UUID(child_id)
@@ -208,17 +228,22 @@ class RemoteSync:
                 periods = {}
                 for days in (7, 90):
                     period = self._request(
-                        client, "GET", "/api/device/activity-report",
+                        client,
+                        "GET",
+                        "/api/device/activity-report",
                         params={"child_id": child_id, "days": days},
                     ).json()
-                    if period["generation"] != snapshot["generation"] or period["child_id"] != child_id:
+                    if (
+                        period["generation"] != snapshot["generation"]
+                        or period["child_id"] != child_id
+                    ):
                         return
                     periods[str(days)] = period["report"]["top_apps"]
                 snapshot["report"]["app_periods"] = periods
                 self.core.set_activity_report(snapshot)
 
     def _activity_loop(self):
-        with httpx.Client(base_url=self.config.server_url, timeout=10, trust_env=False) as client:
+        with self._client() as client:
             while not self.stop_event.is_set():
                 self._activity_wake.clear()
                 try:
@@ -297,7 +322,7 @@ class RemoteSync:
         return response
 
     def _heartbeat_loop(self) -> None:
-        with httpx.Client(base_url=self.config.server_url, timeout=10, trust_env=False) as client:
+        with self._client() as client:
             while not self.stop_event.is_set():
                 started = time.monotonic()
                 try:
@@ -341,7 +366,7 @@ class RemoteSync:
                 self._sync_wake.clear()
 
     def _time_status_loop(self) -> None:
-        with httpx.Client(base_url=self.config.server_url, timeout=10, trust_env=False) as client:
+        with self._client() as client:
             while not self.stop_event.is_set():
                 try:
                     status = self.core.status()
@@ -372,7 +397,7 @@ class RemoteSync:
                 self._time_status_wake.clear()
 
     def _time_request_loop(self) -> None:
-        with httpx.Client(base_url=self.config.server_url, timeout=10, trust_env=False) as client:
+        with self._client() as client:
             while not self.stop_event.is_set():
                 self._request_wake.wait()
                 self._request_wake.clear()
@@ -414,16 +439,21 @@ class RemoteSync:
     def _websocket_url(self) -> str:
         parsed = urlsplit(self.config.server_url)
         scheme = "wss" if parsed.scheme == "https" else "ws"
-        with self._token_lock:
-            token = quote(self.config.access_token, safe="")
-        return urlunsplit((scheme, parsed.netloc, "/api/device/ws", "access_token=" + token, ""))
+        return urlunsplit((scheme, parsed.netloc, "/api/device/ws", "", ""))
 
     def _websocket_loop(self) -> None:
         while not self.stop_event.is_set():
             connection = None
             try:
+                self.transport.verify_peer()
+                with self._token_lock:
+                    authorization = "Authorization: Bearer " + self.config.access_token
                 connection = websocket.create_connection(
-                    self._websocket_url(), timeout=2, http_proxy_host=None
+                    self._websocket_url(),
+                    timeout=2,
+                    http_proxy_host=None,
+                    header=[authorization],
+                    sslopt={"cert_reqs": ssl.CERT_NONE, "check_hostname": False},
                 )
                 self.core.set_remote_status(connected=True)
                 while not self.stop_event.is_set():
@@ -471,10 +501,15 @@ def enroll(
     code: str,
     name: str,
     signing_key: str = "",
+    certificate_sha256: str = "",
+    allow_insecure_http: bool = False,
 ) -> None:
     existing = RemoteConfig.load(config_path) if config_path.exists() else None
     fingerprint = existing.fingerprint if existing else str(uuid.uuid4())
-    with httpx.Client(base_url=server, timeout=10, trust_env=False) as client:
+    transport = TransportPolicy(server, certificate_sha256, allow_insecure_http)
+    transport.verify_peer()
+    verify = tls_context() if server.startswith("https://") else True
+    with httpx.Client(base_url=server, timeout=10, trust_env=False, verify=verify) as client:
         response = client.post(
             "/api/enroll",
             json={
@@ -505,6 +540,8 @@ def enroll(
         legacy_state_child_id=(
             existing.legacy_state_child_id or existing.child_id if existing else tokens["child_id"]
         ),
+        certificate_sha256=certificate_sha256.lower(),
+        allow_insecure_http=allow_insecure_http,
     ).save(config_path)
 
 
@@ -517,13 +554,9 @@ def main() -> int:
     parser.add_argument("--name", default="Windows lab device")
     parser.add_argument(
         "--signing-key",
-        default=os.getenv(
-            "OGK_POLICY_SIGNING_KEY", "development-only-policy-signing-key-change-me"
-        ),
+        default=os.getenv("OGK_POLICY_SIGNING_KEY", ""),
     )
     args = parser.parse_args()
-    if len(args.signing_key) < 32:
-        parser.error("OGK_POLICY_SIGNING_KEY/--signing-key must contain at least 32 characters")
     parsed = urlsplit(args.server)
     if parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
         parser.error("Week-2 enrollment only permits HTTP loopback; production requires HTTPS")

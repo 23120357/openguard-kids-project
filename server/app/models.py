@@ -30,6 +30,23 @@ class ParentSession(Base):
     expires_at: Mapped[float]
 
 
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+    id: Mapped[str] = mapped_column(primary_key=True, default=new_id)
+    email: Mapped[str] = mapped_column(String(254), unique=True)
+    password_hash: Mapped[str]
+    failed_attempts: Mapped[int] = mapped_column(default=0)
+    locked_until: Mapped[float] = mapped_column(default=0)
+
+
+class AdminSession(Base):
+    __tablename__ = "admin_sessions"
+    token_hash: Mapped[str] = mapped_column(primary_key=True)
+    admin_id: Mapped[str] = mapped_column(ForeignKey("admin_users.id"))
+    csrf_token: Mapped[str]
+    expires_at: Mapped[float]
+
+
 class Child(Base):
     __tablename__ = "children"
     id: Mapped[str] = mapped_column(primary_key=True, default=new_id)
@@ -64,7 +81,7 @@ class Device(Base):
     display_name: Mapped[str] = mapped_column(String(80))
     # Random installation identifier, not hardware inventory.
     fingerprint: Mapped[str]
-    policy_signing_key: Mapped[str | None] = mapped_column(String(128))
+    policy_signing_key: Mapped[str | None] = mapped_column(String(255))
     access_hash: Mapped[str] = mapped_column(unique=True)
     access_expires_at: Mapped[float]
     refresh_hash: Mapped[str] = mapped_column(unique=True)

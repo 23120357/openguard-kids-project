@@ -37,7 +37,7 @@ from .event_schemas import (
 )
 from .models import Audit, Child, Device, TimeRequest
 from .policy_signing import sign_policy
-from .routes import accessible_child, client_ip, device_parent_id
+from .routes import accessible_child, client_ip, device_parent_id, device_policy_key
 
 router = APIRouter(prefix="/api")
 
@@ -521,7 +521,7 @@ async def set_filtering(
 
 
 @router.get("/device/filtering")
-def device_filtering(device: DeviceAuth, db: DB):
+def device_filtering(request: Request, device: DeviceAuth, db: DB):
     children = db.scalars(
         select(Child).where(Child.parent_id == device_parent_id(db, device))
     ).all()
@@ -531,6 +531,6 @@ def device_filtering(device: DeviceAuth, db: DB):
     }
     document["integrity"] = {
         "algorithm": "hmac-sha256",
-        "signature": sign_policy(document, device.policy_signing_key),
+        "signature": sign_policy(document, device_policy_key(request, device)),
     }
     return document

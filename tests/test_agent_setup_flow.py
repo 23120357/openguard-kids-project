@@ -1,6 +1,7 @@
 """The parent-to-device setup contract, without requiring an installed service."""
 
 import json
+import threading
 from datetime import UTC, datetime
 
 from argon2 import PasswordHasher
@@ -100,10 +101,9 @@ def test_enrollment_persists_server_supplied_key_without_shared_env(
     saved = RemoteConfig.load(path)
     assert saved.child_id == child["id"]
     assert len(saved.policy_signing_key) >= 32
-    assert (
-        json.loads(path.read_text(encoding="utf-8"))["policy_signing_key"]
-        == saved.policy_signing_key
-    )
+    stored = json.loads(path.read_text(encoding="utf-8"))
+    assert stored["format"] == "dpapi-local-machine-v1"
+    assert saved.policy_signing_key not in path.read_text(encoding="utf-8")
 
 
 def test_service_accepts_pairing_over_ipc_and_starts_sync(tmp_path, monkeypatch):
@@ -116,7 +116,7 @@ def test_service_accepts_pairing_over_ipc_and_starts_sync(tmp_path, monkeypatch)
     )
     calls = []
 
-    def fake_enroll(path, server_url, code, name):
+    def fake_enroll(path, server_url, code, name, **kwargs):
         calls.append((server_url, code, name))
         RemoteConfig(server_url, "device-a", "access", "refresh", "a" * 40, "fingerprint").save(
             path
@@ -150,3 +150,102 @@ def test_existing_offline_f1_installer_remains_available(tmp_path, monkeypatch):
     runtime = service.ServiceRuntime()
     assert runtime.core.status()["enrollment"]["required"] is False
     assert runtime.core._time_controller is controller
+
+
+def test_service_watchdog_requires_visible_tray():
+    from agent.windows_service import tray_watchdog_reason
+
+    assert (
+        tray_watchdog_reason(
+            elapsed_seconds=59,
+            tray_was_seen=False,
+            tray_present=False,
+            startup_grace_seconds=60,
+        )
+        is None
+    )
+    assert (
+        tray_watchdog_reason(
+            elapsed_seconds=60,
+            tray_was_seen=False,
+            tray_present=False,
+            startup_grace_seconds=60,
+        )
+        == "Tray did not appear during service startup"
+    )
+    assert (
+        tray_watchdog_reason(
+            elapsed_seconds=100,
+            tray_was_seen=True,
+            tray_present=True,
+        )
+        is None
+    )
+    assert (
+        tray_watchdog_reason(
+            elapsed_seconds=100,
+            tray_was_seen=True,
+            tray_present=False,
+        )
+        == "tray heartbeat was lost"
+    )
+
+
+def test_service_runtime_stops_pipe_when_tray_never_appears():
+    import agent.windows_service as service
+
+    class MissingTray:
+        @staticmethod
+        def tray_presence():
+            return False, False
+
+    class Pipe:
+        def __init__(self):
+            self.stopped = False
+
+        def stop(self):
+            self.stopped = True
+
+    runtime = service.ServiceRuntime.__new__(service.ServiceRuntime)
+    runtime.core = MissingTray()
+    runtime.pipe = Pipe()
+    runtime._shutdown_requested = threading.Event()
+    runtime.tray_startup_grace_seconds = 0
+    runtime.tray_watchdog_poll_seconds = 0
+    runtime.stop_reason = None
+
+    runtime._watch_for_visible_tray()
+
+    assert runtime.pipe.stopped is True
+    assert runtime.stop_reason == "Tray did not appear during service startup"
+
+
+def test_service_runtime_stops_pipe_after_tray_is_lost():
+    import agent.windows_service as service
+
+    class VisibleThenMissing:
+        def __init__(self):
+            self.checks = iter(((True, True), (True, False)))
+
+        def tray_presence(self):
+            return next(self.checks)
+
+    class Pipe:
+        def __init__(self):
+            self.stopped = False
+
+        def stop(self):
+            self.stopped = True
+
+    runtime = service.ServiceRuntime.__new__(service.ServiceRuntime)
+    runtime.core = VisibleThenMissing()
+    runtime.pipe = Pipe()
+    runtime._shutdown_requested = threading.Event()
+    runtime.tray_startup_grace_seconds = 60
+    runtime.tray_watchdog_poll_seconds = 0
+    runtime.stop_reason = None
+
+    runtime._watch_for_visible_tray()
+
+    assert runtime.pipe.stopped is True
+    assert runtime.stop_reason == "tray heartbeat was lost"

@@ -3,8 +3,10 @@
 param(
     [string]$ServerUrl = "http://127.0.0.1:8000",
     [string]$DeviceName = $env:COMPUTERNAME,
+    [string]$CertificateSha256 = "",
     [string]$PythonExecutable = "",
     [switch]$AllowInsecureHttp,
+    [switch]$LabAllowAdministratorChild,
     [switch]$ElevatedPhase
 )
 
@@ -24,6 +26,9 @@ if ($serverUri.Scheme -notin @("http", "https") -or -not $serverUri.Host -or $se
 if ($serverUri.Scheme -eq "http" -and $serverUri.Host -notin @("127.0.0.1", "localhost", "::1") -and -not $AllowInsecureHttp) {
     throw "HTTP to another computer exposes device credentials. Use HTTPS or explicitly pass -AllowInsecureHttp for a trusted lab network."
 }
+if ($serverUri.Scheme -eq "https" -and $CertificateSha256 -notmatch '^[0-9A-Fa-f]{64}$') {
+    throw "HTTPS requires -CertificateSha256 with the 64-character SHA-256 fingerprint of the server certificate."
+}
 if ([string]::IsNullOrWhiteSpace($DeviceName) -or $DeviceName.Length -gt 80) {
     throw "DeviceName must have 1 to 80 characters."
 }
@@ -31,12 +36,19 @@ if ([string]::IsNullOrWhiteSpace($DeviceName) -or $DeviceName.Length -gt 80) {
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = [Security.Principal.WindowsPrincipal]::new($identity)
 $isAdmin = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$adminSid = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-544')
+$isAdministratorMember = @($identity.Groups | Where-Object { $_.Value -eq $adminSid.Value }).Count -gt 0
+
+if (-not $ElevatedPhase -and $isAdministratorMember -and -not $LabAllowAdministratorChild) {
+    throw "The signed-in child account belongs to Administrators. Use a standard Windows account. For an isolated lab only, pass -LabAllowAdministratorChild."
+}
 
 if (-not $isAdmin) {
     if ($ElevatedPhase) { throw "Administrator approval was not granted." }
     $quote = { param([string]$value) "'" + $value.Replace("'", "''") + "'" }
-    $stage = "& $(& $quote $PSCommandPath) -ElevatedPhase -ServerUrl $(& $quote $ServerUrl) -DeviceName $(& $quote $DeviceName) -PythonExecutable $(& $quote $PythonExecutable)"
+    $stage = "& $(& $quote $PSCommandPath) -ElevatedPhase -ServerUrl $(& $quote $ServerUrl) -DeviceName $(& $quote $DeviceName) -CertificateSha256 $(& $quote $CertificateSha256) -PythonExecutable $(& $quote $PythonExecutable)"
     if ($AllowInsecureHttp) { $stage += " -AllowInsecureHttp" }
+    if ($LabAllowAdministratorChild) { $stage += " -LabAllowAdministratorChild" }
     $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($stage))
     $shell = (Get-Process -Id $PID).Path
     Write-Host "Accept the UAC prompt. The first install may take several minutes while dependencies are installed."
@@ -78,6 +90,7 @@ try {
         $bootstrap = @{
             server_url = $ServerUrl.TrimEnd("/")
             device_name = $DeviceName
+            certificate_sha256 = $CertificateSha256.ToLowerInvariant()
             allow_insecure_http = [bool]$AllowInsecureHttp
         } | ConvertTo-Json
         [IO.File]::WriteAllText($bootstrapPath, $bootstrap, [Text.UTF8Encoding]::new($false))

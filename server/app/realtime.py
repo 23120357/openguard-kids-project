@@ -41,6 +41,15 @@ class DeviceConnections:
             await self.disconnect(device_id, websocket)
             return False
 
+    async def close(self, device_id: str, *, code: int = 1000, reason: str = "") -> None:
+        async with self._lock:
+            websocket = self._connections.pop(device_id, None)
+        if websocket is not None:
+            try:
+                await websocket.close(code=code, reason=reason)
+            except RuntimeError:
+                pass
+
 
 class ParentEvents:
     """In-process, thread-safe change signals for signed-in dashboard tabs."""

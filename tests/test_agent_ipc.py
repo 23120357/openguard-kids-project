@@ -218,11 +218,15 @@ def test_ui_presence_expires():
     assert response["ok"] is True
     assert response["data"]["ui_connected"] is True
     assert response["data"]["agent_active"] is True
+    assert core.tray_is_present() is True
+    assert core.tray_presence() == (True, True)
     clock.value += core.UI_PRESENCE_TIMEOUT_SECONDS + 0.1
     status = core.status()
     assert status["ui_connected"] is False
     assert status["agent_active"] is False
     assert status["time_control"]["mode"] == "inert_no_tray"
+    assert core.tray_is_present() is False
+    assert core.tray_presence() == (True, False)
 
 
 @pytest.mark.parametrize(

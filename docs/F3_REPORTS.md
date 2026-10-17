@@ -56,11 +56,16 @@ riêng trong [F2_TESTING.md](F2_TESTING.md).
   PIN, tài khoản, luật và audit cấu hình F4 giữ nguyên để việc xóa lịch sử không
   vượt chính sách. Agent offline xác nhận sau reconnect; snapshot báo cáo cũ
   được bỏ. Bản PDF đã tải nằm ngoài tác vụ xóa của hệ thống.
+- Đây là thao tác riêng với nút **Xóa toàn bộ tài khoản và thiết bị** trên Dashboard.
+  Thao tác thứ hai xác minh lại mật khẩu và xóa toàn bộ household: tài khoản phụ
+  huynh, hồ sơ trẻ/PIN, chính sách, mã ghép, thiết bị/token, audit, request và
+  activity; đồng thời đóng kết nối thiết bị đang mở. Hai nút không thay thế nhau.
 
 ## API bổ sung
 
 | API | Quyền | Kết quả |
 |---|---|---|
+| DELETE /api/account | Phụ huynh + CSRF + nhập lại mật khẩu | Xóa vĩnh viễn toàn bộ tài khoản, hồ sơ và thiết bị; trả 204 |
 | GET /api/children/{child_id}/activity-report?days=28&end_date=YYYY-MM-DD | Phụ huynh sở hữu | daily, weekly, top_apps, top_domains, total_duration_sec, blocked_count, requests |
 | GET /api/children/{child_id}/activity-report/chart.png?kind=daily\|weekly\|apps&days=7 | Phụ huynh sở hữu | Ảnh PNG dựng bằng Pillow; ngày cố định 7 ngày, tuần cố định 56 ngày, `days` chỉ áp dụng cho apps; không cache |
 | GET /api/children/{child_id}/activity-report.csv?week_start=YYYY-MM-DD | Phụ huynh sở hữu | Tải CSV tuần chứa ngày được chọn, mặc định tuần hiện tại |

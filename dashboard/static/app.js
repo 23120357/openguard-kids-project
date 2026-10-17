@@ -302,7 +302,7 @@ function formatAuditEntry(a) {
   if (next.status) changes.push('Trạng thái: ' + ({pending:'đang chờ',approved:'đã đồng ý',rejected:'đã từ chối',acknowledged:'đã xác nhận'}[next.status] || next.status));
   if (a.action === 'child_pin_changed') changes.push('PIN 6 số đã đổi');
   if (a.action === 'enrollment_consent') changes.push('Đã đồng ý ghép thiết bị');
-  const action = ({policy_updated:'Chính sách thời gian',filtering_updated:'Kiểm soát web và ứng dụng',enrollment_consent:'Ghép thiết bị',emergency_command_created:'Lệnh thiết bị',emergency_command_acknowledged:'Thiết bị xác nhận lệnh',time_requested:'Yêu cầu thêm giờ',time_request_decided:'Trả lời yêu cầu thêm giờ',child_pin_changed:'PIN hồ sơ'}[a.action] || a.action);
+  const action = ({policy_updated:'Chính sách thời gian',filtering_updated:'Kiểm soát web và ứng dụng',enrollment_consent:'Ghép thiết bị',emergency_command_created:'Lệnh thiết bị',emergency_command_acknowledged:'Thiết bị xác nhận lệnh',time_requested:'Yêu cầu thêm giờ',time_request_decided:'Trả lời yêu cầu thêm giờ',child_pin_changed:'PIN hồ sơ',device_revoked:'Thu hồi thiết bị'}[a.action] || a.action);
   const child = childProfiles.find(item => item.id === a.child_id);
   return new Date(a.ts * 1000).toLocaleString('vi-VN') + ' · ' + action + (child ? ' · ' + child.display_name : '') + (a.actor ? ' · ' + a.actor : '') + (changes.length ? ': ' + changes.join('; ') : '');
 }
@@ -314,7 +314,7 @@ async function refreshStatus() {
   ]);
   const deviceItems = devices.length ? devices.map(d => {
     const li = document.createElement("li");
-    const state = !d.online ? "offline" : d.active_user ? "active" : "online";
+    const state = d.revoked ? "offline" : !d.online ? "offline" : d.active_user ? "active" : "online";
     li.className = "device-card device-card--" + state;
     const title = document.createElement("h3"); title.textContent = d.display_name;
     const details = document.createElement("div"); details.className = "device-details";
@@ -324,7 +324,7 @@ async function refreshStatus() {
       const content = document.createElement("span"); content.textContent = value;
       line.append(name, content); details.append(line); return content;
     };
-    detail("Trạng thái", d.online ? "Trực tuyến" : "Ngoại tuyến");
+    detail("Trạng thái", d.revoked ? "Đã thu hồi quyền truy cập" : d.online ? "Trực tuyến" : "Ngoại tuyến");
     detail("Phiên bản chính sách", "v" + d.policy_version);
     detail("Lần kết nối gần nhất", d.last_seen ? new Date(d.last_seen * 1000).toLocaleString("vi-VN") : "Chưa gửi heartbeat");
     detail("Đang dùng", d.active_user || "Chưa đăng nhập");
@@ -361,6 +361,7 @@ async function refreshStatus() {
     const actions = document.createElement("div"); actions.className = "device-actions";
     [["Khóa ngay", "lock_now"]].forEach(([label, command]) => {
       const button = document.createElement("button"); button.type = "button"; button.textContent = label;
+      button.disabled = d.revoked;
       button.addEventListener("click", () => sendCommand(d.id, command, button)); actions.append(button);
     });
     const minutes = document.createElement("input"); minutes.type = "number"; minutes.min = "1";
@@ -368,9 +369,15 @@ async function refreshStatus() {
     minutes.setAttribute("aria-label", "Số phút cộng thêm hôm nay");
     minutes.addEventListener("input", () => deviceGrantMinutes.set(d.id, minutes.value));
     const grant = document.createElement("button"); grant.type = "button"; grant.textContent = "Cộng phút";
-    grant.disabled = !d.active_child_id;
+    grant.disabled = !d.active_child_id || d.revoked;
     grant.addEventListener("click", () => sendCommand(d.id, "add_time", grant, Number(minutes.value)));
     actions.append(minutes, grant);
+    if (!d.revoked) {
+      const revoke = document.createElement("button"); revoke.type = "button";
+      revoke.className = "secondary"; revoke.textContent = "Thu hồi thiết bị";
+      revoke.addEventListener("click", () => revokeDevice(d.id, d.display_name, revoke));
+      actions.append(revoke);
+    }
     li.append(title, details, actions); return li;
   }) : [Object.assign(document.createElement("li"), {textContent: "Chưa có thiết bị. Hãy tạo mã ghép đôi."})];
   el("devices").replaceChildren(...deviceItems);
@@ -438,6 +445,15 @@ async function sendCommand(deviceId, command, button, minutes = 15) {
     await refreshStatus();
   } catch (error) { tell(error.message); } finally { button.disabled = false; }
 }
+async function revokeDevice(deviceId, deviceName, button) {
+  if (!window.confirm("Thu hồi quyền của máy " + deviceName + "? Máy sẽ phải ghép đôi lại để kết nối.")) return;
+  button.disabled = true;
+  try {
+    await api("/devices/" + encodeURIComponent(deviceId) + "/revoke", "POST", {});
+    tell("Đã thu hồi thiết bị. Access token và refresh token cũ không còn hiệu lực.");
+    await refreshStatus();
+  } catch (error) { tell(error.message); } finally { button.disabled = false; }
+}
 async function decideTimeRequest(requestId, approved, button) {
   button.disabled = true;
   try {
@@ -490,6 +506,16 @@ form("code-form", async () => {
   if (!child_id) throw new Error("Hãy tạo hồ sơ của con trước.");
   const result = await api("/enrollment-codes", "POST", { child_id, consent: true });
   el("pairing-code").textContent = result.code; await refreshStatus();
+});
+form("delete-account-form", async data => {
+  const confirmed = window.confirm(
+    "Xóa vĩnh viễn tài khoản phụ huynh, tất cả hồ sơ trẻ và mọi thiết bị đã ghép? Thao tác này không thể hoàn tác."
+  );
+  if (!confirmed) return;
+  await api("/account", "DELETE", {password: data.get("password")});
+  el("delete-account-form").reset();
+  showLogin();
+  tell("Tài khoản, hồ sơ trẻ và thiết bị đã được xóa vĩnh viễn.");
 });
 form("policy-form", async data => {
   if (!currentPolicy) throw new Error("Hãy chọn hồ sơ của con.");

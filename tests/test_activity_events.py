@@ -362,7 +362,7 @@ def test_filtering_validation_versions_and_signed_document(parent, child):
 def test_filtering_change_wakes_connected_agent(parent, child):
     tokens, _ = pair(parent, child)
     with parent.websocket_connect(
-        "/api/device/ws?access_token=" + tokens["access_token"]
+        "/api/device/ws", headers={"Authorization": "Bearer " + tokens["access_token"]}
     ) as websocket:
         updated = parent.put(
             f"/api/children/{child['id']}/filtering",
@@ -388,6 +388,7 @@ def test_end_to_end_offline_queue_sync_and_delete(parent, child, tmp_path):
         policy_signing_key=tokens["policy_signing_key"],
         fingerprint="test-installation",
         child_id=child["id"],
+        allow_insecure_http=True,
     ).save(path)
     sync = RemoteSync(AgentCore(), path, tmp_path / "policy.json")
     id = sync.events.append(
@@ -424,6 +425,7 @@ def test_sync_failure_keeps_pending_queue(parent, child, tmp_path):
         policy_signing_key=tokens["policy_signing_key"],
         fingerprint="test-installation",
         child_id=child["id"],
+        allow_insecure_http=True,
     ).save(path)
     sync = RemoteSync(AgentCore(), path, tmp_path / "policy.json")
     sync.events.append(

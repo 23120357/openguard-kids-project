@@ -159,9 +159,11 @@ Lặp ở một ranh giới `:00` hoặc `:30` để xác nhận đổi ô lịc
    khoảng thời gian sau mốc 5 phút phải không tăng.
 3. Khóa Windows 2 phút rồi mở lại. `used_seconds` không được tăng trong khoảng đã
    khóa.
-4. Thoát Tray trong 30 giây. Service phải báo `inert_no_tray`, không đếm và không
-   yêu cầu khóa. Đây là kiểm tra ranh giới chống chạy ẩn, không phải cơ chế chống
-   bypass production.
+4. Thoát Tray và chạy `Get-Service OpenGuardKidsAgentTest`. Service phải chuyển
+   sang `Stopped` trong tối đa 16 giây, không đếm, không yêu cầu khóa và phải khôi
+   phục cấu hình DNS đã thay đổi. Khởi động Service mà không mở Tray: Service phải
+   tự dừng sau tối đa 60 giây. Đây là kiểm tra ranh giới chống chạy ẩn, không phải
+   cơ chế chống bypass production.
 
 ### D. Sai số một giờ
 

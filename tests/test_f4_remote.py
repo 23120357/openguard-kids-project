@@ -97,7 +97,7 @@ def test_schedule_policy_update_is_audited_and_announced(parent, child, app):
 def test_policy_change_wakes_connected_agent(parent, child):
     tokens, _ = pair(parent, child)
     with parent.websocket_connect(
-        "/api/device/ws?access_token=" + tokens["access_token"]
+        "/api/device/ws", headers={"Authorization": "Bearer " + tokens["access_token"]}
     ) as websocket:
         updated = parent.put(
             f"/api/children/{child['id']}/policy",
@@ -162,8 +162,10 @@ def test_emergency_command_falls_back_to_heartbeat_and_child_audit(parent, child
 
 def test_websocket_delivers_and_acknowledges_emergency_command(parent, child, app):
     tokens, _ = pair(parent, child)
-    url = "/api/device/ws?access_token=" + tokens["access_token"]
-    with parent.websocket_connect(url) as websocket:
+    url = "/api/device/ws"
+    with parent.websocket_connect(
+        url, headers={"Authorization": "Bearer " + tokens["access_token"]}
+    ) as websocket:
         started = time.monotonic()
         response = parent.post(
             f"/api/devices/{tokens['device_id']}/commands",
@@ -190,8 +192,10 @@ def test_websocket_delivers_and_acknowledges_emergency_command(parent, child, ap
 
 def test_time_request_decisions_reach_agent_with_client_request_id(parent, child):
     tokens, _ = pair(parent, child)
-    url = "/api/device/ws?access_token=" + tokens["access_token"]
-    with parent.websocket_connect(url) as websocket:
+    url = "/api/device/ws"
+    with parent.websocket_connect(
+        url, headers={"Authorization": "Bearer " + tokens["access_token"]}
+    ) as websocket:
         for client_id, approved in (("approved-request", True), ("rejected-request", False)):
             created = parent.post(
                 "/api/device/requests",

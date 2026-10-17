@@ -8,4 +8,5 @@ websocket-client>=1.8,<2
 Pillow>=11,<13
 pystray>=0.19,<1
 pywin32>=306,<400; sys_platform == "win32"
+cryptography>=46,<51
 

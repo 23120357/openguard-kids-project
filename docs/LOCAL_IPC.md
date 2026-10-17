@@ -81,10 +81,11 @@ bằng giây, schedule state, grace, lock directive và notifications. Trạng t
 
 Service thực hiện phần F1 bắt buộc: quota, lịch 7×48, idle/lock-aware accounting,
 cảnh báo, grace và phát hiện lùi đồng hồ. Tray thực hiện lệnh khóa trong phiên người
-dùng. Khi thiếu heartbeat, trạng thái chuyển `inert_no_tray`: không đếm và không
-khóa để agent không chạy ẩn. Lõi F4 đã bật: Service nhận policy đã ký và lệnh khẩn
-từ server, sau đó chỉ chuyển lock directive tối thiểu cho Tray. Theo dõi ứng dụng
-và DNS chưa được bật.
+dùng. Service cho Tray tối đa 60 giây để xuất hiện khi khởi động; sau đó mất heartbeat
+quá 15 giây làm Service tự dừng và khôi phục cấu hình mạng. `inert_no_tray` chỉ là
+trạng thái an toàn ngắn trong lúc watchdog kết thúc Service, không phải chế độ chạy
+ẩn lâu dài. Lõi F4 đã bật: Service nhận policy đã ký và lệnh khẩn từ server, sau đó
+chỉ chuyển lock directive tối thiểu cho Tray.
 
 Service không tin các trường tùy ý ngoài schema và không cho Tray sửa policy hay
 usage. PIN chỉ nhận diện hồ sơ trẻ cùng tài khoản phụ huynh trong bản demo, chưa ràng

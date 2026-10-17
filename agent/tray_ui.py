@@ -883,6 +883,13 @@ class TrayApplication:
     def exit(self) -> None:
         self.closing = True
         try:
+            try:
+                self.client.request(
+                    "ui_heartbeat",
+                    {"visible": False, "idle_seconds": 0, "session_locked": True},
+                )
+            except PipeUnavailableError:
+                pass
             self.icon.stop()
         finally:
             self.root.destroy()

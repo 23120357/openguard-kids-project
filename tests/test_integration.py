@@ -5,7 +5,24 @@ from sqlalchemy import select
 
 from agent.cache import PolicyCache
 from agent.simulator import Simulator
-from server.app.models import Device, EnrollmentCode, ParentSession
+from server.app.event_models import (
+    ActivityEvent,
+    EventDeletionAck,
+    EventGeneration,
+    FilteringPolicy,
+    ObservedApp,
+)
+from server.app.models import (
+    Audit,
+    Child,
+    Device,
+    DeviceCommand,
+    EnrollmentCode,
+    Parent,
+    ParentSession,
+    Policy,
+    TimeRequest,
+)
 from tests.conftest import pair, sign_in
 
 
@@ -15,6 +32,120 @@ def test_login_cookie_and_logout(parent):
     assert parent.post("/api/auth/logout").status_code == 204
     parent.cookies.set("ogk_session", cookie)
     assert parent.get("/api/auth/me").status_code == 401
+
+
+def test_delete_account_removes_household_and_invalidates_devices(parent, child, app):
+    tokens, _ = pair(parent, child)
+    parent.post(
+        "/api/enrollment-codes", json={"child_id": child["id"], "consent": True}
+    )
+    with app.state.sessions() as db:
+        parent_id = db.scalar(
+            select(Parent.id).where(Parent.email == "parent@example.test")
+        )
+        device_id = tokens["device_id"]
+        db.add(
+            FilteringPolicy(
+                child_id=child["id"],
+                version=1,
+                rules={"domain_block": ["blocked.example"]},
+            )
+        )
+        db.add(EventGeneration(child_id=child["id"], generation=1))
+        db.add(
+            EventDeletionAck(
+                device_id=device_id, child_id=child["id"], generation=1
+            )
+        )
+        db.add(
+            ActivityEvent(
+                device_id=device_id,
+                id="11111111-1111-1111-1111-111111111111",
+                child_id=child["id"],
+                ts=time.time(),
+                generation=1,
+                payload={"type": "domain_blocked"},
+                reason="test",
+                rule_author="parent",
+            )
+        )
+        db.add(
+            ObservedApp(
+                device_id=device_id,
+                child_id=child["id"],
+                sha256="a" * 64,
+                name="blocked.exe",
+                last_seen=time.time(),
+            )
+        )
+        db.add(
+            DeviceCommand(
+                device_id=device_id,
+                child_id=child["id"],
+                parent_id=parent_id,
+                command_type="lock_now",
+                payload={},
+            )
+        )
+        db.add(
+            TimeRequest(
+                client_request_id="delete-account-test",
+                device_id=device_id,
+                child_id=child["id"],
+                requester="Bé An",
+                minutes=15,
+            )
+        )
+        db.commit()
+
+    wrong = parent.request(
+        "DELETE", "/api/account", json={"password": "wrong-password"}
+    )
+    assert wrong.status_code == 403
+    assert parent.get("/api/auth/me").status_code == 200
+
+    deleted = parent.request(
+        "DELETE", "/api/account", json={"password": "ExamplePassword123!"}
+    )
+    assert deleted.status_code == 204
+    assert parent.get("/api/auth/me").status_code == 401
+    assert (
+        parent.get(
+            "/api/policy",
+            headers={"Authorization": "Bearer " + tokens["access_token"]},
+        ).status_code
+        == 401
+    )
+    assert (
+        parent.post(
+            "/api/auth/device/refresh",
+            json={
+                "device_id": device_id,
+                "refresh_token": tokens["refresh_token"],
+            },
+        ).status_code
+        == 401
+    )
+
+    with app.state.sessions() as db:
+        household_models = (
+            ActivityEvent,
+            ObservedApp,
+            EventDeletionAck,
+            EventGeneration,
+            FilteringPolicy,
+            DeviceCommand,
+            TimeRequest,
+            Audit,
+            EnrollmentCode,
+            Policy,
+            Device,
+            Child,
+            ParentSession,
+        )
+        assert all(db.scalar(select(model)) is None for model in household_models)
+        assert db.scalar(select(Parent).where(Parent.email == "parent@example.test")) is None
+        assert db.scalar(select(Parent).where(Parent.email == "other@example.test")) is not None
 
 
 def test_csrf_blocks_writes(parent):
@@ -254,9 +385,12 @@ def test_dashboard_assets_and_api_health(client):
     assert "/static/app.js?v=20261012-app-catalog-v2" in dashboard.text
     assert "/static/style.css?v=20261012-app-catalog-v2" in dashboard.text
     assert 'id="schedule-error"' in dashboard.text
+    assert 'id="delete-account-form"' in dashboard.text
+    assert 'id="erase-activity"' in dashboard.text
     for path in ("/static/style.css", "/static/app.js", "/api/health", "/openapi.json"):
         assert client.get(path).status_code == 200
     script = client.get("/static/app.js?v=20261010-parent-tabs")
     assert script.headers["cache-control"] == "no-store"
     assert 'new Option("30", "30")' in script.text
     assert 'type = "time"' not in script.text
+    assert 'api("/account", "DELETE"' in script.text

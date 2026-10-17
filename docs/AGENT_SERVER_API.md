@@ -482,8 +482,10 @@ The required dashboard operation is
 - Agent endpoints do not accept parent cookies, and dashboard endpoints do not
   accept device bearer tokens.
 - Policy and command signing keys are separate from TLS keys.
-- The tray's presence is reported. If it cannot remain visible, the service
-  becomes `inert_no_tray`, stops enforcement and reports that state.
+- The tray's presence is reported. The service allows a 60-second startup grace;
+  after that, a missing Tray heartbeat for more than 15 seconds stops the service
+  and restores agent-owned network settings. `inert_no_tray` is only transient
+  while shutdown completes.
 - Event and request schemas reject unknown fields (`additionalProperties: false`).
 - Audit entries record enrollment consent, policy changes, command creation,
   parent request decisions, revocation and deletion: actor, time, direct client

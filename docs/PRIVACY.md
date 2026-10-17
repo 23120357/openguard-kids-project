@@ -12,8 +12,9 @@ Cần tự kiểm chứng văn bản gốc khi viết phần pháp lý trong bá
 | session token_hash, csrf_token, parent_id, expires_at | Phiên 12 giờ, chống CSRF | Hết hiệu lực sau 12 giờ; dọn session cũ khi đăng nhập | Server; trình duyệt giữ cookie/token tương ứng |
 | child.id, parent_id, display_name, pin_hash | Hồ sơ và PIN trẻ do phụ huynh đặt | Chưa tự xóa; sẽ bổ sung xóa theo yêu cầu | Server giữ Argon2 hash; thiết bị cùng tài khoản phụ huynh nhận hash đã ký để xác minh local |
 | code_hash, child_id, expires_at, consent_at | Ghép đôi có đồng ý | Hạn 10 phút; xóa khi dùng hoặc thay mã | Server; mã thô chỉ trả lúc tạo |
-| device.id, child_id, display_name, fingerprint hash | Định danh thiết bị demo | Chưa có chức năng xóa; cần bổ sung | Server; phụ huynh xem ID và tên |
-| access_hash, refresh_hash, thời hạn, revoked | Xác thực và thu hồi thiết bị | Access 15 phút, refresh 30 ngày; bị thay khi refresh | Server; token thô trên agent lưu trong thư mục ACL của service |
+| device.id, child_id, display_name, fingerprint hash | Định danh thiết bị demo | Giữ tới khi thu hồi/xóa hồ sơ; dashboard đã có thu hồi token | Server; phụ huynh xem ID và tên |
+| access_hash, refresh_hash, thời hạn, revoked | Xác thực và thu hồi thiết bị | Access 15 phút, refresh 30 ngày; bị thay khi refresh | Server chỉ giữ hash; token thô trên agent được DPAPI LocalMachine bảo vệ trong thư mục ACL của service |
+| policy_signing_key | Xác minh policy riêng theo thiết bị | Vòng đời thiết bị | Server mã hóa AES-256-GCM bằng khóa từ môi trường; agent giữ trong envelope DPAPI |
 | last_seen, policy_version, active_child_id, active_user, active_since | Trạng thái đồng bộ và hồ sơ trẻ đang dùng máy | Hiện trạng thái gần nhất | Phụ huynh, server |
 | policy.child_id, version, quota | Cấu hình thời gian theo từng trẻ | Giữ bản hiện tại, cache tại agent | Phụ huynh, server, thiết bị đã ghép cùng tài khoản phụ huynh |
 | audit.id, parent_id, child_id, action, ts, ip, old/new | Giải thích ghép đôi, policy, request và quyết định cấp giờ | Chưa tự xóa; cần chính sách retention cụ thể | Phụ huynh sở hữu, server; trẻ xem qua device-scoped Tray |
@@ -50,13 +51,15 @@ ts, device_id, child_id, type, subject, duration_sec, policy_id.
 Subject chỉ chứa tên ứng dụng hoặc tên miền phù hợp đề; không URL đầy đủ,
 tiêu đề cửa sổ, nội dung gõ phím, tin nhắn, tài liệu hay ảnh chụp màn hình.
 
-## Phần cần làm
+## Xóa dữ liệu
 
 - Retention/xóa sự kiện F3 đã triển khai đầy đủ, gồm hàng rào xóa cho agent offline;
-  xem WEEK3_EVENTS.md. Các bảng tài khoản, audit/request Tuần 2 và state thực thi
-  quota vẫn có vòng đời riêng như bảng trên; chức năng mới không xóa tài khoản.
+  xem WEEK3_EVENTS.md. Nút **Xóa toàn bộ dữ liệu hoạt động của con tôi** chỉ xóa
+  lịch sử và giữ tài khoản, PIN, chính sách cùng quota để gia đình tiếp tục sử dụng.
+- Nút **Xóa toàn bộ tài khoản và thiết bị** yêu cầu nhập lại mật khẩu phụ huynh,
+  rồi xóa tài khoản, mọi hồ sơ trẻ, PIN, policy, mã ghép, thiết bị/token, audit,
+  request và activity. Phiên đăng nhập bị hủy và WebSocket thiết bị đang mở bị đóng.
 - Báo cáo F3/child-view đã có; audit F4 vẫn tối giản và cần quyết định cách hiển thị IP cho trẻ.
-- AES-GCM cho trường nhạy cảm; phân loại dữ liệu và quản lý khóa.
 - Phân biệt hết hạn sử dụng với xóa vật lý; mã/token hết hạn chưa chắc đã được dọn.
 - Không gửi dữ liệu người dùng tới dịch vụ thứ ba.
 

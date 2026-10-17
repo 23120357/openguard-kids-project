@@ -118,8 +118,10 @@ mỗi chuỗi 48 bit nửa giờ. Dashboard chỉ cho chọn một khoảng liê
 
 ## Giới hạn kiến trúc
 
-- HTTP loopback/LAN lab chưa đạt TLS 1.2+, WSS hoặc certificate pinning.
-- Token/config có ACL nhưng chưa được bọc DPAPI; HMAC chưa phải chữ ký bất đối xứng.
+- HTTP chỉ dành cho loopback hoặc ngoại lệ lab. Luồng HTTPS/WSS dùng TLS 1.2+
+  và agent ghim SHA-256 chứng chỉ trước khi gửi token.
+- Token/config có ACL và DPAPI LocalMachine; khóa policy ở server dùng AES-GCM.
+  HMAC vẫn chưa phải chữ ký bất đối xứng.
 - Server chạy một process; rate limit và SSE/WebSocket registry ở RAM.
 - Chưa có Alembic, background worker bền vững, event batch hay server retention job.
 - Agent chưa có app controller, DNS proxy, multi-session/RDP hoặc chống bypass.

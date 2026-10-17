@@ -22,7 +22,7 @@ hiện trên máy lab trước khi đánh dấu hoàn tất tuyệt đối.
 | Lệnh khẩn và cộng giờ | Đã triển khai | WebSocket, hàng đợi heartbeat, command ID chống áp dụng hai lần |
 | Xin thêm giờ | Đã triển khai | Gửi ngay lên server; dashboard cập nhật động; duyệt/từ chối có phản hồi |
 | Audit phía trẻ | Đã triển khai mức development | Tray hiển thị 5 thay đổi gần nhất của hồ sơ đang đăng nhập |
-| Bộ test | Đạt | `140 passed`; còn 1 cảnh báo deprecation của Starlette TestClient |
+| Bộ test | Đạt | `266 passed`; còn 1 cảnh báo deprecation của Starlette TestClient |
 
 ## 2. Kiến trúc đang chạy
 
@@ -43,7 +43,8 @@ Ranh giới quan trọng:
 
 - Service giữ policy, token, state quota và kết nối server; Tray không đọc file bí mật.
 - Tray luôn hiển thị, lấy trạng thái idle/lock từ phiên tương tác và thực hiện khóa.
-- Thiếu Tray thì F1 chuyển sang `inert_no_tray`, không âm thầm chạy ẩn.
+- Service chờ Tray tối đa 60 giây khi khởi động và tự dừng nếu mất heartbeat Tray
+  quá 15 giây; `inert_no_tray` chỉ tồn tại ngắn trong lúc shutdown.
 - Server, dashboard và API chạy trong một tiến trình Uvicorn ở giai đoạn development.
 
 ## 3. Chạy hệ thống từ đầu
@@ -95,7 +96,7 @@ HTTP LAN chỉ dành cho lab. Luồng production phải dùng HTTPS/WSS và pin 
 & .\.venv\Scripts\ruff.exe format --check .
 ```
 
-Kỳ vọng hiện tại: `140 passed`, Ruff không báo lỗi.
+Kỳ vọng hiện tại: `266 passed`; Ruff đạt với các tệp F5 đã thay đổi.
 
 ### 4.2 Smoke test server và service
 
@@ -175,11 +176,13 @@ server thì xóa `.venv` sau khi chắc chắn không còn tiến trình dùng n
 - Chưa có F2: kiểm soát ứng dụng theo hash, DNS proxy, phân loại miền và SafeSearch.
 - Chưa có F3: event app/domain, biểu đồ ngày/tuần, top ứng dụng/miền và báo cáo trẻ.
 - Chưa có retention server 90 ngày hoặc xóa dữ liệu đồng thời server/agent.
-- Chưa có HTTPS/WSS, certificate pinning, DPAPI/AES-GCM hoặc installer ký số.
+- F5 đã bổ sung HTTPS/WSS TLS 1.2+, certificate pinning, DPAPI và AES-GCM;
+  installer production vẫn cần quy trình ký số riêng.
 - Chưa có Alembic; schema development vẫn dùng `create_all` và migration idempotent.
 - Chưa hỗ trợ household nhiều phụ huynh, multi-session/RDP hoặc child binding theo SID.
-- Chưa chống bypass. Trẻ có thể kết thúc phiên Tray; production cần quy định hành vi
-  khi chưa có hồ sơ đăng nhập và watchdog cho Tray.
+- Chưa chống bypass: trẻ vẫn có thể kết thúc Tray, khi đó watchdog chủ động dừng
+  Service để không chạy ẩn. Production cần cảnh báo phụ huynh và quy trình khởi
+  động lại đồng thời Service + Tray theo cách vẫn minh bạch với trẻ.
 - Chưa nghiệm thu đầy đủ khóa Windows thật, sai số một giờ và latency policy/lệnh
   trên một máy lab độc lập.
 

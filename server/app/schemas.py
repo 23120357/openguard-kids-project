@@ -14,6 +14,16 @@ class Login(Input):
     password: str = Field(min_length=1, max_length=256)
 
 
+class AdminLogin(Login):
+    pass
+
+
+class AccountDeletionInput(Input):
+    # Password whitespace is significant and is re-verified for this destructive action.
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    password: str = Field(min_length=1, max_length=256)
+
+
 class ChildInput(Input):
     display_name: str = Field(min_length=1, max_length=80)
     pin: str = Field(pattern=r"^[0-9]{6}$")

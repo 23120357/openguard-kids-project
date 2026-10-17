@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 import threading
+import time
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -32,10 +34,27 @@ except ImportError as exc:  # pragma: no cover - runtime dependency check
 
 SERVICE_NAME = "OpenGuardKidsAgentTest"
 DISPLAY_NAME = "OpenGuard Kids Agent (Test)"
-DESCRIPTION = (
-    "Development service for visible OpenGuard Kids daily quotas, weekly schedules, "
-    "idle-aware usage accounting, and local Tray UI communication."
-)
+DESCRIPTION = "Visible OpenGuard Kids agent. The service stops when its Tray UI is unavailable."
+TRAY_STARTUP_GRACE_SECONDS = 60.0
+TRAY_WATCHDOG_POLL_SECONDS = 0.5
+LOGGER = logging.getLogger(__name__)
+
+
+def tray_watchdog_reason(
+    *,
+    elapsed_seconds: float,
+    tray_was_seen: bool,
+    tray_present: bool,
+    startup_grace_seconds: float = TRAY_STARTUP_GRACE_SECONDS,
+) -> str | None:
+    """Return why the service must stop, or None while Tray presence is valid."""
+    if tray_present:
+        return None
+    if tray_was_seen:
+        return "tray heartbeat was lost"
+    if elapsed_seconds >= startup_grace_seconds:
+        return "Tray did not appear during service startup"
+    return None
 
 
 def f1_data_paths() -> tuple[Path, Path]:
@@ -87,6 +106,11 @@ class ServiceRuntime:
         self.core.set_enrollment_callback(self.enroll_device)
         self._enrollment_lock = threading.Lock()
         self._running = False
+        self._shutdown_requested = threading.Event()
+        self._watchdog_thread = None
+        self.stop_reason = None
+        self.tray_startup_grace_seconds = TRAY_STARTUP_GRACE_SECONDS
+        self.tray_watchdog_poll_seconds = TRAY_WATCHDOG_POLL_SECONDS
         self.pipe = NamedPipeServer(self.core.handle)
         signed_policy_path = config_path.with_name("remote-policy.json")
         self.remote = None
@@ -127,14 +151,42 @@ class ServiceRuntime:
                 and not (parsed.scheme == "http" and bootstrap.get("allow_insecure_http") is True)
             ):
                 raise ValueError("A remote server must use HTTPS")
-            enroll(config_path, server_url, code, bootstrap["device_name"])
+            enroll(
+                config_path,
+                server_url,
+                code,
+                bootstrap["device_name"],
+                certificate_sha256=bootstrap.get("certificate_sha256", ""),
+                allow_insecure_http=bootstrap.get("allow_insecure_http") is True,
+            )
             self.remote = RemoteSync(
                 self.core, config_path, config_path.with_name("remote-policy.json")
             )
             if self._running:
                 self.remote.start()
 
+    def _watch_for_visible_tray(self) -> None:
+        started = time.monotonic()
+        while not self._shutdown_requested.wait(self.tray_watchdog_poll_seconds):
+            tray_was_seen, tray_present = self.core.tray_presence()
+            reason = tray_watchdog_reason(
+                elapsed_seconds=time.monotonic() - started,
+                tray_was_seen=tray_was_seen,
+                tray_present=tray_present,
+                startup_grace_seconds=self.tray_startup_grace_seconds,
+            )
+            if reason is None:
+                continue
+            self.stop_reason = reason
+            LOGGER.warning("Stopping OpenGuard Kids service: %s", reason)
+            # Unblock serve_forever. Its finally block restores DNS and stops
+            # all enforcement/synchronization workers before the service exits.
+            self.pipe.stop()
+            return
+
     def run(self) -> None:
+        self._shutdown_requested.clear()
+        self.stop_reason = None
         self._running = True
         self.app_controller.start()
         try:
@@ -152,8 +204,15 @@ class ServiceRuntime:
         try:
             if self.remote is not None:
                 self.remote.start()
+            self._watchdog_thread = threading.Thread(
+                target=self._watch_for_visible_tray,
+                name="ogk-tray-watchdog",
+                daemon=True,
+            )
+            self._watchdog_thread.start()
             self.pipe.serve_forever()
         finally:
+            self._shutdown_requested.set()
             self._running = False
             self.app_controller.stop()
             try:
@@ -163,12 +222,15 @@ class ServiceRuntime:
                 self.dns_proxy_v6.stop()
                 if self.remote is not None:
                     self.remote.stop()
+            if (
+                self._watchdog_thread is not None
+                and self._watchdog_thread is not threading.current_thread()
+            ):
+                self._watchdog_thread.join(timeout=2)
 
     def stop(self) -> None:
+        self._shutdown_requested.set()
         self.pipe.stop()
-        self.app_controller.stop()
-        if self.remote is not None:
-            self.remote.stop()
 
 
 class OpenGuardKidsAgentService(win32serviceutil.ServiceFramework):
@@ -199,7 +261,10 @@ def run_debug() -> int:
     print(f"F1 policy: {policy_path}")
     print(f"F1 state: {database_path}")
     print(f"Remote config: {remote_config_path()}")
-    print("The visible Tray must be running before time accounting or locking can occur.")
+    print(
+        "The visible Tray must start within 60 seconds and keep sending heartbeats; "
+        "otherwise the service stops."
+    )
     print("Press Ctrl+C to stop.")
     try:
         while thread.is_alive():

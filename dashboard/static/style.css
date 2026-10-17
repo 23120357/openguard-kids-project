@@ -169,6 +169,11 @@ button.secondary { color: var(--brand-800); border-color: #c9dbd2; background: #
 button.secondary:hover { background: var(--brand-50); }
 button.danger { color: var(--danger); border-color: #f1c7c5; background: var(--danger-soft); box-shadow: none; }
 button.danger:hover { color: white; background: var(--danger); }
+.account-danger-zone { margin-top: 18px; border-color: #efc7c4; background: #fffafa; }
+.account-danger-zone:hover { border-color: #df9e99; }
+.account-danger-zone form { max-width: 560px; }
+.account-danger-zone p { max-width: 820px; color: #7e3b37; }
+.account-danger-zone button { margin-top: 4px; }
 button:disabled { cursor: not-allowed; opacity: .55; transform: none; }
 button.is-loading { position: relative; color: transparent !important; pointer-events: none; }
 button.is-loading::after {

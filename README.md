@@ -21,11 +21,14 @@ Chạy tất cả lệnh từ thư mục chứa README này. Không cần kích 
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-lock.txt
 Copy-Item .env.example .env
+& .\scripts\Initialize-OGKSecrets.ps1
 .\.venv\Scripts\python.exe -m server.seed
 .\.venv\Scripts\python.exe -m uvicorn server.app.main:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-Nếu đã có `.venv` hoặc `.env`, giữ lại và bỏ qua bước tạo/copy tương ứng.
+Nếu đã có `.venv` hoặc `.env`, giữ lại và bỏ qua bước tạo/copy tương ứng. Nếu
+`.env` cũ chưa có `OGK_DATA_ENCRYPTION_KEY`, chạy script khởi tạo khóa một lần;
+không thay khóa sau khi đã ghép thiết bị.
 `requirements-lock.txt` ghi lại các phiên bản đã kiểm thử; `requirements.txt`
 khai báo khoảng phiên bản để cập nhật có chủ đích.
 
@@ -53,9 +56,12 @@ tab **Hôm nay** hiển thị quota và nút xin thêm giờ; tab **Chính sách
 hạn mức, lịch và nhật ký thay đổi; tab **Ứng dụng ghi nhận gì?** giải thích dữ liệu
 thu thập. Yêu cầu xin giờ được gửi ngay, dashboard tự cập nhật
 mà không cần tải lại trang (kiểm tra lại mỗi 10 giây nếu mất kết nối trực tiếp).
-Agent nhận quota theo policy mặc định hoặc policy phụ huynh đã sửa. Nếu server nằm ở máy khác, truyền
-`-ServerUrl https://ten-may-chu:8000`; HTTP qua LAN chỉ dành cho lab và cần thêm
-`-AllowInsecureHttp`. Xem [hướng dẫn đầy đủ](docs/WEEK2_F4.md).
+Agent nhận quota theo policy mặc định hoặc policy phụ huynh đã sửa. Nếu server nằm
+ở máy khác, truyền `-ServerUrl https://ten-may-chu:8000` cùng
+`-CertificateSha256` là SHA-256 64 ký tự của chứng chỉ đã kiểm tra ngoài kênh.
+HTTP qua LAN chỉ dành cho lab và cần thêm `-AllowInsecureHttp`. Tài khoản Windows
+của trẻ phải là standard user; ngoại lệ `-LabAllowAdministratorChild` chỉ dùng
+trên máy lab cô lập. Xem [hướng dẫn F5](docs/F5_SECURITY.md).
 
 Lệnh setup cũng đăng ký Tray trong mục khởi động của tài khoản Windows hiện tại.
 Sau khi khởi động máy, service chạy cùng Windows và Tray xuất hiện khi người dùng
@@ -93,7 +99,8 @@ Xem cache sau khi simulator dừng:
 
 Simulator chỉ lưu **policy**, giữ token trong RAM. Khởi động lại cần mã mới và tạo
 thiết bị demo mới. Chạy nhiều simulator thì dùng `--cache data/agent2/policy.db`.
-Tính năng giữ định danh/token qua lần khởi động sẽ được bổ sung bằng DPAPI.
+Agent Windows thật lưu cấu hình định danh/token bằng DPAPI LocalMachine; simulator
+cố ý không giữ bí mật lâu dài để phục vụ kiểm thử nhanh.
 
 ## Kiểm thử
 
@@ -109,7 +116,7 @@ Khóa Windows thật, độ trễ lịch dưới 5 giây và sai số một gi�
 trên máy lab theo `docs/F1_TESTING.md`; DNS chưa được triển khai.
 Starlette hiện phát cảnh báo chuyển từ httpx sang httpx2 trong TestClient;
 các ca kiểm thử vẫn chạy được với bộ phiên bản đã khóa.
-Kết quả tại mốc bàn giao hiện tại là **140 passed**.
+Kết quả tại mốc bàn giao hiện tại là **266 passed**.
 
 ## Windows Service và Tray UI thử nghiệm (demo F1 cục bộ không ghép server)
 
@@ -195,17 +202,20 @@ Dashboard chính không dùng CDN.
 
 ## Trạng thái và giới hạn
 
-Đã có Argon2id, cookie HttpOnly/SameSite, CSRF, kiểm tra chủ sở hữu,
+Đã có Argon2id, cookie HttpOnly/Secure/SameSite, CSRF, kiểm tra chủ sở hữu,
 khóa đăng nhập 15 phút sau 5 lần sai, rate limit trong một process,
-token thiết bị băm SHA-256 và refresh rotation, policy version và audit thay đổi.
+token thiết bị băm SHA-256 và refresh rotation, thu hồi thiết bị, policy version,
+audit thay đổi, AES-GCM cho khóa nhạy cảm và DPAPI cho cấu hình agent. HTTPS dùng
+TLS 1.2+ và agent ghim SHA-256 chứng chỉ; WebSocket không đặt token trong URL.
 
 Đã có HMAC policy, WebSocket lệnh khẩn, heartbeat fallback, audit child-view và
 policy F1 từ server, username/PIN do phụ huynh tạo cho từng hồ sơ và Tray nhập để đăng nhập,
 dashboard hiển thị người dùng máy,
-request xin giờ có duyệt/từ chối và cộng allowance trong ngày. Chưa có
-HTTPS/pinning, chữ ký bất đối xứng, AES-GCM/DPAPI,
-phân quyền admin hoàn chỉnh, thu hồi thiết bị qua giao diện, xóa dữ liệu hai phía,
-event batch hay DNS. Agent chưa chống bypass và chưa xử lý multi-session nên chưa
+request xin giờ có duyệt/từ chối và cộng allowance trong ngày. Chưa có chữ ký bất
+đối xứng, TOTP, shared rate limiter, audit bất biến hoặc admin production có MFA.
+Service chỉ chờ Tray tối đa 60 giây lúc khởi động và tự dừng nếu mất heartbeat
+Tray quá 15 giây, đồng thời khôi phục cấu hình mạng do agent quản lý.
+Agent chưa chống bypass tuyệt đối và chưa xử lý multi-session nên chưa
 phải production agent.
 Chỉ mở server ra LAN trong mạng lab tin cậy; không mở ra Internet ở giai đoạn này. `OGK_COOKIE_SECURE=false`
 chỉ dành cho HTTP loopback; bật true khi triển khai HTTPS.
@@ -222,6 +232,8 @@ Database được tạo bằng `create_all` cho bộ khung ban đầu; chưa có
 - [Hợp đồng agent/server](docs/AGENT_SERVER_API.md)
 - [Giao thức named pipe](docs/LOCAL_IPC.md)
 - [Dữ liệu và quyền riêng tư](docs/PRIVACY.md)
+- [Bảo mật và quyền riêng tư F5](docs/F5_SECURITY.md)
+- [Mô hình mối đe dọa STRIDE](docs/THREATMODEL.md)
 
 Tham khảo kỹ thuật: [FastAPI testing](https://fastapi.tiangolo.com/tutorial/testing/),
 [SQLAlchemy ORM](https://docs.sqlalchemy.org/en/20/orm/quickstart.html).

@@ -9,6 +9,13 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import delete, select, update
 
 from .dependencies import DB, DeviceAuth, ParentAuth, owned_child
+from .event_models import (
+    ActivityEvent,
+    EventDeletionAck,
+    EventGeneration,
+    FilteringPolicy,
+    ObservedApp,
+)
 from .models import (
     Audit,
     Child,
@@ -22,6 +29,7 @@ from .models import (
 )
 from .policy_signing import sign_policy
 from .schemas import (
+    AccountDeletionInput,
     ChildInput,
     ChildPinInput,
     CodeInput,
@@ -108,6 +116,13 @@ def active_policy_child_id(device):
     return device.active_child_id or device.child_id
 
 
+def device_policy_key(request: Request, device: Device) -> str:
+    stored = device.policy_signing_key or request.app.state.settings.policy_signing_key
+    return request.app.state.field_cipher.decrypt(
+        stored, purpose=f"device-policy-signing-key:{device.id}"
+    )
+
+
 def issue_device_tokens(device):
     access, refresh = new_token(), new_token()
     now = time.time()
@@ -172,18 +187,22 @@ def login(body: Login, request: Request, response: Response, db: DB):
         "ogk_session",
         token,
         httponly=True,
-        secure=request.app.state.settings.cookie_secure,
+        secure=request.app.state.settings.cookie_secure or request.url.scheme == "https",
         samesite="lax",
         max_age=43200,
         path="/",
     )
     response.headers["Cache-Control"] = "no-store"
-    return {"email": parent.email, "csrf_token": csrf}
+    return {"email": parent.email, "role": "parent", "csrf_token": csrf}
 
 
 @router.get("/auth/me")
 def me(auth: ParentAuth, db: DB):
-    return {"email": db.get(Parent, auth.parent_id).email, "csrf_token": auth.csrf_token}
+    return {
+        "email": db.get(Parent, auth.parent_id).email,
+        "role": "parent",
+        "csrf_token": auth.csrf_token,
+    }
 
 
 @router.get("/parent/events")
@@ -220,6 +239,57 @@ async def parent_events(request: Request):
 def logout(auth: ParentAuth, db: DB, response: Response):
     db.delete(auth)
     db.commit()
+    response.delete_cookie("ogk_session", path="/")
+
+
+@router.delete("/account", status_code=204)
+async def delete_account(
+    body: AccountDeletionInput,
+    request: Request,
+    response: Response,
+    auth: ParentAuth,
+    db: DB,
+):
+    """Permanently erase one parent household and invalidate every enrolled device."""
+    parent = db.get(Parent, auth.parent_id)
+    request.app.state.limiter.check(
+        "account-delete:" + auth.parent_id, maximum=5, period=900
+    )
+    if parent is None or not verify_password(parent.password_hash, body.password):
+        raise HTTPException(403, "Mật khẩu xác nhận không đúng")
+
+    child_ids = list(
+        db.scalars(select(Child.id).where(Child.parent_id == auth.parent_id)).all()
+    )
+    device_ids = list(
+        db.scalars(
+            select(Device.id)
+            .join(Child, Child.id == Device.child_id)
+            .where(Child.parent_id == auth.parent_id)
+        ).all()
+    )
+
+    if child_ids:
+        db.execute(delete(ActivityEvent).where(ActivityEvent.child_id.in_(child_ids)))
+        db.execute(delete(ObservedApp).where(ObservedApp.child_id.in_(child_ids)))
+        db.execute(delete(EventDeletionAck).where(EventDeletionAck.child_id.in_(child_ids)))
+        db.execute(delete(EventGeneration).where(EventGeneration.child_id.in_(child_ids)))
+        db.execute(delete(FilteringPolicy).where(FilteringPolicy.child_id.in_(child_ids)))
+        db.execute(delete(DeviceCommand).where(DeviceCommand.child_id.in_(child_ids)))
+        db.execute(delete(TimeRequest).where(TimeRequest.child_id.in_(child_ids)))
+        db.execute(delete(Audit).where(Audit.child_id.in_(child_ids)))
+        db.execute(delete(EnrollmentCode).where(EnrollmentCode.child_id.in_(child_ids)))
+        db.execute(delete(Policy).where(Policy.child_id.in_(child_ids)))
+        db.execute(delete(Device).where(Device.child_id.in_(child_ids)))
+        db.execute(delete(Child).where(Child.id.in_(child_ids)))
+    db.execute(delete(ParentSession).where(ParentSession.parent_id == auth.parent_id))
+    db.delete(parent)
+    db.commit()
+
+    for device_id in device_ids:
+        await request.app.state.device_connections.close(
+            device_id, code=4003, reason="account deleted"
+        )
     response.delete_cookie("ogk_session", path="/")
 
 
@@ -309,11 +379,12 @@ def enroll(body: EnrollInput, request: Request, db: DB):
     )
     if child_id is None:
         raise HTTPException(400, "Invalid or expired enrollment code")
+    policy_key = new_token()
     device = Device(
         child_id=child_id,
         display_name=body.display_name,
         fingerprint=digest(body.fingerprint),
-        policy_signing_key=new_token(),
+        policy_signing_key="",
         access_hash="",
         refresh_hash="",
         access_expires_at=0,
@@ -322,11 +393,14 @@ def enroll(body: EnrollInput, request: Request, db: DB):
     result = issue_device_tokens(device)
     db.add(device)
     db.flush()
+    device.policy_signing_key = request.app.state.field_cipher.encrypt(
+        policy_key, purpose=f"device-policy-signing-key:{device.id}"
+    )
     result["device_id"] = device.id
     child = db.get(Child, child_id)
     result["child_id"] = child.id
     result["child_name"] = child.display_name
-    result["policy_signing_key"] = device.policy_signing_key
+    result["policy_signing_key"] = policy_key
     db.commit()
     request.app.state.parent_events.notify(child.parent_id)
     return result
@@ -448,8 +522,9 @@ def device_profiles(request: Request, device: DeviceAuth, db: DB):
         .where(Child.parent_id == device_parent_id(db, device), Child.pin_hash.is_not(None))
         .order_by(Child.display_name, Child.id)
     ).all()
-    key = device.policy_signing_key or request.app.state.settings.policy_signing_key
+    key = device_policy_key(request, device)
     result = {
+        "role": "child-view",
         "device_id": device.id,
         "primary_child_id": device.child_id,
         "profiles": [
@@ -512,7 +587,7 @@ def create_time_request(body: DeviceTimeRequestInput, request: Request, device: 
 def device_policy(request: Request, device: DeviceAuth, db: DB):
     return signed_policy_data(
         db.get(Policy, active_policy_child_id(device)),
-        device.policy_signing_key or request.app.state.settings.policy_signing_key,
+        device_policy_key(request, device),
     )
 
 
@@ -763,6 +838,7 @@ def devices(auth: ParentAuth, db: DB):
             "last_seen": row.last_seen,
             "policy_version": row.policy_version,
             "online": bool(not row.revoked and row.last_seen and now - row.last_seen < 120),
+            "revoked": row.revoked,
             "active_user": row.active_user,
             "active_since": row.active_since,
             "used_seconds": row.used_seconds,
@@ -775,6 +851,37 @@ def devices(auth: ParentAuth, db: DB):
         }
         for row in rows
     ]
+
+
+@router.post("/devices/{device_id}/revoke")
+async def revoke_device(device_id: str, request: Request, auth: ParentAuth, db: DB):
+    row = db.scalar(
+        select(Device)
+        .join(Child, Child.id == Device.child_id)
+        .where(Device.id == device_id, Child.parent_id == auth.parent_id)
+    )
+    if row is None:
+        raise HTTPException(404, "Device not found")
+    if not row.revoked:
+        row.revoked = True
+        row.access_hash = digest(new_token())
+        row.refresh_hash = digest(new_token())
+        db.add(
+            Audit(
+                parent_id=auth.parent_id,
+                child_id=row.child_id,
+                action="device_revoked",
+                ip=client_ip(request),
+                old_value={"revoked": False, "device_id": row.id},
+                new_value={"revoked": True, "device_id": row.id},
+            )
+        )
+        db.commit()
+    await request.app.state.device_connections.close(
+        row.id, code=4003, reason="device access revoked"
+    )
+    request.app.state.parent_events.notify(auth.parent_id)
+    return {"id": row.id, "revoked": True}
 
 
 @router.get("/audit")
@@ -828,7 +935,16 @@ def device_audits(device: DeviceAuth, db: DB):
 
 @router.websocket("/device/ws")
 async def device_websocket(websocket: WebSocket):
-    token = websocket.query_params.get("access_token", "")
+    if (
+        websocket.url.scheme == "ws"
+        and websocket.url.hostname not in {"127.0.0.1", "localhost", "::1"}
+        and not websocket.app.state.settings.allow_insecure_http
+    ):
+        await websocket.close(code=4403, reason="remote connections require WSS")
+        return
+    scheme, _, token = websocket.headers.get("authorization", "").partition(" ")
+    if scheme.lower() != "bearer":
+        token = ""
     sessions = websocket.app.state.sessions
     with sessions() as db:
         device = db.scalar(select(Device).where(Device.access_hash == digest(token)))

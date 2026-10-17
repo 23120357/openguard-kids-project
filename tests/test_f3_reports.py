@@ -371,6 +371,7 @@ def test_dns_query_reaches_parent_report_and_synced_tray(parent, child, tmp_path
         policy_signing_key=tokens["policy_signing_key"],
         fingerprint="test-installation",
         child_id=child["id"],
+        allow_insecure_http=True,
     ).save(config_path)
     sync = RemoteSync(AgentCore(), config_path, tmp_path / "policy.json")
     sync.core._active_child_id = child["id"]

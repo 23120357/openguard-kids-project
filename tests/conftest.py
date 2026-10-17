@@ -9,7 +9,14 @@ from server.app.security import password_hasher
 
 @pytest.fixture
 def app(tmp_path):
-    app = create_app(Settings(database_url="sqlite:///" + (tmp_path / "test.db").as_posix()))
+    app = create_app(
+        Settings(
+            database_url="sqlite:///" + (tmp_path / "test.db").as_posix(),
+            policy_signing_key="test-policy-signing-key-32-characters-long",
+            data_encryption_key="VFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFQ",
+            allow_insecure_http=True,
+        )
+    )
     with TestClient(app):
         with app.state.sessions() as db:
             for email in ("parent@example.test", "other@example.test"):

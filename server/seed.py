@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from server.app.config import Settings
 from server.app.database import build_database
-from server.app.models import Base, Parent
+from server.app.models import AdminUser, Base, Parent
 from server.app.security import password_hasher
 
 
@@ -28,6 +28,25 @@ def main():
             db.add(Parent(email=email, password_hash=password_hasher.hash(password)))
             db.commit()
             print("Demo parent created. Use credentials from your local .env.")
+        admin_email = os.getenv("OGK_ADMIN_EMAIL", "").strip().lower()
+        admin_password = os.getenv("OGK_ADMIN_PASSWORD", "")
+        if settings.admin_enabled:
+            if not admin_email or len(admin_password) < 10:
+                raise SystemExit(
+                    "Admin mode requires OGK_ADMIN_EMAIL and OGK_ADMIN_PASSWORD (10+ characters)"
+                )
+            admin = db.scalar(select(AdminUser).where(AdminUser.email == admin_email))
+            if admin:
+                print("Development admin already exists; left unchanged.")
+            else:
+                db.add(
+                    AdminUser(
+                        email=admin_email,
+                        password_hash=password_hasher.hash(admin_password),
+                    )
+                )
+                db.commit()
+                print("Development admin created with a separate credential.")
     engine.dispose()
 
 

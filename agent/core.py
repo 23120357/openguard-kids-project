@@ -38,6 +38,7 @@ class AgentCore:
         self._started_monotonic = clock()
         self._started_at = wall_clock()
         self._last_ui_heartbeat: float | None = None
+        self._tray_was_seen = False
         self._request_count = 0
         self._time_controller = time_controller
         self._lock = threading.RLock()
@@ -558,13 +559,22 @@ class AgentCore:
         self._processed_commands.append(command_id)
         del self._processed_commands[:-100]
 
-    def status(self) -> dict[str, Any]:
+    def tray_presence(self) -> tuple[bool, bool]:
+        """Return whether Tray ever connected and whether its heartbeat is fresh."""
         with self._lock:
-            activity_history, blocking_notifications = self._activity_snapshot()
-            ui_connected = (
+            present = bool(
                 self._last_ui_heartbeat is not None
                 and self._clock() - self._last_ui_heartbeat <= self.UI_PRESENCE_TIMEOUT_SECONDS
             )
+            return self._tray_was_seen, present
+
+    def tray_is_present(self) -> bool:
+        return self.tray_presence()[1]
+
+    def status(self) -> dict[str, Any]:
+        with self._lock:
+            activity_history, blocking_notifications = self._activity_snapshot()
+            ui_connected = self.tray_is_present()
             time_status = (
                 self._time_controller.snapshot()
                 if self._time_controller
@@ -772,6 +782,7 @@ class AgentCore:
             with self._lock:
                 if visible:
                     self._last_ui_heartbeat = self._clock()
+                    self._tray_was_seen = True
                     process_id = request.payload.get("process_id")
                     if (
                         isinstance(process_id, int)

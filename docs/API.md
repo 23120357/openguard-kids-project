@@ -11,6 +11,8 @@ nếu không xuất hiện trong OpenAPI runtime.
   SameSite=Lax, hạn 12 giờ và trả CSRF token.
 - `GET /auth/me`: trả identity và CSRF token của phiên hiện hành.
 - `POST /auth/logout`: yêu cầu CSRF; hủy session server và cookie.
+- `DELETE /account`: yêu cầu CSRF và nhập lại mật khẩu; xóa vĩnh viễn tài khoản
+  phụ huynh cùng toàn bộ hồ sơ trẻ, chính sách, thiết bị/token và dữ liệu liên quan.
 - Mọi thao tác ghi của phụ huynh gửi `X-CSRF-Token`.
 - Query tài nguyên luôn ràng buộc `parent_id`; tài nguyên của phụ huynh khác trả 404.
 
@@ -18,11 +20,13 @@ nếu không xuất hiện trong OpenAPI runtime.
 
 | Method | Path | Chức năng |
 |---|---|---|
+| DELETE | `/account` | Xóa toàn bộ household sau khi xác minh lại mật khẩu; đóng kết nối và vô hiệu mọi token thiết bị |
 | GET/POST | `/children` | Liệt kê hoặc tạo hồ sơ với username và PIN 6 số; tạo policy mặc định |
 | PUT | `/children/{id}/pin` | Đổi/bổ sung PIN và ghi audit |
 | POST | `/enrollment-codes` | Mã 8 ký tự, hạn 10 phút, dùng một lần; yêu cầu consent |
 | GET/PUT | `/children/{id}/policy` | Đọc hoặc cập nhật quota, enabled và lịch 7×48 bằng `expected_version` |
 | GET | `/devices` | Trạng thái online, phiên trẻ, policy version, used/remaining |
+| POST | `/devices/{id}/revoke` | Thu hồi access/refresh token và đóng WebSocket thiết bị |
 | POST | `/devices/{id}/commands` | Tạo `lock_now` hoặc `add_time` và thử gửi realtime |
 | GET | `/time-requests` | Danh sách request xin thêm giờ |
 | POST | `/time-requests/{id}/decision` | Duyệt/từ chối; duyệt tạo command cộng giờ |
@@ -74,12 +78,15 @@ Audit policy/command/request lưu actor, Unix UTC timestamp, IP trực tiếp v�
 value. UI chuyển timestamp sang múi giờ máy người xem. Event F1 cục bộ còn có
 `recorded_at` ISO 8601 UTC để chẩn đoán.
 
-## Giới hạn hiện tại
+## Bảo mật kênh và giới hạn hiện tại
 
-- HTTP loopback/LAN lab, chưa có TLS/pinning.
-- WebSocket development truyền access token trong query string.
+- HTTP chỉ được chấp nhận ở loopback, trừ khi bật ngoại lệ lab rõ ràng. Chạy
+  `server.secure_run` để dùng TLS 1.2+; agent yêu cầu SHA-256 certificate pin.
+- WebSocket dùng `Authorization: Bearer`, không đưa access token vào URL.
+- Khóa policy trong DB dùng AES-GCM; cấu hình token/khóa trên agent dùng DPAPI.
 - Chưa có API event batch F2/F3, retention 90 ngày hoặc xóa dữ liệu phân tán.
-- Chưa có revoke device UI, household nhiều phụ huynh hoặc role admin production.
+- Đã có revoke device UI và admin development tách session, nhưng chưa có
+  household nhiều phụ huynh hoặc admin production có MFA/scoped support access.
 - `create_all` và migration idempotent chỉ phù hợp development; chưa có Alembic.
 
 Test contract nằm trong `tests/test_f4_remote.py`, `tests/test_agent_setup_flow.py`
