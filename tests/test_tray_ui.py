@@ -183,8 +183,16 @@ def test_today_header_formats_local_date_and_time():
 
 def test_policy_schedule_formats_allowed_intervals():
     lines = format_policy_schedule(["1" * 2 + "0" * 46, "0" * 48])
-    assert "Thứ hai: 00:00–01:00" in lines
-    assert "Thứ ba: Không được sử dụng" in lines
+    assert "Thứ 2: 00:00–01:00" in lines
+    assert "Thứ 3: Không có giờ dùng máy" in lines
+
+
+def test_policy_schedule_groups_simple_weekly_patterns():
+    assert format_policy_schedule(["0" * 48] * 7) == "Cả tuần: Không có giờ dùng máy"
+    assert format_policy_schedule(["1" * 48] * 7) == "Cả tuần: Cả ngày"
+    assert format_policy_schedule(["1" * 2 + "0" * 46] * 5 + ["0" * 48] * 2) == (
+        "Thứ 2 – Thứ 6: 00:00–01:00\nCuối tuần: Không có giờ dùng máy"
+    )
 
 
 @pytest.mark.parametrize("value, expected", [(None, False), (0, False), (1, True), (1.5, True)])
@@ -388,6 +396,10 @@ def test_time_request_result_reflects_parent_decision(status, expected):
 def test_policy_tab_shows_active_child_policy_and_schedule():
     ui = TrayApplication.__new__(TrayApplication)
     ui.current_user = "Avery"
+    ui.policy_title_label = Mock()
+    ui.policy_status_label = Mock()
+    ui.policy_weekday_value = Mock()
+    ui.policy_weekend_value = Mock()
     ui.policy_summary_label = Mock()
     ui.policy_schedule_label = Mock()
     ui.audit_label = Mock()
@@ -403,11 +415,12 @@ def test_policy_tab_shows_active_child_policy_and_schedule():
             "schedule": ["1" * 48] * 7,
         }
     )
-    assert "Ngày thường: 45 phút/ngày" in ui.policy_summary_label.configure.call_args.kwargs["text"]
-    assert (
-        "Thứ hai: 00:00–00:00 (hôm sau)"
-        in ui.policy_schedule_label.configure.call_args.kwargs["text"]
-    )
+    assert ui.policy_title_label.configure.call_args.kwargs["text"] == "Xin chào Avery!"
+    assert ui.policy_status_label.configure.call_args.kwargs["text"] == "Đang áp dụng"
+    assert ui.policy_weekday_value.configure.call_args.kwargs["text"] == "45 phút"
+    assert ui.policy_weekend_value.configure.call_args.kwargs["text"] == "90 phút"
+    assert "nhắc trước khi hết giờ" in ui.policy_summary_label.configure.call_args.kwargs["text"]
+    assert ui.policy_schedule_label.configure.call_args.kwargs["text"] == "Cả tuần: Cả ngày"
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Tk layout verification requires Windows")

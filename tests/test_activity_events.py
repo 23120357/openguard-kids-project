@@ -75,11 +75,19 @@ def test_key_reuse_conflict_rolls_back_entire_batch(parent, child):
 
 @pytest.mark.parametrize(
     "subject",
-    ["https://example.org/a", "www.example.org", "user:data@example.org", "example.org/path"],
+    ["https://example.org/a", "user:data@example.org", "example.org/path"],
 )
-def test_domain_payload_rejects_urls_and_subdomains(parent, child, subject):
+def test_blocked_domain_payload_rejects_urls(parent, child, subject):
     tokens, _ = pair(parent, child)
     assert post(parent, tokens, [event(tokens, child, subject=subject)]).status_code == 422
+
+
+def test_blocked_domain_accepts_exact_subdomain_but_query_remains_minimal(parent, child):
+    tokens, _ = pair(parent, child)
+    blocked = event(tokens, child, subject="drive.google.com")
+    assert post(parent, tokens, [blocked]).status_code == 200
+    query = event(tokens, child, type="domain_query", subject="drive.google.com")
+    assert post(parent, tokens, [query]).status_code == 422
 
 
 def test_event_device_and_child_ownership(parent, child, app):
@@ -292,7 +300,32 @@ def test_dns_block_records_one_popup_for_a_aaaa_queries():
         "domain_query",
         "blocked_domain",
     ]
-    assert core.record_activity.call_args.args[2] == "example.org"
+    assert core.record_activity.call_args.args[2] == "www.example.org"
+
+
+def test_block_event_keeps_exact_hostname_but_query_remains_minimal():
+    core = Mock()
+    core.activity_context.return_value = (
+        "child",
+        {
+            "enabled": True,
+            "version": 1,
+            "domain_mode": "blocklist",
+            "domain_block": ["drive.google.com"],
+            "safety_domains": [],
+        },
+        123,
+    )
+    proxy = DNSProxy(core)
+    reply = proxy.resolve(
+        DNSRecord.question("drive.google.com"), SimpleNamespace(protocol="udp")
+    )
+    assert reply.header.rcode == RCODE.NXDOMAIN
+    events = [(call.args[1], call.args[2]) for call in core.record_activity.call_args_list]
+    assert events == [
+        ("domain_query", "google.com"),
+        ("blocked_domain", "drive.google.com"),
+    ]
 
 
 def test_dns_proxy_udp_and_tcp_real_requests_without_upstream():

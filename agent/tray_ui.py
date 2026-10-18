@@ -146,15 +146,16 @@ def format_audit_entry(item: dict[str, Any], names: dict[str, str]) -> str:
 
 
 def format_policy_schedule(rows: list[str]) -> str:
-    days = ("Thứ hai", "Thứ ba", "Thứ tư", "Thứ năm", "Thứ sáu", "Thứ bảy", "Chủ nhật")
+    days = ("Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật")
 
     def slot_time(slot: int) -> str:
         if slot == 48:
             return "00:00 (hôm sau)"
         return f"{slot // 2:02d}:{(slot % 2) * 30:02d}"
 
-    lines = []
-    for day, row in zip(days, rows, strict=False):
+    def describe(row: str) -> str:
+        if row == "1" * 48:
+            return "Cả ngày"
         periods = []
         start = None
         for slot, allowed in enumerate(row + "0"):
@@ -163,7 +164,14 @@ def format_policy_schedule(rows: list[str]) -> str:
             elif allowed == "0" and start is not None:
                 periods.append(f"{slot_time(start)}–{slot_time(slot)}")
                 start = None
-        lines.append(f"{day}: {', '.join(periods) if periods else 'Không được sử dụng'}")
+        return ", ".join(periods) if periods else "Không có giờ dùng máy"
+
+    descriptions = [describe(row) for row in rows[:7]]
+    if len(descriptions) == 7 and len(set(descriptions)) == 1:
+        return f"Cả tuần: {descriptions[0]}"
+    if len(descriptions) == 7 and len(set(descriptions[:5])) == 1 and len(set(descriptions[5:])) == 1:
+        return f"Thứ 2 – Thứ 6: {descriptions[0]}\nCuối tuần: {descriptions[5]}"
+    lines = [f"{day}: {description}" for day, description in zip(days, descriptions, strict=False)]
     return "\n".join(lines)
 
 
@@ -361,6 +369,54 @@ class TrayApplication:
             "CardTitle.TLabel", background="white", foreground=INK, font=("Segoe UI", 12, "bold")
         )
         style.configure("Body.TLabel", background="white", foreground=INK, font=("Segoe UI", 10))
+        style.configure(
+            "PolicyHero.TFrame", background="#E7F7F3", relief="flat"
+        )
+        style.configure(
+            "PolicyHeroTitle.TLabel",
+            background="#E7F7F3",
+            foreground=BRAND,
+            font=("Segoe UI", 15, "bold"),
+        )
+        style.configure(
+            "PolicyHeroText.TLabel",
+            background="#E7F7F3",
+            foreground="#416477",
+            font=("Segoe UI", 10),
+        )
+        style.configure(
+            "PolicyOn.TLabel",
+            background="#D9F4E8",
+            foreground="#08734F",
+            font=("Segoe UI", 10, "bold"),
+            padding=(10, 5),
+        )
+        style.configure(
+            "PolicyOff.TLabel",
+            background="#FFF1D6",
+            foreground="#925B00",
+            font=("Segoe UI", 10, "bold"),
+            padding=(10, 5),
+        )
+        style.configure("PolicyMetric.TFrame", background="#F3F8FB", relief="flat")
+        style.configure(
+            "PolicyMetricName.TLabel",
+            background="#F3F8FB",
+            foreground=MUTED,
+            font=("Segoe UI", 9, "bold"),
+        )
+        style.configure(
+            "PolicyMetricValue.TLabel",
+            background="#F3F8FB",
+            foreground=BRAND,
+            font=("Segoe UI", 17, "bold"),
+        )
+        style.configure(
+            "PolicySchedule.TLabel",
+            background="white",
+            foreground=INK,
+            font=("Segoe UI", 11, "bold"),
+        )
         style.configure("Muted.TLabel", background="white", foreground=MUTED, font=("Segoe UI", 9))
         style.configure(
             "Status.TLabel",
@@ -698,23 +754,73 @@ class TrayApplication:
         self.policy_content = policy_content
         policy_canvas.bind("<MouseWheel>", self._scroll_policy)
 
-        policy_card = ttk.Frame(policy_content, style="Card.TFrame", padding=22)
+        policy_card = ttk.Frame(policy_content, style="PolicyHero.TFrame", padding=22)
         policy_card.pack(fill="x", pady=(0, 12))
-        ttk.Label(policy_card, text="Chính sách hiện tại", style="CardTitle.TLabel").pack(
+        self.policy_title_label = ttk.Label(
+            policy_card, text="Quy tắc dùng máy của em", style="PolicyHeroTitle.TLabel"
+        )
+        self.policy_title_label.pack(anchor="w")
+        ttk.Label(
+            policy_card,
+            text="Xem nhanh thời gian và lịch để em chủ động sắp xếp việc học, chơi và nghỉ ngơi.",
+            style="PolicyHeroText.TLabel",
+            wraplength=540,
+            justify="left",
+        ).pack(anchor="w", pady=(4, 12))
+        self.policy_status_label = ttk.Label(
+            policy_card, text="Chưa đăng nhập", style="PolicyOff.TLabel"
+        )
+        self.policy_status_label.pack(anchor="w")
+
+        metrics = ttk.Frame(policy_card, style="PolicyHero.TFrame")
+        metrics.pack(fill="x", pady=(14, 0))
+        metrics.columnconfigure((0, 1), weight=1, uniform="policy-metric")
+        weekday_card = ttk.Frame(metrics, style="PolicyMetric.TFrame", padding=(14, 11))
+        weekday_card.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
+        ttk.Label(
+            weekday_card, text="NGÀY THƯỜNG", style="PolicyMetricName.TLabel"
+        ).pack(anchor="w")
+        self.policy_weekday_value = ttk.Label(
+            weekday_card, text="—", style="PolicyMetricValue.TLabel"
+        )
+        self.policy_weekday_value.pack(anchor="w", pady=(3, 0))
+        weekend_card = ttk.Frame(metrics, style="PolicyMetric.TFrame", padding=(14, 11))
+        weekend_card.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
+        ttk.Label(weekend_card, text="CUỐI TUẦN", style="PolicyMetricName.TLabel").pack(
             anchor="w"
         )
+        self.policy_weekend_value = ttk.Label(
+            weekend_card, text="—", style="PolicyMetricValue.TLabel"
+        )
+        self.policy_weekend_value.pack(anchor="w", pady=(3, 0))
+
         self.policy_summary_label = ttk.Label(
             policy_card,
             text="Đăng nhập để xem chính sách của em.",
-            style="Body.TLabel",
+            style="PolicyHeroText.TLabel",
             wraplength=550,
             justify="left",
         )
-        self.policy_summary_label.pack(anchor="w", pady=(10, 0))
-        self.policy_schedule_label = ttk.Label(
-            policy_card, text="", style="Body.TLabel", wraplength=550, justify="left"
+        self.policy_summary_label.pack(anchor="w", pady=(14, 0))
+
+        schedule_card = ttk.Frame(policy_content, style="Card.TFrame", padding=22)
+        schedule_card.pack(fill="x", pady=(0, 12))
+        ttk.Label(schedule_card, text="Lịch được dùng máy", style="CardTitle.TLabel").pack(
+            anchor="w"
         )
-        self.policy_schedule_label.pack(anchor="w", pady=(10, 0))
+        ttk.Label(
+            schedule_card,
+            text="Những khung giờ em có thể sử dụng máy trong tuần.",
+            style="Muted.TLabel",
+        ).pack(anchor="w", pady=(3, 0))
+        self.policy_schedule_label = ttk.Label(
+            schedule_card,
+            text="",
+            style="PolicySchedule.TLabel",
+            wraplength=550,
+            justify="left",
+        )
+        self.policy_schedule_label.pack(anchor="w", pady=(12, 0))
         audit_card = ttk.Frame(policy_content, style="Card.TFrame", padding=22)
         audit_card.pack(fill="x")
         ttk.Label(audit_card, text="Nhật ký thay đổi", style="CardTitle.TLabel").pack(anchor="w")
@@ -1521,31 +1627,43 @@ class TrayApplication:
 
     def _update_policy_ui(self, policy: dict[str, Any] | None) -> None:
         if not self.current_user:
+            self.policy_title_label.configure(text="Quy tắc dùng máy của em")
+            self.policy_status_label.configure(text="Chưa đăng nhập", style="PolicyOff.TLabel")
+            self.policy_weekday_value.configure(text="—")
+            self.policy_weekend_value.configure(text="—")
             self.policy_summary_label.configure(text="Đăng nhập để xem chính sách của em.")
             self.policy_schedule_label.configure(text="")
             self.audit_label.configure(text="Đăng nhập để xem nhật ký thay đổi.")
             return
         if not policy:
+            self.policy_title_label.configure(text=f"Xin chào {self.current_user}!")
+            self.policy_status_label.configure(text="Đang chờ đồng bộ", style="PolicyOff.TLabel")
+            self.policy_weekday_value.configure(text="—")
+            self.policy_weekend_value.configure(text="—")
             self.policy_summary_label.configure(
                 text="Service chưa đồng bộ chính sách cho hồ sơ này. Hãy kiểm tra kết nối và khởi động lại service nếu vừa cập nhật ứng dụng."
             )
             self.policy_schedule_label.configure(text="")
             return
+        enabled = bool(policy["enabled"])
+        self.policy_title_label.configure(text=f"Xin chào {self.current_user}!")
+        self.policy_status_label.configure(
+            text="Đang áp dụng" if enabled else "Chưa bật giới hạn",
+            style="PolicyOn.TLabel" if enabled else "PolicyOff.TLabel",
+        )
+        self.policy_weekday_value.configure(text=f"{policy['weekday_minutes']} phút")
+        self.policy_weekend_value.configure(text=f"{policy['weekend_minutes']} phút")
+        warnings = ", ".join(map(str, policy["warnings_minutes"]))
         self.policy_summary_label.configure(
             text=(
-                f"Hồ sơ: {self.current_user}\n"
-                f"Trạng thái: {'Đang bật' if policy['enabled'] else 'Đang tắt'}\n"
-                f"Ngày thường: {policy['weekday_minutes']} phút/ngày\n"
-                f"Cuối tuần: {policy['weekend_minutes']} phút/ngày\n"
-                f"Phiên bản: {policy['version']}\n"
-                f"Cảnh báo trước khi hết giờ: {', '.join(map(str, policy['warnings_minutes']))} phút\n"
-                f"Thời gian lưu công việc: {policy['grace_seconds']} giây\n"
-                f"Tạm dừng khi không hoạt động: {policy['idle_threshold_seconds']} giây"
+                f"Em sẽ được nhắc trước khi hết giờ: {warnings} phút.\n"
+                f"Khi hết giờ, em có {policy['grace_seconds']} giây để lưu công việc. "
+                f"Thời gian sẽ tạm dừng nếu em không dùng máy trong "
+                f"{policy['idle_threshold_seconds'] // 60} phút.\n"
+                f"Cập nhật chính sách #{policy['version']}"
             )
         )
-        self.policy_schedule_label.configure(
-            text="Lịch sử dụng\n" + format_policy_schedule(policy["schedule"])
-        )
+        self.policy_schedule_label.configure(text=format_policy_schedule(policy["schedule"]))
 
     def _update_session_ui(self) -> None:
         if self.current_user and not getattr(self, "switching_profile", False):

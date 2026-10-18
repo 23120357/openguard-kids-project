@@ -78,6 +78,26 @@ def test_public_50_block_and_20_education_matrix():
     assert all(domain_decision(host, rules) is None for host in allowed)
 
 
+def test_service_domain_groups_block_related_hosts_without_widening_google():
+    shopee = FilterRules(enabled=True, domain_block=['shopee.vn']).model_dump()
+    assert domain_decision('www.shopee.vn', shopee)
+    assert domain_decision('cf.shopee.com', shopee)
+    assert domain_decision('api.shopeemobile.com', shopee)
+    assert domain_decision('down-bs-vn.img.susercontent.com', shopee)
+
+    youtube = FilterRules(enabled=True, domain_block=['youtube.com']).model_dump()
+    assert domain_decision('www.youtube.com', youtube)
+    assert domain_decision('r3---sn.example.googlevideo.com', youtube)
+    assert domain_decision('youtubei.googleapis.com', youtube)
+
+    drive = FilterRules(enabled=True, domain_block=['drive.google.com']).model_dump()
+    assert domain_decision('drive.google.com', drive)
+    assert domain_decision('docs.drive.google.com', drive)
+    assert domain_decision('google.com', drive) is None
+    assert domain_decision('www.google.com', drive) is None
+    assert domain_decision('maps.googleapis.com', drive) is None
+
+
 @pytest.mark.parametrize('host,target', [
     ('www.google.com', 'forcesafesearch.google.com'),
     ('www.google.com.vn', 'forcesafesearch.google.com'),

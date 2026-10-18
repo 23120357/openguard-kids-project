@@ -7,7 +7,12 @@ import threading
 import time
 from pathlib import Path
 
-from common.domains import domain_name, event_domain, normalize_safety_domains
+from common.domains import (
+    domain_name,
+    event_domain,
+    expanded_block_domains,
+    normalize_safety_domains,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +27,7 @@ def domain_decision(host, rules):
         return None
     if matches_domain(host, normalize_safety_domains(rules.get("safety_domains", []))):
         return None
-    if matches_domain(host, rules.get("domain_block", [])):
+    if matches_domain(host, expanded_block_domains(rules.get("domain_block", []))):
         return "Trang web nằm trong danh sách bị chặn."
     if rules.get("domain_mode") == "allowlist" and not matches_domain(
         host, rules.get("domain_allow", [])
@@ -282,7 +287,10 @@ class DNSProxy:
             if reason:
                 # Browsers issue A/AAAA/retry queries together. Coalesce nearby
                 # blocked events; the Tray separately limits popups per session.
-                key = (child_id, event_domain(host), reason, rules.get("_activity_epoch", 0))
+                # Keep the exact blocked hostname so a rule for drive.google.com
+                # is not misleadingly reported as a block of all google.com.
+                # Allowed-query analytics remain reduced to registrable domains.
+                key = (child_id, host, reason, rules.get("_activity_epoch", 0))
                 with self.lock:
                     now = time.monotonic()
                     if now - self.recent_blocks.get(key, -10) >= 5:

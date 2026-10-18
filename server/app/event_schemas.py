@@ -36,9 +36,15 @@ class ActivityPayload(Input):
     @field_validator("subject")
     @classmethod
     def minimal_subject(cls, value, info):
-        if info.data.get("type") in {"domain_query", "blocked_domain"}:
+        if info.data.get("type") == "domain_query":
             if domain_name(value) != event_domain(value):
                 raise ValueError("Event subject must be a registrable domain")
+        elif info.data.get("type") == "blocked_domain":
+            # A blocked hostname is safe to retain (there is still no path,
+            # query string or page content) and is needed to explain precisely
+            # which subdomain matched a rule.
+            if domain_name(value) != value:
+                raise ValueError("Blocked event subject must be a normalized hostname")
         elif any(c in value for c in ("/", "\\", "\n", "\r")):
             raise ValueError("Event subject must not contain paths or content")
         return value

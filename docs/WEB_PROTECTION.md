@@ -30,6 +30,10 @@ Trình duyệt có thể hiển thị thông báo được quản lý do policy 
   (hoặc `OGK_DNS_UPSTREAM`). Không đặt DNS phụ công khai.
 - Chrome/Edge: `DnsOverHttpsMode=off`; Firefox: `DNSOverHTTPS.Enabled=0`,
   `Locked=1`. Chỉ lưu/khôi phục các giá trị policy này, không xóa khóa policy khác.
+- Quy tắc tên miền cụ thể chỉ áp dụng cho chính tên đó và tên miền con. Ví dụ
+  `drive.google.com` không chặn `google.com`. Một số dịch vụ có nhóm miền đã
+  kiểm duyệt riêng: `shopee.vn` bao gồm các miền API/CDN Shopee và `youtube.com`
+  bao gồm các miền phát video/tài nguyên YouTube.
 - Lưu DNS tĩnh hoặc chế độ tự động theo từng GUID adapter và từng họ địa chỉ,
   cùng các giá trị browser policy cũ trong
   `%ProgramData%\OpenGuardKids\network-backup.json` (thư mục có ACL quản trị).
@@ -54,6 +58,10 @@ trình duyệt đang dùng nó. Kiểm tra `edge://policy`, `chrome://policy` ho
 `about:policies` sau khi mở lại trình duyệt. GPO của tổ chức, VPN, DoH riêng
 trong phần mềm khác, DNS mã hóa cấp hệ điều hành, IP trực tiếp và cache/kết nối
 đã mở có thể vượt bộ lọc. Chưa triển khai WFP hoặc firewall chống bypass.
+
+Sự kiện truy vấn thông thường chỉ lưu miền đăng ký để giảm dữ liệu. Sự kiện bị
+chặn lưu hostname chính xác (ví dụ `drive.google.com`) để không gây hiểu nhầm là
+toàn bộ `google.com` bị chặn; hệ thống vẫn không lưu đường dẫn, query hay nội dung.
 
 Sự kiện vẫn là truy vấn tên miền, không phải số lượt mở trang/thời gian ở trang.
 Không thu URL đầy đủ hay nội dung HTTPS. Khi tắt kiểm soát, DNS hệ thống được

@@ -14,7 +14,7 @@ from sqlalchemy.dialects.sqlite import insert
 from agent.event_queue import RETENTION_SECONDS
 from agent.filtering import matches_domain
 from common.activity_reports import REPORT_ZONE, activity_report, report_bounds
-from common.domains import normalize_safety_domains
+from common.domains import expanded_block_domains, normalize_safety_domains
 from common.filter_categories import CATEGORY_LABELS, category_catalog, classify_domain
 from common.report_charts import render_report_chart, rolling_week_columns
 from common.report_pdf import render_weekly_pdf
@@ -59,7 +59,7 @@ def preview_domain(child_id: str, body: DomainPreview, auth: ParentAuth, db: DB)
     if matches_domain(body.domain, normalize_safety_domains(rules["safety_domains"])):
         blocked = False
         reason = "Trang web thuộc danh sách luôn được phép (trường học/hỗ trợ)."
-    elif matches_domain(body.domain, rules["domain_block"]):
+    elif matches_domain(body.domain, expanded_block_domains(rules["domain_block"])):
         blocked = True
         reason = "Trang web nằm trong danh sách bị chặn."
     elif rules["domain_mode"] == "allowlist" and not matches_domain(body.domain, rules["domain_allow"]):
