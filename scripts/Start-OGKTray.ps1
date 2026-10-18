@@ -42,14 +42,28 @@ if ($RegisterStartup) {
 }
 
 if ($Restart) {
-    $trayProcesses = @(
-        Get-CimInstance Win32_Process | Where-Object {
-            $_.Name -in @("python.exe", "pythonw.exe") -and
-            $_.CommandLine -and
-            $_.CommandLine.IndexOf($RuntimeRoot, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
-            $_.CommandLine.IndexOf("agent.tray_ui", [StringComparison]::OrdinalIgnoreCase) -ge 0
-        } | Select-Object -ExpandProperty ProcessId -Unique
-    )
+    $trayProcesses = @()
+    try {
+        $trayProcesses = @(
+            Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {
+                $_.Name -in @("python.exe", "pythonw.exe") -and
+                $_.CommandLine -and
+                $_.CommandLine.IndexOf($RuntimeRoot, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+                $_.CommandLine.IndexOf("agent.tray_ui", [StringComparison]::OrdinalIgnoreCase) -ge 0
+            } | Select-Object -ExpandProperty ProcessId -Unique
+        )
+    }
+    catch {
+        # CIM can be denied in a standard child account. The Tray is the only
+        # pythonw process launched from this dedicated runtime, so its exact
+        # executable path is a safe fallback and avoids reopening stale code.
+        Write-Verbose "Could not inspect Tray command lines; using executable path: $($_.Exception.Message)"
+        $trayProcesses = @(
+            Get-Process -Name pythonw -ErrorAction SilentlyContinue | Where-Object {
+                $_.Path -and $_.Path.Equals($Pythonw, [StringComparison]::OrdinalIgnoreCase)
+            } | Select-Object -ExpandProperty Id -Unique
+        )
+    }
     foreach ($trayProcessId in $trayProcesses) {
         Stop-Process -Id $trayProcessId -Force
     }
