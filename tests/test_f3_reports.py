@@ -62,6 +62,39 @@ def test_report_zero_days_and_top_ten_are_stable():
     assert result["top_domains"][0]["subject"] == "domain-00.test"
 
 
+def test_report_merges_worker_processes_hides_system_helpers_and_caps_to_session():
+    ts = datetime(2026, 10, 5, 12, tzinfo=REPORT_ZONE).timestamp()
+    result = activity_report(
+        [
+            payload(ts, seconds=600),
+            payload(ts - 200, subject="browser.exe", seconds=500),
+            payload(ts, subject="browser.exe", seconds=500),
+            payload(ts, subject="msedgewebview2.exe", seconds=600),
+            payload(ts, subject="svchost.exe", seconds=600),
+            payload(ts, subject="DefenderSessionHelper.exe", seconds=600),
+            payload(ts, subject="node_repl.exe", seconds=600),
+        ],
+        end_date="2026-10-05",
+        days=1,
+    )
+    assert result["total_duration_sec"] == 600
+    assert result["top_apps"] == [
+        {"subject": "browser.exe", "duration_sec": 600, "starts": 0}
+    ]
+
+
+def test_report_intersects_many_activity_samples_without_double_counting():
+    start = datetime(2026, 10, 5, 12, tzinfo=REPORT_ZONE).timestamp()
+    events = []
+    for index in range(2_000):
+        stop = start + index * 2 + 1
+        events.append(payload(stop, seconds=1))
+        events.append(payload(stop, subject="browser.exe", seconds=2))
+    result = activity_report(events, end_date="2026-10-05", days=1)
+    assert result["total_duration_sec"] == 2_000
+    assert result["top_apps"][0]["duration_sec"] == 2_000
+
+
 def test_rolling_week_chart_has_eight_consecutive_seven_day_columns():
     start = datetime(2026, 8, 17, tzinfo=REPORT_ZONE)
     daily = [

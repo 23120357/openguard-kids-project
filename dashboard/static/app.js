@@ -18,6 +18,7 @@ const rowDomainLists = [];
 const mandatorySafetyDomain = 'tongdai111.vn';
 let domainDrafts = {domain_block: [], domain_allow: [], safety_domains: []};
 const dashboardTabs = ['overview', 'report', 'time-policy', 'filtering', 'activity'];
+let activeDashboardTab = 'overview';
 let activityOffset = 0;
 let activitySequence = 0;
 let childProfiles = [];
@@ -206,10 +207,17 @@ async function api(path, method = "GET", body) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (response.status === 204) return null;
-  const data = await response.json();
+  const text = await response.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; }
+  catch (_error) { /* A proxy or unhandled server error may return plain text. */ }
   if (!response.ok) {
     if (response.status === 401 && path !== "/auth/login") showLogin();
-    throw new Error(typeof data.detail === "string" ? data.detail : "Dữ liệu chưa hợp lệ.");
+    throw new Error(
+      typeof data?.detail === "string"
+        ? data.detail
+        : "Máy chủ gặp lỗi (HTTP " + response.status + "). Hãy thử lại.",
+    );
   }
   return data;
 }
@@ -237,8 +245,6 @@ function showLogin() {
 }
 async function loadPolicy() {
   currentPolicy = null;
-  el("pairing-code").textContent = "";
-  el("code-form").reset();
   const id = el("child-select").value;
   if (!id) { currentFiltering = null; return; }
   const policy = await api("/children/" + encodeURIComponent(id) + "/policy");
@@ -249,19 +255,30 @@ async function loadPolicy() {
   el("policy-form").elements.weekend_minutes.value = policy.weekend_minutes;
   el("policy-version").textContent = "Phiên bản " + policy.version;
   showSchedule(policy.schedule);
-  await loadFiltering(id);
+}
+async function refreshSelectedChildTab() {
+  const childId = el("child-select").value;
+  if (!childId) return;
+  if (activeDashboardTab === 'time-policy') await loadPolicy();
+  else if (activeDashboardTab === 'filtering') await loadFiltering(childId);
+  else if (activeDashboardTab === 'activity') await refreshActivity();
+  else if (activeDashboardTab === 'report') await refreshReport();
 }
 async function loadChildren(preferredId = null) {
   const rows = await api("/children");
   childProfiles = rows;
-  const oldId = preferredId || el("child-select").value;
+  const previousId = el("child-select").value;
+  const oldId = preferredId || previousId;
   el("child-select").replaceChildren(...rows.map(row => new Option(row.display_name, row.id)));
   if (rows.some(row => row.id === oldId)) el("child-select").value = oldId;
+  if (el("child-select").value !== previousId) {
+    el("pairing-code").textContent = "";
+    el("code-form").reset();
+  }
   const selected = rows.find(row => row.id === el("child-select").value);
   if (el('child-select').value !== oldId) activityOffset = 0;
   el("child-pin-status").textContent = selected ? (selected.has_pin ? "PIN đã được thiết lập." : "Hồ sơ cũ chưa có PIN; hãy tạo PIN trước khi đăng nhập trên máy trẻ.") : "";
-  await loadPolicy();
-  await refreshReport();
+  await refreshSelectedChildTab();
 }
 function renderList(id, lines, empty) {
   el(id).replaceChildren(...(lines.length ? lines : [empty]).map(line => {
@@ -307,8 +324,6 @@ function formatAuditEntry(a) {
   return new Date(a.ts * 1000).toLocaleString('vi-VN') + ' · ' + action + (child ? ' · ' + child.display_name : '') + (a.actor ? ' · ' + a.actor : '') + (changes.length ? ': ' + changes.join('; ') : '');
 }
 async function refreshStatus() {
-  await refreshActivity();
-  await refreshReport().catch(error => { el('report-status').textContent = error.message; });
   const [devices, audits, requests] = await Promise.all([
     api("/devices"), api("/audit"), api("/time-requests")
   ]);
@@ -418,7 +433,7 @@ function scheduleLiveRefresh(kind = "status") {
     pendingLiveKinds.clear();
     try {
       if (kinds.has("children")) await loadChildren();
-      else if (kinds.has("policy")) await loadPolicy();
+      else if (kinds.has("policy") || kinds.has("activity")) await refreshSelectedChildTab();
       await refreshStatus();
     } catch (error) { tell(error.message); }
   }, 100);
@@ -533,14 +548,16 @@ form("policy-form", async data => {
 });
 el("child-select").addEventListener("change", () => {
   clearReport();
+  el("pairing-code").textContent = "";
+  el("code-form").reset();
+  currentPolicy = null;
+  currentFiltering = null;
   activityOffset = 0;
   activitySequence++;
   el('activity-rows').replaceChildren();
   const selected = childProfiles.find(row => row.id === el("child-select").value);
   el("child-pin-status").textContent = selected ? (selected.has_pin ? "PIN đã được thiết lập." : "Hồ sơ cũ chưa có PIN; hãy tạo PIN trước khi đăng nhập trên máy trẻ.") : "";
-  loadPolicy().catch(e => tell(e.message));
-  refreshActivity().catch(e => tell(e.message));
-  refreshReport().catch(e => tell(e.message));
+  refreshSelectedChildTab().catch(e => tell(e.message));
 });
 el("logout").addEventListener("click", async () => {
   try { await api("/auth/logout", "POST", {}); showLogin(); tell(""); }
@@ -883,13 +900,14 @@ async function refreshActivity() {
     'Đã xóa trên máy chủ. Đang chờ agent xóa bộ đệm: ' + deletion.pending_devices.map(device => device.name + (device.revoked ? ' (đã thu hồi, cần xóa dữ liệu trên máy)' : '')).join(', ') + '. Thiết bị ngoại tuyến còn được ghép đôi sẽ xóa khi kết nối lại.';
 }
 function selectDashboardTab(name) {
+  activeDashboardTab = name;
   dashboardTabs.forEach(tab => {
     const selected = tab === name;
     el(tab + '-panel').hidden = !selected;
     el(tab + '-tab').setAttribute('aria-selected', String(selected));
     el(tab + '-tab').tabIndex = selected ? 0 : -1;
   });
-  if (name === 'activity' && csrf) refreshActivity().catch(error => tell(error.message));
+  if (csrf) refreshSelectedChildTab().catch(error => tell(error.message));
 }
 dashboardTabs.forEach((name, index) => {
   const tab = el(name + '-tab');

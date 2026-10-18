@@ -55,6 +55,10 @@ def _duration(seconds: float) -> str:
     return f"{hours} giờ {minutes:02d} phút" if hours else f"{minutes} phút"
 
 
+def _date(value: str) -> str:
+    return datetime.strptime(value, "%Y-%m-%d").strftime("%d/%m/%Y")
+
+
 def render_weekly_pdf(report: dict, child_name: str) -> bytes:
     """Render one child's Monday-Sunday activity as a downloadable PDF."""
     _register_fonts()
@@ -90,7 +94,7 @@ def render_weekly_pdf(report: dict, child_name: str) -> bytes:
     story = [
         p("Báo cáo hoạt động tuần", title),
         p(f"Hồ sơ: {child_name}"),
-        p(f"Từ {report['start_date']} đến {report['end_date']} · Giờ Việt Nam (UTC+7)"),
+        p(f"Từ {_date(report['start_date'])} đến {_date(report['end_date'])} · Giờ Việt Nam (UTC+7)"),
         Spacer(1, 10),
         table(
             ("Tổng thời gian dùng máy", "Số lần bị chặn"),
@@ -104,20 +108,24 @@ def render_weekly_pdf(report: dict, child_name: str) -> bytes:
     story.append(Spacer(1, 8))
     story.append(table(
         ("Ngày", "Thời gian sử dụng"),
-        [(item["date"], _duration(item["duration_sec"])) for item in report["daily"]],
+        [(_date(item["date"]), _duration(item["duration_sec"])) for item in report["daily"]],
         [255, 255],
     ))
-    story.append(p("Top 10 ứng dụng", heading))
-    story.append(table(
-        ("Ứng dụng", "Thời gian chạy"),
-        [(item["subject"], _duration(item["duration_sec"])) for item in report["top_apps"]]
-        or [("Chưa có dữ liệu", "")],
-        [350, 160],
-    ))
     story.append(KeepTogether([
-        p("Top 10 tên miền", heading),
+        p("Top ứng dụng đã sử dụng", heading),
+        p("Các ứng dụng có thể được mở cùng lúc; thời lượng giữa các ứng dụng có thể chồng lấp.", small),
+        Spacer(1, 5),
         table(
-            ("Tên miền", "Lượt truy vấn"),
+            ("Ứng dụng", "Thời gian hoạt động"),
+            [(item["subject"], _duration(item["duration_sec"])) for item in report["top_apps"]]
+            or [("Chưa có dữ liệu", "")],
+            [350, 160],
+        ),
+    ]))
+    story.append(KeepTogether([
+        p("Tên miền được thiết bị hỏi nhiều", heading),
+        table(
+            ("Tên miền", "Số lượt DNS"),
             [(item["subject"], str(item["queries"])) for item in report["top_domains"]]
             or [("Chưa có dữ liệu", "")],
             [350, 160],
