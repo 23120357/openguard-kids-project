@@ -12,7 +12,13 @@ if (-not (Test-Path -LiteralPath $EnvPath -PathType Leaf)) {
 
 function New-RandomBase64Url([int]$ByteCount) {
     $bytes = [byte[]]::new($ByteCount)
-    [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+    $generator = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $generator.GetBytes($bytes)
+    }
+    finally {
+        $generator.Dispose()
+    }
     return [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
 }
 
