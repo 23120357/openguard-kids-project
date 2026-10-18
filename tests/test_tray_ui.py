@@ -16,6 +16,7 @@ from agent.tray_ui import (
     TrayInstanceGuard,
     disabled_time_detail,
     format_clock,
+    format_audit_entry,
     format_local_datetime,
     format_policy_schedule,
     format_used_duration,
@@ -193,6 +194,25 @@ def test_policy_schedule_groups_simple_weekly_patterns():
     assert format_policy_schedule(["1" * 2 + "0" * 46] * 5 + ["0" * 48] * 2) == (
         "Thứ 2 – Thứ 6: 00:00–01:00\nCuối tuần: Không có giờ dùng máy"
     )
+
+
+def test_child_audit_hides_network_metadata_and_formats_values():
+    text = format_audit_entry(
+        {
+            "ts": 0,
+            "actor": "parent@example.test",
+            "ip": "127.0.0.1",
+            "action": "policy_updated",
+            "old_value": {"version": 10, "enabled": False, "weekday_minutes": 1},
+            "new_value": {"version": 11, "enabled": True, "weekday_minutes": 100},
+        },
+        {"policy_updated": "Phụ huynh đổi chính sách"},
+    )
+    assert "127.0.0.1" not in text
+    assert "parent@example.test" not in text
+    assert "False" not in text and "True" not in text
+    assert "trạng thái: đang tắt → đang bật" in text
+    assert "ngày thường: 1 phút → 100 phút" in text
 
 
 @pytest.mark.parametrize("value, expected", [(None, False), (0, False), (1, True), (1.5, True)])

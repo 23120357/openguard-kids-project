@@ -122,14 +122,16 @@ def format_audit_entry(item: dict[str, Any], names: dict[str, str]) -> str:
     old_value = item.get("old_value") if isinstance(item.get("old_value"), dict) else {}
     new_value = item.get("new_value") if isinstance(item.get("new_value"), dict) else {}
     changes = []
-    for key, label in (
-        ("version", "phiên bản"),
-        ("enabled", "bật"),
-        ("weekday_minutes", "ngày thường"),
-        ("weekend_minutes", "cuối tuần"),
-    ):
+    fields = (
+        ("version", "phiên bản", lambda value: str(value)),
+        ("enabled", "trạng thái", lambda value: "đang bật" if value else "đang tắt"),
+        ("weekday_minutes", "ngày thường", lambda value: f"{value} phút"),
+        ("weekend_minutes", "cuối tuần", lambda value: f"{value} phút"),
+    )
+    for key, label, describe in fields:
         if key in new_value and old_value.get(key) != new_value.get(key):
-            changes.append(f"{label}: {old_value.get(key, '—')} → {new_value[key]}")
+            before = "—" if key not in old_value else describe(old_value[key])
+            changes.append(f"{label}: {before} → {describe(new_value[key])}")
     if old_value.get("schedule") != new_value.get("schedule") and "schedule" in new_value:
         changes.append("lịch tuần đã đổi")
     detail = f" ({'; '.join(changes)})" if changes else ""
@@ -139,10 +141,10 @@ def format_audit_entry(item: dict[str, Any], names: dict[str, str]) -> str:
         .strftime("%d/%m/%Y %H:%M:%S")
     )
     action = names.get(item.get("action"), item.get("action", "Thay đổi"))
-    return (
-        f"• {timestamp} · {item.get('actor', 'phụ huynh')} · "
-        f"{item.get('ip', 'IP không rõ')} · {action}{detail}"
-    )
+    # This is a child-facing explanation, not the administrator audit view.
+    # Keep actor/IP metadata on the server but do not expose technical network
+    # details (especially localhost) in the Tray UI.
+    return f"• {timestamp} · {action}{detail}"
 
 
 def format_policy_schedule(rows: list[str]) -> str:
@@ -1311,6 +1313,7 @@ class TrayApplication:
             audits = data.get("child_audit", [])[:5]
             audit_names = {
                 "policy_updated": "Phụ huynh đổi chính sách",
+                "filtering_updated": "Phụ huynh đổi kiểm soát web và ứng dụng",
                 "enrollment_consent": "Phụ huynh đồng ý ghép thiết bị",
                 "emergency_command_created": "Phụ huynh gửi lệnh khẩn",
                 "emergency_command_acknowledged": "Agent xác nhận lệnh khẩn",
