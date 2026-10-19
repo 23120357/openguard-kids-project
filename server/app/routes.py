@@ -833,20 +833,20 @@ def devices(auth: ParentAuth, db: DB):
         {
             "id": row.id,
             "child_id": row.child_id,
-            "active_child_id": row.active_child_id,
+            "active_child_id": None if row.revoked else row.active_child_id,
             "display_name": row.display_name,
             "last_seen": row.last_seen,
             "policy_version": row.policy_version,
             "online": bool(not row.revoked and row.last_seen and now - row.last_seen < 120),
             "revoked": row.revoked,
-            "active_user": row.active_user,
-            "active_since": row.active_since,
-            "used_seconds": row.used_seconds,
-            "remaining_seconds": row.remaining_seconds,
-            "quota_seconds": row.quota_seconds,
-            "extra_seconds": row.extra_seconds,
-            "active_usage": row.active_usage,
-            "time_status_at": row.time_status_at,
+            "active_user": None if row.revoked else row.active_user,
+            "active_since": None if row.revoked else row.active_since,
+            "used_seconds": None if row.revoked else row.used_seconds,
+            "remaining_seconds": None if row.revoked else row.remaining_seconds,
+            "quota_seconds": None if row.revoked else row.quota_seconds,
+            "extra_seconds": None if row.revoked else row.extra_seconds,
+            "active_usage": False if row.revoked else row.active_usage,
+            "time_status_at": None if row.revoked else row.time_status_at,
             "server_time": now,
         }
         for row in rows
@@ -866,6 +866,15 @@ async def revoke_device(device_id: str, request: Request, auth: ParentAuth, db: 
         row.revoked = True
         row.access_hash = digest(new_token())
         row.refresh_hash = digest(new_token())
+        row.active_user = None
+        row.active_child_id = None
+        row.active_since = None
+        row.used_seconds = None
+        row.remaining_seconds = None
+        row.quota_seconds = None
+        row.extra_seconds = None
+        row.active_usage = False
+        row.time_status_at = None
         db.add(
             Audit(
                 parent_id=auth.parent_id,

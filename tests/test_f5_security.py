@@ -61,10 +61,26 @@ def test_device_key_is_encrypted_at_rest_and_revoke_invalidates_tokens(parent, c
         assert device.policy_signing_key.startswith("enc:v1:")
         assert device.policy_signing_key != tokens["policy_signing_key"]
         assert device.fingerprint == digest("random-installation-identifier")
+        device.active_child_id = child["id"]
+        device.active_user = child["display_name"]
+        device.active_since = 1
+        device.used_seconds = 60
+        device.remaining_seconds = 120
+        device.quota_seconds = 180
+        device.extra_seconds = 0
+        device.active_usage = True
+        device.time_status_at = 1
+        db.commit()
     response = parent.post(f"/api/devices/{tokens['device_id']}/revoke", json={})
     assert response.status_code == 200
     assert response.json()["revoked"] is True
-    assert parent.get("/api/devices").json()[0]["revoked"] is True
+    revoked = parent.get("/api/devices").json()[0]
+    assert revoked["revoked"] is True
+    assert revoked["active_child_id"] is None
+    assert revoked["active_user"] is None
+    assert revoked["used_seconds"] is None
+    assert revoked["remaining_seconds"] is None
+    assert revoked["active_usage"] is False
     assert (
         parent.get(
             "/api/policy", headers={"Authorization": "Bearer " + tokens["access_token"]}

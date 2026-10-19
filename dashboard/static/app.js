@@ -1,6 +1,8 @@
 "use strict";
 let csrf = "";
 let currentPolicy = null;
+let policyDirty = false;
+let policySequence = 0;
 let currentFiltering = null;
 let filteringDirty = false;
 let filteringSequence = 0;
@@ -226,7 +228,7 @@ function showLogin() {
   if (liveEvents) { liveEvents.close(); liveEvents = null; }
   if (liveRefreshTimer) { clearTimeout(liveRefreshTimer); liveRefreshTimer = null; }
   pendingLiveKinds.clear();
-  csrf = ""; currentPolicy = null; childProfiles = [];
+  csrf = ""; currentPolicy = null; policyDirty = false; policySequence++; childProfiles = [];
   currentFiltering = null; activityOffset = 0; activitySequence++;
   observedApps = []; appDrafts = {app_allow: [], app_block: []};
   reportSequence++;
@@ -243,18 +245,33 @@ function showLogin() {
   el('filtering-form').reset(); el('deletion-status').textContent = ''; el('activity-empty').textContent = '';
   el("policy-form").reset(); el("code-form").reset();
 }
-async function loadPolicy() {
-  currentPolicy = null;
+function setPolicyLoading(loading) {
+  const form = el("policy-form");
+  form.setAttribute("aria-busy", String(loading));
+  Array.from(form.elements).forEach(control => { control.disabled = loading; });
+}
+async function loadPolicy(force = false) {
   const id = el("child-select").value;
   if (!id) { currentFiltering = null; return; }
-  const policy = await api("/children/" + encodeURIComponent(id) + "/policy");
-  if (el("child-select").value !== id) return;
-  currentPolicy = policy;
-  el("policy-form").elements.enabled.checked = policy.enabled;
-  el("policy-form").elements.weekday_minutes.value = policy.weekday_minutes;
-  el("policy-form").elements.weekend_minutes.value = policy.weekend_minutes;
-  el("policy-version").textContent = "Phiên bản " + policy.version;
-  showSchedule(policy.schedule);
+  if (!force && policyDirty && currentPolicy?.child_id === id) return;
+  const sequence = ++policySequence;
+  if (currentPolicy?.child_id !== id) currentPolicy = null;
+  setPolicyLoading(true);
+  el("policy-version").textContent = "Đang tải chính sách…";
+  try {
+    const policy = await api("/children/" + encodeURIComponent(id) + "/policy");
+    if (!csrf || sequence !== policySequence || el("child-select").value !== id) return;
+    if (!force && policyDirty && currentPolicy?.child_id === id) return;
+    currentPolicy = policy;
+    policyDirty = false;
+    el("policy-form").elements.enabled.checked = policy.enabled;
+    el("policy-form").elements.weekday_minutes.value = policy.weekday_minutes;
+    el("policy-form").elements.weekend_minutes.value = policy.weekend_minutes;
+    el("policy-version").textContent = "Phiên bản " + policy.version;
+    showSchedule(policy.schedule);
+  } finally {
+    if (sequence === policySequence && el("child-select").value === id) setPolicyLoading(false);
+  }
 }
 async function refreshSelectedChildTab() {
   const childId = el("child-select").value;
@@ -342,9 +359,13 @@ async function refreshStatus() {
     detail("Trạng thái", d.revoked ? "Đã thu hồi quyền truy cập" : d.online ? "Trực tuyến" : "Ngoại tuyến");
     detail("Phiên bản chính sách", "v" + d.policy_version);
     detail("Lần kết nối gần nhất", d.last_seen ? new Date(d.last_seen * 1000).toLocaleString("vi-VN") : "Chưa gửi heartbeat");
-    detail("Đang dùng", d.active_user || "Chưa đăng nhập");
-    if (d.active_since) detail("Bắt đầu phiên", new Date(d.active_since * 1000).toLocaleString("vi-VN"));
-    if (d.active_child_id && d.used_seconds != null && d.remaining_seconds != null) {
+    if (d.revoked) {
+      detail("Quyền điều khiển", "Đã ngắt. Muốn dùng lại, hãy ghép đôi thiết bị bằng mã mới.");
+    } else {
+      detail("Đang dùng", d.active_user || "Chưa đăng nhập");
+    }
+    if (!d.revoked && d.active_since) detail("Bắt đầu phiên", new Date(d.active_since * 1000).toLocaleString("vi-VN"));
+    if (!d.revoked && d.active_child_id && d.used_seconds != null && d.remaining_seconds != null) {
       const timeLine = document.createElement("div"); timeLine.className = "device-countdown";
       const reportAge = d.time_status_at ? Math.max(0, d.server_time - d.time_status_at) : Infinity;
       const running = d.online && d.active_usage && reportAge < 10;
@@ -363,6 +384,8 @@ async function refreshStatus() {
       const remainingValue = document.createElement("span"); remainingValue.className = "device-remaining";
       remaining.append(remainingLabel, remainingValue);
       timeLine.append(used, remaining); details.append(timeLine);
+    } else if (d.revoked) {
+      // Revoked devices intentionally have no live session or quota data.
     } else if (!("time_status_at" in d)) {
       detail("Đã dùng hôm nay", "Server đang chạy bản cũ; hãy khởi động lại server");
       detail("Còn lại hôm nay", "Chưa thể đồng bộ");
@@ -373,27 +396,27 @@ async function refreshStatus() {
       detail("Đã dùng hôm nay", "Chưa có phiên sử dụng");
       detail("Còn lại hôm nay", "Chưa có dữ liệu");
     }
-    const actions = document.createElement("div"); actions.className = "device-actions";
-    [["Khóa ngay", "lock_now"]].forEach(([label, command]) => {
-      const button = document.createElement("button"); button.type = "button"; button.textContent = label;
-      button.disabled = d.revoked;
-      button.addEventListener("click", () => sendCommand(d.id, command, button)); actions.append(button);
-    });
-    const minutes = document.createElement("input"); minutes.type = "number"; minutes.min = "1";
-    minutes.max = "120"; minutes.value = deviceGrantMinutes.get(d.id) || "15"; minutes.className = "grant-minutes";
-    minutes.setAttribute("aria-label", "Số phút cộng thêm hôm nay");
-    minutes.addEventListener("input", () => deviceGrantMinutes.set(d.id, minutes.value));
-    const grant = document.createElement("button"); grant.type = "button"; grant.textContent = "Cộng phút";
-    grant.disabled = !d.active_child_id || d.revoked;
-    grant.addEventListener("click", () => sendCommand(d.id, "add_time", grant, Number(minutes.value)));
-    actions.append(minutes, grant);
     if (!d.revoked) {
+      const actions = document.createElement("div"); actions.className = "device-actions";
+      const lock = document.createElement("button"); lock.type = "button"; lock.textContent = "Khóa ngay";
+      lock.addEventListener("click", () => sendCommand(d.id, "lock_now", lock)); actions.append(lock);
+      const minutes = document.createElement("input"); minutes.type = "number"; minutes.min = "1";
+      minutes.max = "120"; minutes.value = deviceGrantMinutes.get(d.id) || "15"; minutes.className = "grant-minutes";
+      minutes.setAttribute("aria-label", "Số phút cộng thêm hôm nay");
+      minutes.addEventListener("input", () => deviceGrantMinutes.set(d.id, minutes.value));
+      const grant = document.createElement("button"); grant.type = "button"; grant.textContent = "Cộng phút";
+      grant.disabled = !d.active_child_id;
+      grant.addEventListener("click", () => sendCommand(d.id, "add_time", grant, Number(minutes.value)));
+      actions.append(minutes, grant);
       const revoke = document.createElement("button"); revoke.type = "button";
       revoke.className = "secondary"; revoke.textContent = "Thu hồi thiết bị";
       revoke.addEventListener("click", () => revokeDevice(d.id, d.display_name, revoke));
       actions.append(revoke);
+      li.append(title, details, actions);
+    } else {
+      li.append(title, details);
     }
-    li.append(title, details, actions); return li;
+    return li;
   }) : [Object.assign(document.createElement("li"), {textContent: "Chưa có thiết bị. Hãy tạo mã ghép đôi."})];
   el("devices").replaceChildren(...deviceItems);
   updateDeviceCountdowns();
@@ -542,6 +565,7 @@ form("policy-form", async data => {
     schedule: scheduleFromForm(el("policy-form")),
   });
   currentPolicy = result;
+  policyDirty = false;
   el("policy-version").textContent = "Phiên bản " + result.version;
   tell("Đã lưu. Agent sẽ nhận cấu hình ở heartbeat tiếp theo.");
   await refreshStatus();
@@ -550,6 +574,8 @@ el("child-select").addEventListener("change", () => {
   clearReport();
   el("pairing-code").textContent = "";
   el("code-form").reset();
+  policyDirty = false;
+  policySequence++;
   currentPolicy = null;
   currentFiltering = null;
   activityOffset = 0;
@@ -558,6 +584,12 @@ el("child-select").addEventListener("change", () => {
   const selected = childProfiles.find(row => row.id === el("child-select").value);
   el("child-pin-status").textContent = selected ? (selected.has_pin ? "PIN đã được thiết lập." : "Hồ sơ cũ chưa có PIN; hãy tạo PIN trước khi đăng nhập trên máy trẻ.") : "";
   refreshSelectedChildTab().catch(e => tell(e.message));
+});
+el("policy-form").addEventListener("focusin", event => {
+  if (currentPolicy && event.target.matches("input, select, button[type='button']")) policyDirty = true;
+});
+el("policy-form").addEventListener("input", event => {
+  if (currentPolicy && event.target.matches("input, select")) policyDirty = true;
 });
 el("logout").addEventListener("click", async () => {
   try { await api("/auth/logout", "POST", {}); showLogin(); tell(""); }
