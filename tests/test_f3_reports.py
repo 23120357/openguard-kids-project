@@ -16,7 +16,8 @@ from agent.filtering import DNSProxy
 from agent.ipc_protocol import new_request
 from agent.time_control import MemoryTimeStore, SQLiteTimeStore
 from common.activity_reports import REPORT_ZONE, SESSION_SUBJECT, activity_report
-from common.report_charts import rolling_week_columns
+from common.report_charts import _daily_axis_label, rolling_week_columns
+from common.report_pdf import _friendly_app_name, _weekday_date
 from server.app.event_routes import expire_events
 from server.app.models import TimeRequest
 
@@ -73,6 +74,9 @@ def test_report_merges_worker_processes_hides_system_helpers_and_caps_to_session
             payload(ts, subject="svchost.exe", seconds=600),
             payload(ts, subject="DefenderSessionHelper.exe", seconds=600),
             payload(ts, subject="node_repl.exe", seconds=600),
+            payload(ts, subject="atieclxx.exe", seconds=600),
+            payload(ts, subject="WidgetBoard.exe", seconds=600),
+            payload(ts, subject="MCHOSE HUB Watcher.exe", seconds=600),
         ],
         end_date="2026-10-05",
         days=1,
@@ -109,6 +113,15 @@ def test_rolling_week_chart_has_eight_consecutive_seven_day_columns():
     assert [row["duration_sec"] for row in columns] == [7 * 3600, 0, 0, 0, 0, 0, 0, 14 * 3600]
     assert columns[0]["week_start"] == daily[0]["date"]
     assert columns[-1]["week_end"] == daily[-1]["date"]
+
+
+def test_parent_facing_report_labels_are_plain_and_include_calendar_context():
+    assert _daily_axis_label("2026-10-19") == ("T2", "19/10")
+    assert _daily_axis_label("2026-10-25") == ("CN", "25/10")
+    assert _weekday_date("2026-10-19") == "Thứ Hai, 19/10/2026"
+    assert _weekday_date("2026-10-25") == "Chủ nhật, 25/10/2026"
+    assert _friendly_app_name("chrome.exe") == "Google Chrome"
+    assert _friendly_app_name("Ứng dụng vẽ.exe") == "Ứng dụng vẽ"
 
 
 def test_parent_chart_endpoints_keep_fixed_windows(parent, child, monkeypatch):
@@ -230,7 +243,8 @@ def test_weekly_pdf_contains_child_activity_and_download_headers(parent, child):
     content = "\n".join(page.extract_text() for page in reader.pages)
     assert "Báo cáo hoạt động tuần" in content
     assert "Bé An" in content
-    assert "Ứng dụng vẽ.exe" in content
+    assert "Thứ Hai" in content
+    assert "Ứng dụng vẽ" in content
 
 
 def test_erasure_and_retention_include_request_activity(parent, child, app):

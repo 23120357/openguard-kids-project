@@ -1,16 +1,17 @@
 """Small, deterministic PNG charts for parent activity reports."""
 
+from datetime import date
 from io import BytesIO
 from math import ceil
 
 from PIL import Image, ImageDraw, ImageFont
 
 WIDTH = 800
-HEIGHT = 260
+HEIGHT = 310
 PLOT_LEFT = 72
 PLOT_RIGHT = 780
 PLOT_TOP = 18
-PLOT_BOTTOM = 232
+PLOT_BOTTOM = 220
 BACKGROUND = "#F3F8F5"
 BAR = "#226B54"
 GRID = "#B8CCC1"
@@ -25,7 +26,7 @@ def rolling_week_columns(daily):
         {
             "week_start": daily[index]["date"],
             "week_end": daily[index + 6]["date"],
-            "duration_sec": sum(row["duration_sec"] for row in daily[index:index + 7]),
+            "duration_sec": sum(row["duration_sec"] for row in daily[index : index + 7]),
         }
         for index in range(0, 56, 7)
     ]
@@ -41,6 +42,18 @@ def _hour_step(maximum_seconds):
 
 def _hour_label(hours):
     return f"{hours:g}".replace(".", ",")
+
+
+def _duration_label(seconds):
+    minutes = max(0, round(seconds)) // 60
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}g {minutes:02d}p" if hours else f"{minutes}p"
+
+
+def _daily_axis_label(value):
+    day = date.fromisoformat(value)
+    weekdays = ("T2", "T3", "T4", "T5", "T6", "T7", "CN")
+    return weekdays[day.weekday()], day.strftime("%d/%m")
 
 
 def _font(size):
@@ -98,13 +111,31 @@ def render_report_chart(items, kind):
         bar_width = max(3, min(22, round(slot * 0.60)))
         for index, row in enumerate(items):
             value = max(0, row["duration_sec"])
+            x = PLOT_LEFT + (index + 0.5) * slot
             if value:
-                x = PLOT_LEFT + (index + 0.5) * slot
                 top = PLOT_BOTTOM - max(2, round((PLOT_BOTTOM - PLOT_TOP) * value / axis_max))
                 draw.rounded_rectangle(
                     (round(x - bar_width / 2), top, round(x + bar_width / 2), PLOT_BOTTOM),
-                    radius=min(3, bar_width // 3), fill=BAR,
+                    radius=min(3, bar_width // 3),
+                    fill=BAR,
                 )
+                value_label = _duration_label(value)
+                value_width = draw.textlength(value_label, font=_font(12))
+                draw.text(
+                    (round(x - value_width / 2), max(PLOT_TOP, top - 18)),
+                    value_label,
+                    fill=TEXT,
+                    font=_font(12),
+                )
+            if kind == "daily":
+                weekday, calendar_day = _daily_axis_label(row["date"])
+                for line, y, font_size in (
+                    (weekday, PLOT_BOTTOM + 8, 13),
+                    (calendar_day, PLOT_BOTTOM + 27, 12),
+                ):
+                    font = _font(font_size)
+                    label_width = draw.textlength(line, font=font)
+                    draw.text((round(x - label_width / 2), y), line, fill=TEXT, font=font)
     output = BytesIO()
     image.save(output, format="PNG", optimize=True)
     return output.getvalue()
